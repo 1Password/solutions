@@ -7,7 +7,16 @@ This repository contains example and demo scripts for `op` with the intent of pr
 
 The scripts here assume you have the `op` [installed and configured](https://developer.1password.com/docs/cli/get-started). 
 
+## Complete 1Password command line tool documentation
+For full documentation of the 1Password command line interface, please visit [developer.1password.com/docs/cli/](https://developer.1password.com/docs/cli/) 
+
+## Handy tools
+`jq`, a command line tool with robust JSON support, is an essential tool when using `op`. Many of the provided examples use `jq` and you will need it installed before using any of the examples here. Download `jq` from [the developer](https://stedolan.github.io/jq/).
+
+## Note
 Unless otherwise stated, these scripts are not intended to be run in an automated or unattended environment.
+
+Scripts provided here are not intended to be run as-is. They are intended as examples of how to perform certain tasks. You will need to modify the scripts to fit your exact needs and suite your specific environment. 
 
 ## Contents
 * [Provision new users from a CSV](./op-cli-example-scripts/scripted-provisioning/)

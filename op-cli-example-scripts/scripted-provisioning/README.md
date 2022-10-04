@@ -1,7 +1,8 @@
 # Scripted provisioning with the 1Password CLI tool
+## Introduction
+This script uses 1Password's Command Line Tool v2 to read names and email addresses from a file on disk and invite each person on the last to join a 1Password Business account. 
 
-This script uses 1Password's Command Line Tool v2, in combination with Bash, to read names and email addresses from a file on disk and invite each person on the last to join a 1Password Business account. 
-
+For more information about managing users with the 1Password command line tool, see the complete documentation for [op user](https://developer.1password.com/docs/cli/reference/management-commands/user).
 
 ## Account setup
 Enable provisioning via the CLI on your 1Password account by visiting https://start.1password.com/settings/provisioning/cli. This will create a group called "Provisioning Manager" with a special permission (Provision People). This allows any member of that group to invite peopl using the 1Password CLI. Only the account you created for the purposes of provisioning users needs to be added to this group, but you can add others to this gorup as needed. 
