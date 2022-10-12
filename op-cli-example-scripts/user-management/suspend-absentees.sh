@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Store output of op only for currently-active users. 
-json=$(op user list --format=json --account michaelscottpapercompany | op user get - --format=json --account michaelscottpapercompany | jq -r 'select(.state == "ACTIVE")') 
+json=$(op user list --format=json | op user get - --format=json | jq -r 'select(.state == "ACTIVE")') 
 
 # Set threshold for max idle time
 threshold=548475 # temporary value for development to ensure mix of results. Change to 7776000 for 90 days. 
@@ -20,8 +20,11 @@ echo $idle_users | jq -r '.id + "   " + .name' | awk  'BEGIN { FS="\t" } { print
 # Print only the UUID of each idle user
 echo $idle_users | jq -r '.id + "   " + .name' | awk  '{ print $1 }' 
 
-
+# ====================================================================
 # At this point you could assign those UUID's to an array:
+#
 # idle_user_array=($(echo $idle_users | jq -r '.id + "   " + .name' | awk  '{ print $1 }'))
-# then loop through the array with op suspend $uuid
-
+#
+# Then loop through the array with:
+#op suspend $uuid
+# ====================================================================
