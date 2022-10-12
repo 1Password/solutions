@@ -18,7 +18,7 @@ echo 'The following users have been idle for longer than '$threshold_days' days'
 echo $idle_users | jq -r '.id + "   " + .name' | awk  'BEGIN { FS="\t" } { print $1, $2 }'
 
 # Print only the UUID of each idle user
-echo $idle_users | jq -r '.id + "   " + .name' | awk  '{ print $1 }' 
+# echo $idle_users | jq -r '.id + "   " + .name' | awk  '{ print $1 }' 
 
 # ====================================================================
 # At this point you could assign those UUID's to an array:
@@ -26,5 +26,5 @@ echo $idle_users | jq -r '.id + "   " + .name' | awk  '{ print $1 }'
 # idle_user_array=($(echo $idle_users | jq -r '.id + "   " + .name' | awk  '{ print $1 }'))
 #
 # Then loop through the array with:
-#op suspend $uuid
+# op suspend $uuid
 # ====================================================================
