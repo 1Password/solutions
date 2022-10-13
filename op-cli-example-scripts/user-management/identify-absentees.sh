@@ -9,7 +9,7 @@
 read threshold_days\?"After how many days is someone idle? "
 
 # Store output of op only for currently-active users. 
-json=$(op user list --format=json | op user get - --format=json | jq -r 'select(.state == "ACTIVE")') 
+# json=$(op user list --format=json | op user get - --format=json | jq -r 'select(.state == "ACTIVE")') 
 
 echo " "
 echo "Great, we'll find users who have not signed into 1Password in $threshold_days days"
@@ -22,8 +22,9 @@ idle_users=$(echo $json | jq --argjson threshold $threshold 'if now - (.last_aut
 
 echo 'The following users have been idle for longer than '$threshold_days' days or '$threshold' seconds'
 
-# Print the UUID, name, and email of each idle user
-echo $idle_users | jq -r '.id + "\t" + .name + "\t" + .email + "\t" + "last unlocked: " + .last_auth_at' | awk  'BEGIN { FS="\t" } { print $1, "\t" $2, "\t" $3, "\t" $4 }'
+# Print the UUID, name, email, and last authentication date of each idle user.
+# Currently outputting all fields with tabs. Adjust order and separater as desired with awk 
+echo $idle_users | jq -r '.id + "\t" + .name + "\t" + .email + "\t" + .last_auth_at' | awk  'BEGIN { FS="\t" } { print $1, "\t" $2, "\t" $3, "\t" $4 }'
 
 # ====================================================================
 # Some other printing options
