@@ -24,7 +24,7 @@ echo 'The following users have been idle for longer than '$threshold_days' days 
 
 # Print the UUID, name, email, and last authentication date of each idle user.
 # Currently outputting all fields with tabs. Adjust order and separater as desired with awk 
-echo $idle_users | jq -r '.id + "\t" + .name + "\t" + .email + "\t" + .last_auth_at' | awk  'BEGIN { FS="\t" } { print $1, "\t" $2, "\t" $3, "\t" $4 }'
+echo $idle_users | jq -r '.id + "\t" + .name + "\t" + .email + "\t" + .last_auth_at'
 
 # ====================================================================
 # Some other printing options
