@@ -20,7 +20,7 @@ threshold=$((threshold_days * 86400))
 # calculate the difference between now and last_auth_at and select only those users idle for longer than $threshold
 idle_users=$(echo $json | jq --argjson threshold $threshold 'if now - (.last_auth_at | strptime("%Y-%m-%dT%H:%M:%SZ") | mktime) > $threshold then .idle="true" else .idle="false" end | select(.idle == "true")')
 
-echo 'The following users have been idle for longer than '$threshold_days' days or '$threshold' seconds'
+echo 'The following users have been idle for longer than '$threshold_days' days:'
 
 # Print the UUID, name, email, and last authentication date of each idle user.
 # Currently outputting all fields with tabs. Adjust order and separater as desired with awk 
