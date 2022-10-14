@@ -6,10 +6,14 @@
 # The script prompts you for the number of days after which point you deem a user to be "idle" and 
 # will list all users who have not unlocked 1Password in that time. 
 
-read threshold_days\?"After how many days is someone idle? "
+{
+echo "After how many days is someone idle? "
+read;
+threshold_days=${REPLY}
+}
 
 # Store output of op only for currently-active users. 
-# json=$(op user list --format=json | op user get - --format=json | jq -r 'select(.state == "ACTIVE")') 
+json=$(op user list --format=json | op user get - --format=json | jq -r 'select(.state == "ACTIVE")') 
 
 echo " "
 echo "Great, we'll find users who have not signed into 1Password in $threshold_days days"
