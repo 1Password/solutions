@@ -18,6 +18,9 @@ json=$(op user list --format=json | op user get - --format=json | jq -r 'select(
 echo " "
 echo "Great, we'll find users who have not signed into 1Password in $threshold_days days"
 echo " "
+# Store output of op only for currently-active users. 
+# json=$(op user list --format=json | op user get - --format=json | jq -r 'select(.state == "ACTIVE")') 
+
 # Set threshold for max idle time Change to 7776000 for 90 days
 threshold=$((threshold_days * 86400))
 
