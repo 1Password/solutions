@@ -7,13 +7,15 @@
 # will list all users who have not unlocked 1Password in that time. 
 
 {
-echo "After how many days is someone idle? "
+echo -n "Please specify the number of days after which someone is considered idle? "
 read;
 threshold_days=${REPLY}
 }
 
 echo " "
-echo "Great, we'll find users who have not signed into 1Password in $threshold_days days"
+echo "Great, we'll find users who have not signed into 1Password in $threshold_days days."
+echo "This process can take anywhere from a few seconds to a few minutes, depending on "
+echo "how many people are a part of your 1Password account."
 echo " "
 
 # Store output of op only for currently-active users. 
@@ -25,15 +27,22 @@ threshold=$((threshold_days * 86400))
 # calculate the difference between now and last_auth_at and select only those users idle for longer than $threshold
 idle_users=$(echo $json | jq --argjson threshold $threshold 'if now - (.last_auth_at | strptime("%Y-%m-%dT%H:%M:%SZ") | mktime) > $threshold then .idle="true" else .idle="false" end | select(.idle == "true")')
 
-echo 'The following users have been idle for longer than '$threshold_days' days:'
+echo "The following users have been idle for longer than $threshold_days days:"
 
 # Print the UUID, name, email, and last authentication date of each idle user.
-# Currently outputting all fields with tabs. Adjust order and separater as desired with awk 
-echo $idle_users | jq -r '.id + "\t" + .name + "\t" + .email + "\t" + .last_auth_at'
+# Output all fields with tabs. Echoes to your shell and outputs to output.txt 
+# in the current working directory.
+echo $idle_users | jq -r '[.id, .name, .email, .last_auth_at] | @tsv'
+echo $idle_users | jq -r '[.id, .name, .email, .last_auth_at] | @tsv' > ./output.txt
+
 
 # ====================================================================
 # Some other printing options
 # ====================================================================
+# Alternative to achieve same output using concatentation allowing you to change the delimiter. 
+# echo $idle_users | jq -r '.id + "\t" + .name + "\t" + .email + "\t" + .last_auth_at' > ./output.txt
+# 
+# 
 # Print only the UUID of each idle user
 # echo $idle_users | jq -r '.id'
 # 
