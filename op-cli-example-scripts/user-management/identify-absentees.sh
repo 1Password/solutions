@@ -7,7 +7,7 @@
 # will list all users who have not unlocked 1Password in that time. 
 
 {
-echo -n "Please specify the number of days after which someone is considered idle? "
+echo -p "Please specify the number of days after which someone is considered idle? "
 read;
 threshold_days=${REPLY}
 }
