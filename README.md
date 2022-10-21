@@ -19,7 +19,7 @@ Unless otherwise stated, these scripts are not intended to be run in an automate
 Scripts provided here are not intended to be run as-is. They are intended as examples of how to perform certain tasks. You will need to modify the scripts to fit your exact needs and suite your specific environment. 
 
 ## Contents
-* [Provision new users from a CSV](./op-cli-example-scripts/scripted-provisioning/)
-* [Scripts for auditing or managing existing users](./op-cli-example-scripts/user-management/)
-* [Scripts for managing your vaults and groups](./op-cli-example-scripts/account-management/)
-* [Scripts for creating or updating items in bulk](./op-cli-example-scripts/item-management)
+* [Provision new users from a CSV](./scripted-provisioning/)
+* [Scripts for auditing or managing existing users](./user-management/)
+* [Scripts for managing your vaults and groups](./account-management/)
+* [Scripts for creating or updating items in bulk](item-management)
