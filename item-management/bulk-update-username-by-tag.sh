@@ -10,7 +10,6 @@ tags="<one,or,more,tags>"
 newUsername="username"
 
 
-# TODO add new url to each item
 for item in $(op item list --tags $tags --format=json | jq --raw-output '.[].id')
 do
 	op item edit $item username=$newUsername
