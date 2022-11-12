@@ -14,7 +14,7 @@ When run by a member of the Owners group, this script will remove the `export it
 When run by a non-Owner, this script will remove the `export` permission on vaults that the person running the script also has the `manage vault` permissions for. 
 
 ## Considerations
-The majority of the scripts here are best if run by someone belonging to the Owners group in 1Password. This is because only the Owners group is guaranteed to have at least "manage vault" permissions on every shared vault in a 1Password Business account. Running these scripts as a user not in the Owners group may result in incomplete information or in changes not being made for all vaults. 
+The majority of the scripts here are best if run by someone belonging to the Owners group in 1Password. This is because only the Owners group is guaranteed to have at least `manage vault` permissions on every shared vault in a 1Password Business account. Running these scripts as a user not in the Owners group may result in incomplete information or in changes not being made for all vaults. 
 
 ## Essential reading
 In addition to the examples here, please review the complete documentation at developer.1password.com, especially:
