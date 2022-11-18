@@ -6,7 +6,7 @@
 # Note that if you specify multiple tags, they are separated by an "or", meaning
 # an item with `tag a` OR `tag b` or both `tag a` and `tag b` will be selected . 
 
-tags="<one,or,more,tags>"
+tags="one,or,more,tags"
 newUsername="username"
 
 
