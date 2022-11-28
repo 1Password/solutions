@@ -14,7 +14,7 @@ do
     name=$(op group get $group --format json | jq -r .name)
     echo $name
     # OLD is the prefix to be removed. NEW is the prefix to be added. 
-    # Leave the ^ character to ensure the substitution only applies to the prefix rather than another part of the na,e
+    # Leave the ^ character to ensure the substitution only applies to the prefix rather than another part of the name
 	name=$(echo $name | sed 's/^OLD/NEW/g')  
 	echo $name
     op group edit $group --name="$name"

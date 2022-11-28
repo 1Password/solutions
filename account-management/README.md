@@ -13,6 +13,15 @@ When run by a member of the Owners group, this script will remove the `export it
 
 When run by a non-Owner, this script will remove the `export` permission on vaults that the person running the script also has the `manage vault` permissions for. 
 
+### [bulk-group-prefix-update.sh](https://github.com/1Password/solutions/blob/main/account-management/bulk-group-prefix-update.sh)
+This script, when run by an Owner or Administrator, will change the prefix of all group names according to your specifications. This is particularly helpful if you are needing to change an existing naming scheme.
+If you want to add prefixes where one doesn't already exist, then you can modify the `sed` substitution to: `sed 's/^/PREFIX/g'` to add a prefix to all groups. 
+This does not change the name of any built in groups (e.g., "Administrators", "Owners", "Team Members").
+
+### [compliance-export.sh](https://github.com/1Password/solutions/blob/main/account-management/compliance-export.sh)
+This script, when run by an adminstrator, will output all items within the specified scope (e.g., with a specific tag) as a long-formatted CSV. The export excludes any concealed fields such as password fields. 
+This script may be helpful if you need to have someone verify the accuracy of the details of a 1Password item without revealing any secret values stored in that item. 
+
 ## Considerations
 The majority of the scripts here are best if run by someone belonging to the Owners group in 1Password. This is because only the Owners group is guaranteed to have at least `manage vault` permissions on every shared vault in a 1Password Business account. Running these scripts as a user not in the Owners group may result in incomplete information or in changes not being made for all vaults. 
 
