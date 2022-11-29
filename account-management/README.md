@@ -24,7 +24,7 @@ This script, when run by an Owner or Administrator, will change the prefix of al
 If you want to add prefixes where one doesn't already exist, then you can modify the `sed` substitution to: `sed 's/^/PREFIX/g'` to add a prefix to all groups.
 This does not change the name of any built in groups (e.g., "Administrators", "Owners", "Team Members").
 
-### [compliance-export.sh](https://github.com/1Password/solutions/blob/main/account-management/compliance-export.sh)
+### [compliance-export.sh](compliance-export.sh)
 
 This script, when run by an adminstrator, will output all items within the specified scope (e.g., with a specific tag) as a long-formatted CSV. The export excludes any concealed fields such as password fields.
 This script may be helpful if you need to have someone verify the accuracy of the details of a 1Password item without revealing any secret values stored in that item.
