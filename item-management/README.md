@@ -8,6 +8,10 @@ For more information about managing items with the 1Password command line tool, 
 
 ## Use-cases
 
+### Bulk item creation from input file
+
+The script and example input file in [create-items-from-input](create-items-from-input) show how you can create items based on an input file list. This specific example script generates a password at item creation time. Passwords could also be passed in from the input file, if desired. 
+
 ### Bulk selectors
 
 * You can select items based on several criteria, including the the vault they are stored in, one or more tags, or the value of a field, such as website or username.
