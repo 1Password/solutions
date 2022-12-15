@@ -27,4 +27,4 @@ Scripts provided here are not intended to be run as-is. They are intended as exa
 * [Provision new users from a CSV](scripted-provisioning/)
 * [Scripts for auditing or managing existing users](user-management/)
 * [Scripts for managing your vaults and groups](account-management/)
-* [Scripts for creating or updating items in bulk](item-management)
+* [Scripts for creating or updating items in bulk, as well as item-sharing](item-management)
