@@ -2,7 +2,7 @@
 
 ## Introduction
 
-These scripts are examples of how to perform bulk creation, read, update, or delete actions on items in 1Password.
+These scripts are examples of how to perform bulk creation, read, update, or delete actions on items in 1Password. As well as an example script to create a temporary 1Password item to use for item sharing. 
 
 For more information about managing items with the 1Password command line tool, see the complete documentation for [op item subcommands](https://developer.1password.com/docs/cli/reference/management-commands/item).
 
@@ -34,3 +34,7 @@ If you have a large number of items requiring identical changes to the username 
 ### Change field type while retaining value
 
 If you have multiple items with incorrect field types but the correct value (e.g., the field is of type `text` but the value is a password, PIN, or other secret), which may happen when importing customized items from outside 1Password, [modify-field-type-by-vault.sh](modify-field-type-by-vault.sh) provides an example of how to convert multiple fields of type `text` to type `password` without changing the value of those fields.
+
+### Share Zoom Recording Link using 1Password Item Share
+
+If you have a Zoom Recording Link that you are looking to share, this script will create a placeholder 1Password Login Item, based off some of the information promoted for. It takes in a standard Zoom Recording link and seperates the two lines out into the URL and Password, to add to the 1Password item accordingly. Lastly it creates a [item-share link](https://developer.1password.com/docs/cli/reference/management-commands/item#item-share) to send out to the provided email addresses. [recording-item-share.sh](recording-item-share.sh) provides an example of how you can utilize the 1Password Item Share to distribute temporary credentials to contacts outside your 1Password account in a secure fashion. 
