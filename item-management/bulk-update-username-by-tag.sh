@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #########################################################
 # MODIFY USERNAME FIELD FOR ALL ITEMS WITH SPECIFIED TAG
 #########################################################
