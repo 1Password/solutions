@@ -6,7 +6,7 @@ These examples are intended to demonstrate how the 1Password command line tool c
 
 ## Script Descriptions
 
-### [create-vaults](/create-vaults)
+### [create-vaults](create-vaults/)
 
 This script takes a line-delimited list of strings and will create a 1Password vault for each string. This is especially handy if you have a list of foldersor vaults from another password management solution you'd like to recreatein 1Password. The script will also create a file called "created" with the UUIDs of the newly-created vaults, making it easy to further manipulate those vaultsusing the 1Password CLI, if desired. For example, if your script didn't provide expected results, you can use the included deletion script to deletethe newly created vaults, adjust the script, and run it again.
 
