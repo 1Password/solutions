@@ -15,7 +15,7 @@
 
 import csv, os
 vault_list = []
-with open('/Users/scottatwork/code/lpexport-trunc.csv', newline='') as csvfile:
+with open('export.csv', newline='') as csvfile:
     linereader = csv.reader(csvfile, delimiter=',', quotechar='"')
     next(linereader)
     
@@ -34,9 +34,6 @@ with open('/Users/scottatwork/code/lpexport-trunc.csv', newline='') as csvfile:
 
         if otp_secret != "":
             otp_secret_create = "one-time-password[otp]=%s" % otp_secret
-        
-        if otp_secret == "":
-            otp_secret_create = ""
         
         if not vault or vault == "":
             if otp_secret != "":
@@ -110,7 +107,7 @@ with open('/Users/scottatwork/code/lpexport-trunc.csv', newline='') as csvfile:
                     notes="%s"
                     ''' % (vault, vault, title, url, otp_secret_create, username, password, notes))
                 continue
-            
+
             if otp_secret == "":
                 os.system('''op item create --vault="%s" \\
                     --tags="%s" \\
