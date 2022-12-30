@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-# This script will create vaults and login items from a LastPass export. 
+# This script will create vaults and login items from a LastPass export 
+# generated through their web-based exported or the lpass CLI (this has not 
+# been tested on exports from their browser extension or other methods). 
 # Shared/Nested folders in 1Password will have separate, non-nested 
 # vaults created. Items not belonging to any shared folder will be created 
 # in the user's Private vault.
