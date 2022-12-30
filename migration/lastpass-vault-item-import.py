@@ -15,7 +15,7 @@
 
 import csv, os
 vault_list = []
-with open('/Users/scottatwork/code/lpexport2.csv', newline='') as csvfile:
+with open('/Users/scottatwork/code/lpexport-trunc.csv', newline='') as csvfile:
     linereader = csv.reader(csvfile, delimiter=',', quotechar='"')
     next(linereader)
     
@@ -31,20 +31,38 @@ with open('/Users/scottatwork/code/lpexport2.csv', newline='') as csvfile:
         # omitting Secure Notes
         if url == "http://sn":
             continue
-        
-        # op item create 'otp[otp]=I5ONRJJW2DUJTETOL6QM3ITEGMCL7XCU' --title="Test" --vault Private --url https://bluemountainsit.com username="Scott" password="mygreatpassword" --category Login
 
+        if otp_secret != "":
+            otp_secret_create = "one-time-password[otp]=%s" % otp_secret
+        
+        if otp_secret == "":
+            otp_secret_create = ""
+        
         if not vault or vault == "":
-            os.system('''op item create --vault="Private" \\
-                --tags="%s" \\
-                --category=login \\
-                --title="%s" \\
-                --url="%s" \\
-                `otp[otp]="%s" \\
-                username="%s" \\
-                password="%s" \\
-                notes="%s"
-                ''' % (vault, title, url, otp_secret, username, password, notes))
+            if otp_secret != "":
+                os.system('''op item create --vault="Private" \\
+                    --tags="%s" \\
+                    --category=login \\
+                    --title="%s" \\
+                    --url="%s" \\
+                    "%s" \\
+                    username="%s" \\
+                    password="%s" \\
+                    notes="%s"
+                    ''' % (vault, title, url, otp_secret_create, username, password, notes))
+                continue
+
+            if otp_secret == "":
+                os.system('''op item create --vault="Private" \\
+                    --tags="%s" \\
+                    --category=login \\
+                    --title="%s" \\
+                    --url="%s" \\
+                    username="%s" \\
+                    password="%s" \\
+                    notes="%s"
+                    ''' % (vault, title, url, username, password, notes))
+                continue
             continue
 
         if vault not in vault_list:
@@ -52,28 +70,58 @@ with open('/Users/scottatwork/code/lpexport2.csv', newline='') as csvfile:
             # create vault
             os.system('op vault create "%s"'% vault)
             # create item
-            os.system('''op item create --vault="%s" \\
-                --tags="%s" \\
-                --category=login \\
-                --title="%s" \\
-                --url="%s" \\
-                username="%s" \\
-                password="%s"
-                notes="%s"
-                ''' % (vault, vault, title, url, username, password, notes))
+            if otp_secret != "":
+                os.system('''op item create --vault="%s" \\
+                    --tags="%s" \\
+                    --category=login \\
+                    --title="%s" \\
+                    --url="%s" \\
+                    "%s" \\
+                    username="%s" \\
+                    password="%s" \\
+                    notes="%s"
+                    ''' % (vault, vault, title, url, otp_secret_create, username, password, notes))
+                continue
+
+            if otp_secret == "":
+                os.system('''op item create --vault="%s" \\
+                    --tags="%s" \\
+                    --category=login \\
+                    --title="%s" \\
+                    --url="%s" \\
+                    username="%s" \\
+                    password="%s"
+                    notes="%s"
+                    ''' % (vault, vault, title, url, username, password, notes))
+                continue
             continue
 
         if vault in vault_list:
             # create item
-            os.system('''op item create --vault="%s" \\
-                --tags="%s" \\
-                --category=login \\
-                --title="%s" \\
-                --url="%s" \\
-                username="%s" \\
-                password="%s"
-                notes="%s"
-                ''' % (vault, vault, title, url, username, password, notes))
+            if otp_secret != "":
+                os.system('''op item create --vault="%s" \\
+                    --tags="%s" \\
+                    --category=login \\
+                    --title="%s" \\
+                    --url="%s" \\
+                    "%s" \\
+                    username="%s" \\
+                    password="%s" \\
+                    notes="%s"
+                    ''' % (vault, vault, title, url, otp_secret_create, username, password, notes))
+                continue
+            
+            if otp_secret == "":
+                os.system('''op item create --vault="%s" \\
+                    --tags="%s" \\
+                    --category=login \\
+                    --title="%s" \\
+                    --url="%s" \\
+                    username="%s" \\
+                    password="%s"
+                    notes="%s"
+                    ''' % (vault, vault, title, url, username, password, notes))
+                continue
             continue
         
         
