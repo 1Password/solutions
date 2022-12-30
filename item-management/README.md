@@ -2,7 +2,7 @@
 
 ## Introduction
 
-These scripts are examples of how to perform bulk creation, read, update, or delete actions on items in 1Password. As well as an example script to create a temporary 1Password item to use for item sharing. 
+These scripts are examples of how to perform bulk creation, read, update, or delete actions on items in 1Password. As well as an example script to create a temporary 1Password item to use for item sharing.
 
 For more information about managing items with the 1Password command line tool, see the complete documentation for [op item subcommands](https://developer.1password.com/docs/cli/reference/management-commands/item).
 
@@ -37,4 +37,4 @@ If you have multiple items with incorrect field types but the correct value (e.g
 
 ### Share Zoom Recording Link using 1Password Item Share
 
-If you have a Zoom Recording Link that you are looking to share, this script will create a placeholder 1Password Login Item, based off some of the information promoted for. It takes in a standard Zoom Recording link and seperates the two lines out into the URL and Password, to add to the 1Password item accordingly. Lastly it creates a [item-share link](https://developer.1password.com/docs/cli/reference/management-commands/item#item-share) to send out to the provided email addresses. [recording-item-share.sh](recording-item-share.sh) provides an example of how you can utilize the 1Password Item Share to distribute temporary credentials to contacts outside your 1Password account in a secure fashion. 
+If you have a Zoom Recording Link that you are looking to share, this script will create a placeholder 1Password Login Item, based off some of the information promoted for. It takes in a standard Zoom Recording link and seperates the two lines out into the URL and Password, to add to the 1Password item accordingly. Lastly it creates a [item-share link](https://developer.1password.com/docs/cli/reference/management-commands/item#item-share) to send out to the provided email addresses. [recording-item-share.sh](recording-item-share.sh) provides an example of how you can utilize the 1Password Item Share to distribute temporary credentials to contacts outside your 1Password account in a secure fashion.
