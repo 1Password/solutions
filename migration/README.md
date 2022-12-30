@@ -10,7 +10,11 @@ The [lastpass-vault-item-import](lastpass-vault-item-import.py) script will crea
 
 Unlike the browser-based importer, this script will create vaults for any LastPass folders you are migrating, and items will be created in the 1Password vault the corresponds to it's containing LastPass folder.
 
-Note that 1Password does not have the concept of nested vaults. If you have nested LastPass folders, they will be created as their own 1Password vault, and will be a sibling to it's parent.
+### Consider 1Password's web-based importer
+
+If you do not feel comfortable or are unable to run scripts on your device, or you prefer a simpler solution to migrating your items from LastPass to 1Password, consider using the LastPass importer by logging into your account at 1Password.com
+
+You can learn more about importing your items from LastPass using our browser-based importer here: <https://support.1password.com/import-lastpass/>
 
 ### Dependencies
 
@@ -24,13 +28,11 @@ This script requires Python. Python is integrated into many computer operating s
 
 This script relies on the [1Password CLI](https://developer.1password.com/docs/cli) tool. Please install and add your account to the 1Password CLI tool prior to running this script.
 
-### Consider 1Password's web-based importer
-
-If you do not feel comfortable or are unable to run scripts on your device, or you prefer a simpler solution to migrating your items from LastPass to 1Password, consider using the LastPass importer by logging into your account at 1Password.com
-
-You can learn more about importing your items from LastPass using our browser-based importer here: <https://support.1password.com/import-lastpass/>
-
 ### Notes
+
+#### Handling nested folders
+
+Note that 1Password does not have the concept of nested vaults. If you have nested LastPass folders, they will be created as their own 1Password vault, and will be a sibling to it's parent.
 
 #### Limitations
 
@@ -59,3 +61,7 @@ The LastPass exporter may include all shared folders a user has access to. This 
 #### Vault permissions
 
 After running this import script, you will need to grant groups and individuals access to any shared vaults they should have access to and set their permissions appropriately. For information about vault permissions in 1Password see [Create, share, and manage vaults in your team](https://support.1password.com/create-share-vaults-teams/) (for Business customers) and [Create and share vaults](https://support.1password.com/create-share-vaults/) (for 1Password Families customers).
+
+### Issues
+
+If you encounter any bugs, odd behaviour, or have suggestions for enhancements, please [open an issue](https://github.com/1Password/solutions/issues) and we will consider your suggestion.
