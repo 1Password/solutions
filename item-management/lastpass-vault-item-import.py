@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 
-#This script will create vaults and login items from a LastPass export. 
-
-#Shared/Nested folders in 1Password will have separate vaults created. Items not belonging to any shared folder will be created in the user's private vault.
-
+# This script will create vaults and login items from a LastPass export. 
+# Shared/Nested folders in 1Password will have separate, non-nested 
+# vaults created. Items not belonging to any shared folder will be created 
+# in the user's Private vault.
+# The script expects your export to reside in the same directory as 
+# the script with the name export.csv. 
+# 
+# Note: Currently TOTP secrets are not migrated. 
+# Credit to @jbsoliman
 
 
 import csv, os
@@ -34,8 +39,9 @@ with open('export.csv', newline='') as csvfile:
                 username="%s" \\
                 password="%s" \\
                 notes="%s"
-                ''' % (vault, title, url, username,password, notes))
+                ''' % (vault, title, url, username, password, notes))
             continue
+
         if vault not in vault_list:
             vault_list.append(vault) 
             #create vault
@@ -49,8 +55,9 @@ with open('export.csv', newline='') as csvfile:
                 username="%s" \\
                 password="%s"
                 notes="%s"
-                ''' % (vault,vault, title, url, username,password, notes))
+                ''' % (vault, vault, title, url, username, password, notes))
             continue
+
         if vault in vault_list:
             #create item
             os.system('''op item create --vault="%s" \\
@@ -61,7 +68,7 @@ with open('export.csv', newline='') as csvfile:
                 username="%s" \\
                 password="%s"
                 notes="%s"
-                ''' % (vault,vault, title, url, username,password, notes))
+                ''' % (vault, vault, title, url, username, password, notes))
             continue
         
         
