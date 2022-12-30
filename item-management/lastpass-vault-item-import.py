@@ -16,7 +16,6 @@ vault_list = []
 with open('export.csv', newline='') as csvfile:
     linereader = csv.reader(csvfile, delimiter=',', quotechar='"')
     next(linereader)
-
     
     for row in linereader:
         url = row[0]
@@ -26,7 +25,7 @@ with open('export.csv', newline='') as csvfile:
         title = row[5]        
         vault = row[6]
         
-        #omitting Secure Notes
+        # omitting Secure Notes
         if url == "http://sn":
             continue
         
@@ -44,9 +43,9 @@ with open('export.csv', newline='') as csvfile:
 
         if vault not in vault_list:
             vault_list.append(vault) 
-            #create vault
+            # create vault
             os.system('op vault create "%s"'% vault)
-            #create item
+            # create item
             os.system('''op item create --vault="%s" \\
                 --tags="%s" \\
                 --category=login \\
@@ -59,7 +58,7 @@ with open('export.csv', newline='') as csvfile:
             continue
 
         if vault in vault_list:
-            #create item
+            # create item
             os.system('''op item create --vault="%s" \\
                 --tags="%s" \\
                 --category=login \\
