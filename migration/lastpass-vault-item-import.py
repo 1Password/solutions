@@ -23,24 +23,28 @@ with open('/Users/scottatwork/code/lpexport2.csv', newline='') as csvfile:
         url = row[0]
         username = row[1]
         password = row[2]
+        otp_secret = row[3]
         notes= row[4]
-        title = row[5]        
+        title = row[5]
         vault = row[6]
         
         # omitting Secure Notes
         if url == "http://sn":
             continue
         
+        # op item create 'otp[otp]=I5ONRJJW2DUJTETOL6QM3ITEGMCL7XCU' --title="Test" --vault Private --url https://bluemountainsit.com username="Scott" password="mygreatpassword" --category Login
+
         if not vault or vault == "":
             os.system('''op item create --vault="Private" \\
                 --tags="%s" \\
                 --category=login \\
                 --title="%s" \\
                 --url="%s" \\
+                `otp[otp]="%s" \\
                 username="%s" \\
                 password="%s" \\
                 notes="%s"
-                ''' % (vault, title, url, username, password, notes))
+                ''' % (vault, title, url, otp_secret, username, password, notes))
             continue
 
         if vault not in vault_list:
