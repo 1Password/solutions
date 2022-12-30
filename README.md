@@ -24,6 +24,7 @@ Scripts provided here are not intended to be run as-is. They are intended as exa
 
 ## Contents
 
+* [Migrate from another password solution](migration/)
 * [Provision new users from a CSV](scripted-provisioning/)
 * [Scripts for auditing or managing existing users](user-management/)
 * [Scripts for managing your vaults and groups](account-management/)

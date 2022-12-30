@@ -18,7 +18,7 @@ This script relies on the [1Password CLI](https://developer.1password.com/docs/c
 
 ### Consider 1Password's web-based importer
 
-If you do not feel comforatble with running scripts, cannot install dependencies, or are looking for a simpler solution to migrating your items from LastPass to 1Password, consider using the LastPass importer by logging into your account at 1Password.com
+If you do not feel comfortable or are unable to run scripts on your device, or you prefer a simpler solution to migrating your items from LastPass to 1Password, consider using the LastPass importer by logging into your account at 1Password.com
 
 You can learn more about importing your items from LastPass using our browser-based importer here: <https://support.1password.com/import-lastpass/>
 
