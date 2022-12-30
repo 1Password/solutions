@@ -15,7 +15,7 @@
 
 import csv, os
 vault_list = []
-with open('/Users/scottatwork/code/lpexport2.csv', newline='') as csvfile:
+with open('export.csv', newline='') as csvfile:
     linereader = csv.reader(csvfile, delimiter=',', quotechar='"')
     next(linereader)
     
