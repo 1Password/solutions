@@ -32,11 +32,11 @@ This script relies on the [1Password CLI](https://developer.1password.com/docs/c
 
 #### Handling nested folders
 
-Note that 1Password does not have the concept of nested vaults. If you have nested LastPass folders, they will be created as their own 1Password vault, and will be a sibling to it's parent.
+Note that 1Password does not have the concept of nested vaults. If you have nested LastPass folders, they will be created as their own 1Password vault, and will be a sibling to their parent.
 
 #### Limitations
 
-This script only migrates Login items. It will not migrate credit cards, secure notes, or any other item type.
+**This script only migrates Login items**. It will not migrate credit cards, secure notes, or any other item type.
 
 At this time, this script will not migrate TOTP secrets. You will have to manually migrate those from LastPass to 1Password, or reconfigured 2FA on the websites you use it on.
 
