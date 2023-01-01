@@ -12,8 +12,7 @@
 # Note: Currently TOTP secrets are not migrated. 
 # Credit to @jbsoliman
 
-
-import csv, os
+import csv, subprocess
 vault_list = []
 with open('export.csv', newline='') as csvfile:
     linereader = csv.reader(csvfile, delimiter=',', quotechar='"')
@@ -32,44 +31,47 @@ with open('export.csv', newline='') as csvfile:
             continue
         
         if not vault or vault == "":
-            os.system('''op item create --vault="Private" \\
-                --tags="%s" \\
-                --category=login \\
-                --title="%s" \\
-                --url="%s" \\
-                username="%s" \\
-                password="%s" \\
-                notes="%s"
-                ''' % (vault, title, url, username, password, notes))
+            subprocess.run(["op", "item", "create",
+                 "--vault=Private",
+                f"--tags={vault}",
+                 "--category=login",
+                f"--title={title}",
+                f"--url={url}",
+                f"username={username}",
+                f"password={password}",
+                f"notes={notes}"
+            ])
             continue
 
         if vault not in vault_list:
             vault_list.append(vault) 
             # create vault
-            os.system('op vault create "%s"'% vault)
+            subprocess.run(["op", "vault", "create", vault])
             # create item
-            os.system('''op item create --vault="%s" \\
-                --tags="%s" \\
-                --category=login \\
-                --title="%s" \\
-                --url="%s" \\
-                username="%s" \\
-                password="%s"
-                notes="%s"
-                ''' % (vault, vault, title, url, username, password, notes))
+            subprocess.run(["op", "item", "create",
+                f"--vault={vault}",
+                f"--tags={vault}",
+                 "--category=login",
+                f"--title={title}",
+                f"--url={url}",
+                f"username={username}",
+                f"password={password}",
+                f"notes={notes}"
+            ])
             continue
 
         if vault in vault_list:
             # create item
-            os.system('''op item create --vault="%s" \\
-                --tags="%s" \\
-                --category=login \\
-                --title="%s" \\
-                --url="%s" \\
-                username="%s" \\
-                password="%s"
-                notes="%s"
-                ''' % (vault, vault, title, url, username, password, notes))
+            subprocess.run(["op", "item", "create",
+                f"--vault={vault}",
+                f"--tags={vault}",
+                 "--category=login",
+                f"--title={title}",
+                f"--url={url}",
+                f"username={username}",
+                f"password={password}",
+                f"notes={notes}"
+            ])
             continue
         
         
