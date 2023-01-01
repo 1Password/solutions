@@ -12,8 +12,30 @@
 # Note: Currently TOTP secrets are not migrated. 
 # Credit to @jbsoliman
 
-import csv, subprocess
-vault_list = []
+import csv, json, subprocess, sys
+vault_list = {}
+
+# Get the Private or Personal vault
+# The one listed first should be the correct one
+vault_list_command_output=None
+try:
+    vault_list_command_output = subprocess.run([
+        "op", "vault", "list",
+        "--format=json"
+    ], check=True, capture_output=True)
+except:
+    sys.exit("An error occurred when attempting to fetch your 1Password vaults.")
+
+vault_list = json.loads(vault_list_command_output.stdout)
+p_vault = next(filter(lambda x: (x["name"] == "Private" or x["name"] == "Personal"), vault_list), None)
+if p_vault is None:
+    sys.exit("Couldn't find your Personal or Private vault.")
+
+p_vault_uuid = p_vault["id"]
+
+created_vault_list = {}
+
+# Read LastPass export
 with open('export.csv', newline='') as csvfile:
     linereader = csv.reader(csvfile, delimiter=',', quotechar='"')
     next(linereader)
@@ -31,8 +53,9 @@ with open('export.csv', newline='') as csvfile:
             continue
         
         if not vault or vault == "":
-            subprocess.run(["op", "item", "create",
-                 "--vault=Private",
+            subprocess.run([
+                 "op", "item", "create",
+                f"--vault={p_vault_uuid}",
                 f"--tags={vault}",
                  "--category=login",
                 f"--title={title}",
@@ -43,13 +66,24 @@ with open('export.csv', newline='') as csvfile:
             ])
             continue
 
-        if vault not in vault_list:
-            vault_list.append(vault) 
+        if vault not in created_vault_list:
+            vault_create_command_output = None
             # create vault
-            subprocess.run(["op", "vault", "create", vault])
+            try:
+                vault_create_command_output = subprocess.run([
+                    "op", "vault", "create",
+                    vault,
+                    "--format=json"
+                ], check=True, capture_output=True)
+            except:
+                print(f"Failed to create vault for folder {vault}. Item \"{title}\" on line {linereader.line_num} not migrated.")
+                continue
+            new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
+            created_vault_list[vault] = new_vault_uuid
             # create item
-            subprocess.run(["op", "item", "create",
-                f"--vault={vault}",
+            subprocess.run([
+                 "op", "item", "create",
+                f"--vault={created_vault_list[vault]}",
                 f"--tags={vault}",
                  "--category=login",
                 f"--title={title}",
@@ -60,10 +94,11 @@ with open('export.csv', newline='') as csvfile:
             ])
             continue
 
-        if vault in vault_list:
+        if vault in created_vault_list:
             # create item
-            subprocess.run(["op", "item", "create",
-                f"--vault={vault}",
+            subprocess.run([
+                 "op", "item", "create",
+                f"--vault={created_vault_list[vault]}",
                 f"--tags={vault}",
                  "--category=login",
                 f"--title={title}",
@@ -71,7 +106,5 @@ with open('export.csv', newline='') as csvfile:
                 f"username={username}",
                 f"password={password}",
                 f"notes={notes}"
-            ])
+            ])        
             continue
-        
-        
