@@ -6,15 +6,15 @@ The [lastpass-vault-item-import](lastpass-vault-item-import.py) script will crea
 
 ### Difference from 1Password's browser-based importer
 
-1Password offers a fast, reliable, and secure [importer for your LastPass data](https://support.1password.com/import-lastpass/), which you can access by logging into your 1Password account. 
+1Password offers a fast, reliable, and secure [importer for your LastPass data](https://support.1password.com/import-lastpass/), which you can access by logging into your 1Password account.
 
-Our browser based importer will handle multiple item types. This import script will only import login items (LastPass "sites") and will disregard all other item types (e.g., Credit Cards, Secure Notes, etc). 
+Our browser based importer will handle multiple item types. This import script will only import login items (LastPass "sites") and will disregard all other item types (e.g., Credit Cards, Secure Notes, etc).
 
 Unlike the browser-based importer, this script will create vaults for any LastPass folders you are migrating, and items will be created in the 1Password vault the corresponds to it's containing LastPass folder.
 
 ### Consider 1Password's web-based importer
 
-If you do not feel comfortable or are unable to run scripts on your device, or you prefer a simpler solution to migrating your items from LastPass to 1Password, consider using the LastPass importer by logging into your account at 1Password.com. You should also use the browser-based importer if you want to import different types of items, as this script **only handles LastPass "site"/login items and disregards all other item types**. 
+If you do not feel comfortable or are unable to run scripts on your device, or you prefer a simpler solution to migrating your items from LastPass to 1Password, consider using the LastPass importer by logging into your account at 1Password.com. You should also use the browser-based importer if you want to import different types of items, as this script **only handles LastPass "site"/login items and disregards all other item types**.
 
 You can learn more about importing your items from LastPass using our browser-based importer here: <https://support.1password.com/import-lastpass/>
 
@@ -38,9 +38,7 @@ Note that 1Password does not have the concept of nested vaults. If you have nest
 
 #### Limitations
 
-**This script only migrates Login items**. It will not migrate credit cards, secure notes, or any other item type.
-
-At this time, this script will not migrate TOTP secrets. You will have to manually migrate those from LastPass to 1Password, or reconfigured 2FA on the websites you use it on.
+**This script only migrates Login items**. It will not migrate credit cards, secure notes, or any other item type. You might consider extracting secure notes (all of which have the URL `http://sn` in the LastPass export file) into its own .csv file and use the [LastPass importer at 1Password.com](https://support.1password.com/import-lastpass/), which does handle Secure Notes. Imported secure notes will be tagged with the LastPass folder they were a part of, allowing you to use a 1Password application to move imported secure notes to the appropriate vault based on the tag.
 
 #### Unencrypted exports
 
