@@ -73,7 +73,6 @@ with open('export.csv', newline='') as csvfile:
                     f"password={password}",
                     f"notes={notes}"
                 ])
-                continue
             else:
                 subprocess.run([
                     "op", "item", "create",
@@ -117,7 +116,6 @@ with open('export.csv', newline='') as csvfile:
                     f"password={password}",
                     f"notes={notes}"
                 ])
-                continue
             else:
                 subprocess.run([
                     "op", "item", "create",
@@ -147,9 +145,8 @@ with open('export.csv', newline='') as csvfile:
                     f"password={password}",
                     f"notes={notes}"
                 ])        
-                continue
             else: 
-                       subprocess.run([
+                subprocess.run([
                     "op", "item", "create",
                     f"--vault={created_vault_list[vault]}",
                     f"--tags={vault}",
