@@ -49,16 +49,23 @@ with open('export.csv', newline='') as csvfile:
         title = row[5]        
         vault = row[6]
         
-        # omitting Secure Notes
+        # Omitting Secure Notes
         if url == "http://sn":
             continue
 
-        # setup for OTP 
+        # Setup for OTP 
         if otp_secret:
             otp_secret_create = "one-time-password[otp]=%s" % otp_secret
         else: 
             otp_secret_create = ""
 
+        # Account for empty fields
+        if not url:
+            url = "no URL"
+        if not title:
+            title = "Untitled Login"
+        
+        # Create item in Private/Personal vault
         if not vault or vault == "":
             if otp_secret_create:
                 subprocess.run([
@@ -87,6 +94,7 @@ with open('export.csv', newline='') as csvfile:
                 ])
             continue
 
+        # Create vault and item
         if vault not in created_vault_list:
             vault_create_command_output = None
             # create vault
@@ -102,7 +110,6 @@ with open('export.csv', newline='') as csvfile:
             new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
             created_vault_list[vault] = new_vault_uuid
             
-            # create item
             if otp_secret_create:
                 subprocess.run([
                     "op", "item", "create",
@@ -129,7 +136,8 @@ with open('export.csv', newline='') as csvfile:
                     f"notes={notes}"
                 ])
             continue
-
+        
+        # Create item in extant vault
         if vault in created_vault_list:
             # create item
             if otp_secret_create:
