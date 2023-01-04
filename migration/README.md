@@ -1,6 +1,7 @@
 # Migration tools
 
 Contents
+
 * [Migrate folders and login items from LastPass](#migrate-folders-and-login-items-from-lastpass)
 * [Create 1Password vaults based on LastPass folders](#create-1password-vaults-based-on-lastpass-folders)
 
@@ -67,7 +68,7 @@ If you encounter any bugs, odd behaviour, or have suggestions for enhancements, 
 
 ### What does this script do?
 
-This script will create vaults in 1Password based on each unique value in the `grouping` column of a LastPass export `.csv`. The `grouping` column corresponds to the LastPass folder that contained an exported item.
+The [lastpass-folder-migrate](lastpass-folder-migrate.py) script will create vaults in 1Password based on each unique value in the `grouping` column of a LastPass export `.csv`. The `grouping` column corresponds to the LastPass folder that contained an exported item.
 
 This script is a good accompaniment to the the [LastPass importer at 1Password.com](https://support.1password.com/import-lastpass/). For example, if you are responsible for migrating a large number of shared LastPass items and folders, you might consider:
 
