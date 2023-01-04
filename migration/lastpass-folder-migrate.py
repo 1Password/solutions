@@ -4,7 +4,7 @@ import csv, subprocess, sys, json
 
 
 created_vault_list = {}
-with open('/Users/scottatwork/code/lpexport-trunc-vaults.csv', newline='') as csvfile:
+with open('export.csv', newline='') as csvfile:
     linereader = csv.reader(csvfile, delimiter=',', quotechar='"')
     next(linereader)
     lp_folder_list = set()
