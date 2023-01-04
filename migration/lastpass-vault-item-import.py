@@ -9,7 +9,6 @@
 # The script expects your export to reside in the same directory as 
 # the script with the name export.csv. 
 # 
-# Note: Currently TOTP secrets are not migrated. 
 # Credit to @jbsoliman
 
 import csv, json, subprocess, sys

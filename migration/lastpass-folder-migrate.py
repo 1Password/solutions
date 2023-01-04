@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
 
+# This script will create 1Password vaults from each unique value
+# in the `grouping` columnf of a LastPass export generated through their
+# web-based exported or the lpass CLI (this has not 
+# been tested on exports from their browser extension or other methods). 
+# Shared/Nested folders in 1Password will have separate, non-nested 
+# vaults created. 
+#
+# This script does NOT create items in 1Password. 
+# The script expects your export to reside in the same directory as 
+# the script with the name export.csv. 
 import csv, subprocess, sys, json
 
 
