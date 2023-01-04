@@ -94,7 +94,7 @@ with open('export.csv', newline='') as csvfile:
                 ])
             continue
 
-        # Create vault and item
+        # Create vault, if needed, and item
         if vault not in created_vault_list:
             vault_create_command_output = None
             # create vault
@@ -110,6 +110,7 @@ with open('export.csv', newline='') as csvfile:
             new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
             created_vault_list[vault] = new_vault_uuid
             
+            # create item
             if otp_secret_create:
                 subprocess.run([
                     "op", "item", "create",
