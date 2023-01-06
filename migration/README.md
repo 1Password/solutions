@@ -1,6 +1,6 @@
 # Migration tools
 
-Contents
+## Table of Contents
 
 * [Migrate folders and login items from LastPass](#migrate-folders-and-login-items-from-lastpass)
 * [Create 1Password vaults based on LastPass folders](#create-1password-vaults-based-on-lastpass-folders)
