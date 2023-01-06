@@ -1,4 +1,4 @@
-# Migration tools
+# Advanced LastPass migration tools
 
 ## Table of Contents
 
