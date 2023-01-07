@@ -16,7 +16,6 @@ vault_list = {}
 
 # Get the Private or Personal vault
 # The one listed first should be the correct one
-vault_list_command_output=None
 try:
     vault_list_command_output = subprocess.run([
         "op", "vault", "list",
@@ -44,7 +43,7 @@ with open('export.csv', newline='') as csvfile:
         username = row[1]
         password = row[2]
         otp_secret = row[3]
-        notes= row[4]
+        notes = row[4]
         title = row[5]        
         vault = row[6]
         
@@ -52,51 +51,17 @@ with open('export.csv', newline='') as csvfile:
         if url == "http://sn":
             continue
 
-        # Setup for OTP 
-        if otp_secret:
-            otp_secret_create = "one-time-password[otp]=%s" % otp_secret
-        else: 
-            otp_secret_create = ""
-
         # Account for empty fields
         if not url:
             url = "no URL"
         if not title:
             title = "Untitled Login"
-        
-        # Create item in Private/Personal vault
-        if not vault or vault == "":
-            if otp_secret_create:
-                subprocess.run([
-                    "op", "item", "create",
-                    f"--vault={p_vault_uuid}",
-                    f"--tags={vault}",
-                    "--category=login",
-                    f"--title={title}",
-                    f"--url={url}",
-                    f"{otp_secret_create}",
-                    f"username={username}",
-                    f"password={password}",
-                    f"notes={notes}"
-                ])
-            else:
-                subprocess.run([
-                    "op", "item", "create",
-                    f"--vault={p_vault_uuid}",
-                    f"--tags={vault}",
-                    "--category=login",
-                    f"--title={title}",
-                    f"--url={url}",
-                    f"username={username}",
-                    f"password={password}",
-                    f"notes={notes}"
-                ])
-            continue
 
-        # Create vault, if needed, and item
-        if vault not in created_vault_list:
-            vault_create_command_output = None
-            # create vault
+        # Check if vault is defined
+        vault_defined = vault and vault != ""
+        
+        # Create vault, if needed
+        if vault_defined and vault not in created_vault_list:
             try:
                 vault_create_command_output = subprocess.run([
                     "op", "vault", "create",
@@ -109,60 +74,15 @@ with open('export.csv', newline='') as csvfile:
             new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
             created_vault_list[vault] = new_vault_uuid
             
-            # create item
-            if otp_secret_create:
-                subprocess.run([
-                    "op", "item", "create",
-                    f"--vault={created_vault_list[vault]}",
-                    f"--tags={vault}",
-                    "--category=login",
-                    f"--title={title}",
-                    f"--url={url}",
-                    f"{otp_secret_create}",
-                    f"username={username}",
-                    f"password={password}",
-                    f"notes={notes}"
-                ])
-            else:
-                subprocess.run([
-                    "op", "item", "create",
-                    f"--vault={created_vault_list[vault]}",
-                    f"--tags={vault}",
-                    "--category=login",
-                    f"--title={title}",
-                    f"--url={url}",
-                    f"username={username}",
-                    f"password={password}",
-                    f"notes={notes}"
-                ])
-            continue
-        
-        # Create item in extant vault
-        if vault in created_vault_list:
-            # create item
-            if otp_secret_create:
-                subprocess.run([
-                    "op", "item", "create",
-                    f"--vault={created_vault_list[vault]}",
-                    f"--tags={vault}",
-                    "--category=login",
-                    f"--title={title}",
-                    f"--url={url}",
-                    f"{otp_secret_create}",
-                    f"username={username}",
-                    f"password={password}",
-                    f"notes={notes}"
-                ])        
-            else: 
-                subprocess.run([
-                    "op", "item", "create",
-                    f"--vault={created_vault_list[vault]}",
-                    f"--tags={vault}",
-                    "--category=login",
-                    f"--title={title}",
-                    f"--url={url}",
-                    f"username={username}",
-                    f"password={password}",
-                    f"notes={notes}"
-                ])   
-            continue
+        # Create item
+        subprocess.run([
+            "op", "item", "create",
+            f"--vault={created_vault_list[vault] if vault_defined else p_vault_uuid }",
+            f"--tags={vault}",
+            "--category=login",
+            f"--title={title}",
+            f"--url={url}",
+            f"username={username}",
+            f"password={password}",
+            f"notes={notes}"
+        ] + ([f"one-time-password[otp]={otp_secret}"] if otp_secret else []))
