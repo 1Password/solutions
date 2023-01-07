@@ -12,7 +12,52 @@
 # Credit to @jbsoliman
 
 import csv, json, subprocess, sys
-vault_list = {}
+
+# Fetch the login item template, and compare to what's expected
+expected_login_template = {
+  "title": "",
+  "category": "LOGIN",
+  "fields": [
+    {
+      "id": "username",
+      "type": "STRING",
+      "purpose": "USERNAME",
+      "label": "username",
+      "value": ""
+    },
+    {
+      "id": "password",
+      "type": "CONCEALED",
+      "purpose": "PASSWORD",
+      "label": "password",
+      "password_details": {
+        "strength": "TERRIBLE"
+      },
+      "value": ""
+    },
+    {
+      "id": "notesPlain",
+      "type": "STRING",
+      "purpose": "NOTES",
+      "label": "notesPlain",
+      "value": ""
+    }
+  ]
+}
+
+try: 
+    login_template_command_output = subprocess.run([
+        "op", "item", "template", "get", "login",
+        "--format=json"
+    ], check=True, capture_output=True)
+except:
+    sys.exit("An error occurred when attempting to fetch the login item template.")
+
+login_template = json.loads(login_template_command_output.stdout)
+if expected_login_template != login_template:
+    # If the template doesn't match, then CLI behaviour may have changed.
+    # In this case, the script should be updated with the new template.
+    sys.exit("The login template returned by the CLI does not match the expected login template.\n\nThis script may be designed for an older version of the CLI.")
 
 # Get the Private or Personal vault
 # The one listed first should be the correct one
@@ -46,7 +91,7 @@ with open('export.csv', newline='') as csvfile:
         notes = row[4]
         title = row[5]        
         vault = row[6]
-        
+
         # Omitting Secure Notes
         if url == "http://sn":
             continue
@@ -73,16 +118,53 @@ with open('export.csv', newline='') as csvfile:
                 continue
             new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
             created_vault_list[vault] = new_vault_uuid
-            
+        
+        # Create item template
+        login_template["title"] = title
+        login_template["urls"] = [
+            {
+                "label": "website",
+                "primary": True,
+                "href": url
+            }
+        ]
+        login_template["tags"] = [vault if vault_defined else p_vault['name']]
+        login_template["fields"] = [
+            {
+                "id": "username",
+                "type": "STRING",
+                "purpose": "USERNAME",
+                "label": "username",
+                "value": username
+            },
+            {
+                "id": "password",
+                "type": "CONCEALED",
+                "purpose": "PASSWORD",
+                "label": "password",
+                "password_details": {
+                    "strength": "TERRIBLE"
+                },
+                "value": password
+            },
+            {
+                "id": "notesPlain",
+                "type": "STRING",
+                "purpose": "NOTES",
+                "label": "notesPlain",
+                "value": notes
+            }
+        ] + ([{
+            "id": "one-time password",
+            "type": "OTP",
+            "label": "one-time password",
+            "value": otp_secret
+        }] if otp_secret else [])
+
+        json_login_template = json.dumps(login_template)
+        
         # Create item
         subprocess.run([
-            "op", "item", "create",
-            f"--vault={created_vault_list[vault] if vault_defined else p_vault_uuid }",
-            f"--tags={vault}",
-            "--category=login",
-            f"--title={title}",
-            f"--url={url}",
-            f"username={username}",
-            f"password={password}",
-            f"notes={notes}"
-        ] + ([f"one-time-password[otp]={otp_secret}"] if otp_secret else []))
+            "op", "item", "create", "-",
+            f"--vault={created_vault_list[vault] if vault_defined else p_vault_uuid }"
+        ], input=json_login_template, text=True)
