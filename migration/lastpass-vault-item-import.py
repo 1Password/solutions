@@ -9,7 +9,7 @@
 # The script expects your export to reside in the same directory as 
 # the script with the name export.csv. 
 # 
-# Credit to @jbsoliman
+# Credit to @jbsoliman for the original script and @svens-uk for many significant enhancements
 
 import csv, json, subprocess, sys
 
