@@ -86,19 +86,31 @@ def fetch_personal_vault():
 
 def migrate_items(csv_data):
     created_vault_list = {}
+    is_csv_from_web_exporter = False
     login_template = fetch_item_template()
     personal_vault = fetch_personal_vault()
 
     linereader = csv.reader(csv_data, delimiter=',', quotechar='"')
-    next(linereader)  # skip csv header row
-    
+    heading = next(linereader)
+    if 'totp' in heading:
+        is_csv_from_web_exporter = True
+
     for row in linereader:
-        url = row[0]
-        username = row[1]
-        password = row[2]
-        notes = row[3]
-        title = row[4]
-        vault = row[5]
+        if is_csv_from_web_exporter:
+            url = row[0]
+            username = row[1]
+            password = row[2]
+            otp_secret = row[3]
+            notes = row[4]
+            title = row[5]
+            vault = row[6]
+        else:
+            url = row[0]
+            username = row[1]
+            password = row[2]
+            notes = row[3]
+            title = row[4]
+            vault = row[5]
 
         # Omitting Secure Notes
         if url == "http://sn":
@@ -112,7 +124,7 @@ def migrate_items(csv_data):
 
         # Check if vault is defined
         vault_defined = vault and vault != ""
-        
+
         # Create vault, if needed
         if vault_defined and vault not in created_vault_list:
             try:
@@ -126,7 +138,7 @@ def migrate_items(csv_data):
                 continue
             new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
             created_vault_list[vault] = new_vault_uuid
-        
+
         # Create item template
         login_template["title"] = title
         login_template["urls"] = [
@@ -162,10 +174,15 @@ def migrate_items(csv_data):
                 "label": "notesPlain",
                 "value": notes
             }
-        ]
+        ] + ([{
+            "id": "one-time password",
+            "type": "OTP",
+            "label": "one-time password",
+            "value": otp_secret
+        }] if otp_secret else [])
 
         json_login_template = json.dumps(login_template)
-        
+
         # Create item
         subprocess.run([
             "op", "item", "create", "-",

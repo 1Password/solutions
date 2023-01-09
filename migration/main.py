@@ -15,7 +15,7 @@ def main(argv):
         if opt == "--file":
             print(f'Export secrets from csv file {arg}')
             with open(arg, newline='') as csvfile:
-                csv_data = csvfile.read()
+                csv_data = lpass.prepare_csv(csvfile.read())
             continue
 
         if opt in ("-f", "--folders"):

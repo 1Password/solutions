@@ -15,12 +15,17 @@ import subprocess
 
 def migrate_folders(csv_data):
     created_vault_list = {}
-    linereader = csv.reader(csv_data, delimiter=',', quotechar='"')
-    next(linereader)  # skip csv header row
     lp_folder_list = set()
+    is_csv_from_web_exporter = False
+
+    linereader = csv.reader(csv_data, delimiter=',', quotechar='"')
+    heading = next(linereader)
+
+    if 'totp' in heading:
+        is_csv_from_web_exporter = True
 
     for row in linereader:
-        vault_name = row[5]
+        vault_name = row[6] if is_csv_from_web_exporter else row[5]
         if vault_name:
             lp_folder_list.add(vault_name)
 
