@@ -4,7 +4,7 @@ import csv, json, subprocess, sys
 
 vault_list = {}
 
-# Get LastPass export data 
+# Get LastPass export data
 
 def get_lp_data():
     # Sign user into LastPass
@@ -18,25 +18,32 @@ def get_lp_data():
     try:
         lp_export = subprocess.run(["lpass", "export"], text=True, capture_output=True).stdout
     except:
-        sys.exit("Unable to retrieve LastPass data. Ensure you have signed into LastPass using ")
+        sys.exit("Unable to retrieve LastPass data")
+
+    if len(lp_export) == 0:
+        sys.exit("No items were exported from LastPass")
+
     return lp_export
 
-lp_data = get_lp_data()
 
-linereader = csv.reader(lp_data, delimiter=',', quotechar='"')
-next(linereader)
+def prepare_csv(exported_data: str):
+    return list(filter(lambda row: (len(row) > 0), exported_data.split("\n")))
+
+
+data_in_csv_format = prepare_csv(get_lp_data())
+linereader = csv.reader(data_in_csv_format, delimiter=',', quotechar='"')
+next(linereader)  # skip csv header row
 
 for row in linereader:
-    for row in linereader:
-        url = row[0]
-        username = row[1]
-        password = row[2]
-        otp_secret = row[3]
-        notes= row[4]
-        title = row[5]        
-        vault = row[6]
+    url = row[0]
+    username = row[1]
+    password = row[2]
+    otp_secret = row[3]
+    notes= row[4]
+    title = row[5]
+    vault = row[6]
 
-        print("url: ", url)
+    print("url: ", url)
 
 
 # # Get the Private or Personal vault
