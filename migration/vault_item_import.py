@@ -18,35 +18,35 @@ import sys
 def fetch_item_template():
     # Fetch the login item template, and compare to what's expected
     expected_login_template = {
-  "title": "",
-  "category": "LOGIN",
-  "fields": [
-    {
-      "id": "username",
-      "type": "STRING",
-      "purpose": "USERNAME",
-      "label": "username",
-      "value": ""
-    },
-    {
-      "id": "password",
-      "type": "CONCEALED",
-      "purpose": "PASSWORD",
-      "label": "password",
-      "password_details": {
-        "strength": "TERRIBLE"
-      },
-      "value": ""
-    },
-    {
-      "id": "notesPlain",
-      "type": "STRING",
-      "purpose": "NOTES",
-      "label": "notesPlain",
-      "value": ""
+      "title": "",
+      "category": "LOGIN",
+      "fields": [
+        {
+          "id": "username",
+          "type": "STRING",
+          "purpose": "USERNAME",
+          "label": "username",
+          "value": ""
+        },
+        {
+          "id": "password",
+          "type": "CONCEALED",
+          "purpose": "PASSWORD",
+          "label": "password",
+          "password_details": {
+            "strength": "TERRIBLE"
+          },
+          "value": ""
+        },
+        {
+          "id": "notesPlain",
+          "type": "STRING",
+          "purpose": "NOTES",
+          "label": "notesPlain",
+          "value": ""
+        }
+      ]
     }
-  ]
-}
     try:
         login_template_command_output = subprocess.run([
             "op", "item", "template", "get", "login",
