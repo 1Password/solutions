@@ -6,15 +6,18 @@
 # Shared/Nested folders in 1Password will have separate, non-nested 
 # vaults created. Items not belonging to any shared folder will be created 
 # in the user's Private vault.
-# The script expects your export to reside in the same directory as 
-# the script with the name export.csv. 
-# 
+#
 # Credit to @jbsoliman for the original script and @svens-uk for many significant enhancements
 
-import csv, json, subprocess, sys
+import csv
+import json
+import subprocess
+import sys
 
-# Fetch the login item template, and compare to what's expected
-expected_login_template = {
+
+def fetch_item_template():
+    # Fetch the login item template, and compare to what's expected
+    expected_login_template = {
   "title": "",
   "category": "LOGIN",
   "fields": [
@@ -44,44 +47,50 @@ expected_login_template = {
     }
   ]
 }
+    try:
+        login_template_command_output = subprocess.run([
+            "op", "item", "template", "get", "login",
+            "--format=json"
+        ], check=True, capture_output=True)
+    except:
+        sys.exit("An error occurred when attempting to fetch the login item template.")
 
-try: 
-    login_template_command_output = subprocess.run([
-        "op", "item", "template", "get", "login",
-        "--format=json"
-    ], check=True, capture_output=True)
-except:
-    sys.exit("An error occurred when attempting to fetch the login item template.")
+    login_template = json.loads(login_template_command_output.stdout)
+    if expected_login_template != login_template:
+        # If the template doesn't match, then CLI behaviour may have changed.
+        # In this case, the script should be updated with the new template.
+        sys.exit("The login template returned by the CLI does not match the expected login template.\n\nThis script may be designed for an older version of the CLI.")
 
-login_template = json.loads(login_template_command_output.stdout)
-if expected_login_template != login_template:
-    # If the template doesn't match, then CLI behaviour may have changed.
-    # In this case, the script should be updated with the new template.
-    sys.exit("The login template returned by the CLI does not match the expected login template.\n\nThis script may be designed for an older version of the CLI.")
+    return login_template
 
-# Get the Private or Personal vault
-# The one listed first should be the correct one
-try:
-    vault_list_command_output = subprocess.run([
-        "op", "vault", "list",
-        "--format=json"
-    ], check=True, capture_output=True)
-except:
-    sys.exit("An error occurred when attempting to fetch your 1Password vaults.")
 
-vault_list = json.loads(vault_list_command_output.stdout)
-p_vault = next(filter(lambda x: (x["name"] == "Private" or x["name"] == "Personal"), vault_list), None)
-if p_vault is None:
-    sys.exit("Couldn't find your Personal or Private vault.")
+def fetch_personal_vault():
+    # Get the Private or Personal vault
+    # The one listed first should be the correct one
+    try:
+        vault_list_command_output = subprocess.run([
+            "op", "vault", "list",
+            "--format=json"
+        ], check=True, capture_output=True)
+    except:
+        sys.exit("An error occurred when attempting to fetch your 1Password vaults.")
 
-p_vault_uuid = p_vault["id"]
+    vault_list = json.loads(vault_list_command_output.stdout)
+    personal_vault = next(filter(lambda x: (x["name"] == "Private" or x["name"] == "Personal"), vault_list), None)
 
-created_vault_list = {}
+    if personal_vault is None:
+        sys.exit("Couldn't find your Personal or Private vault.")
 
-# Read LastPass export
-with open('export.csv', newline='') as csvfile:
-    linereader = csv.reader(csvfile, delimiter=',', quotechar='"')
-    next(linereader)
+    return personal_vault
+
+
+def migrate_items(csv_data):
+    created_vault_list = {}
+    login_template = fetch_item_template()
+    personal_vault = fetch_personal_vault()
+
+    linereader = csv.reader(csv_data, delimiter=',', quotechar='"')
+    next(linereader)  # skip csv header row
     
     for row in linereader:
         url = row[0]
@@ -128,7 +137,7 @@ with open('export.csv', newline='') as csvfile:
                 "href": url
             }
         ]
-        login_template["tags"] = [vault if vault_defined else p_vault['name']]
+        login_template["tags"] = [vault if vault_defined else personal_vault['name']]
         login_template["fields"] = [
             {
                 "id": "username",
@@ -166,5 +175,5 @@ with open('export.csv', newline='') as csvfile:
         # Create item
         subprocess.run([
             "op", "item", "create", "-",
-            f"--vault={created_vault_list[vault] if vault_defined else p_vault_uuid }"
+            f"--vault={created_vault_list[vault] if vault_defined else personal_vault['id'] }"
         ], input=json_login_template, text=True)
