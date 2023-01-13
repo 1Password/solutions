@@ -111,6 +111,7 @@ def migrate_items(csv_data):
             notes = row[3]
             title = row[4]
             vault = row[5]
+            otp_secret = None
 
         # Omitting Secure Notes
         if url == "http://sn":
