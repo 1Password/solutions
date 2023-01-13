@@ -96,10 +96,9 @@ def migrate_items(csv_data):
         url = row[0]
         username = row[1]
         password = row[2]
-        otp_secret = row[3]
-        notes = row[4]
-        title = row[5]        
-        vault = row[6]
+        notes = row[3]
+        title = row[4]
+        vault = row[5]
 
         # Omitting Secure Notes
         if url == "http://sn":
@@ -163,12 +162,7 @@ def migrate_items(csv_data):
                 "label": "notesPlain",
                 "value": notes
             }
-        ] + ([{
-            "id": "one-time password",
-            "type": "OTP",
-            "label": "one-time password",
-            "value": otp_secret
-        }] if otp_secret else [])
+        ]
 
         json_login_template = json.dumps(login_template)
         
