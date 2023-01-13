@@ -79,7 +79,7 @@ Note that unlike the browser-based importer, this script will create vaults for 
 
 ### Handling nested folders
 
-Note that 1Password does not have the concept of nested vaults. If you have nested LastPass folders, they will be created as their own 1Password vault, and will be a sibling to their parent. Vault names reflect the original hierarchy and will have a name similar to `parent/child`
+Note that 1Password does not have the concept of nested vaults. If you have nested LastPass folders, they will be created as their own 1Password vault, and will be a sibling to their parent. Vault names reflect the original hierarchy and will have a name similar to `parent\child`
 
 ### Limitations
 
@@ -100,7 +100,7 @@ However, if you cannot use the LastPass CLI and must provide a .csv file from yo
 
 ### Private folders
 
-Please note that there is no mechanism to migrate other users' private LastPass items on their behalf. This means if you are part of an organization, each of your team members will have to migrate their own private LastPass data to their 1Password account.
+Please note that there is no mechanism to migrate other users' private LastPass items on their behalf. This means if you are part of an organization, each of your team members will have to migrate their own private LastPass data to their 1Password account. For this, we strongly recommend the [LastPass importer at 1Password.com](https://support.1password.com/import-lastpass/).
 
 ### Shared folders
 
