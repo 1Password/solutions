@@ -26,6 +26,9 @@ def main(argv):
             is_migrating_items = True
             continue
 
+    if not is_migrating_items and not is_migrating_folders:
+        sys.exit("Please specify the flag to run migration -i for items, -f for folders")
+
     if len(csv_data) == 0:
         print('Export secrets using lpass cli')
         csv_data = lpass.export_csv()
