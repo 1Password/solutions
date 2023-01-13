@@ -10,8 +10,6 @@
 This script is best run by a LastPass administrator or Superadmin, or anyone else responsible for migrating a large number of LastPass folders to 1Password.
 
 To avoid duplicating labour, creating duplicate items, or duplicate vaults, you may delegate the migration of specific shared folders to certain people, or all shared folders to a single administrator. You may want to revoke other people's access to shared folders during the migration to avoid them showing up in multiple people's exports  and ensure that each shared folder and it's items are migrated exactly one time.
-d CLI](https://developer.1password.com/docs/cli)
-
 
 ## Migrate folders and login items from LastPass
 
@@ -28,7 +26,7 @@ This script uses the 1Password CLI tool to import items from either
 
 * Python
 * [1Password CLI](https://developer.1password.com/docs/cli)
-  * Ensure you have added your 1Password account to the 1Password CLI and have signed in using `op signin` or `eval $(op signin)` prior to executing the script. 
+  * Ensure you have added your 1Password account to the 1Password CLI and have signed in using `op signin` or `eval $(op signin)` prior to executing the script.
 * Optionally the [LastPass CLI](https://github.com/LastPass/lastpass-cli)
 
 ### Usage
@@ -87,11 +85,11 @@ Note that 1Password does not have the concept of nested vaults. If you have nest
 
 **This script only migrates LastPass Sites**. It will not migrate credit cards, secure notes, or any other item type. You might consider extracting secure notes (all of which have the URL `http://sn` in the LastPass export file) into its own .csv file and use the [LastPass importer at 1Password.com](https://support.1password.com/import-lastpass/), which does handle Secure Notes. Imported secure notes will be tagged with the LastPass folder they were a part of, allowing you to use a 1Password application to move imported secure notes to the appropriate vault based on the tag.
 
-**Migrations will not include TOTP secrets when LastPass CLI is the data source**. The LastPass CLI does not include TOTP secrets in it's exports. Therefore if you use the CLI->CLI migration mode, you will have to manually migrate your TOTP secrets. 
+**Migrations will not include TOTP secrets when LastPass CLI is the data source**. The LastPass CLI does not include TOTP secrets in it's exports. Therefore if you use the CLI->CLI migration mode, you will have to manually migrate your TOTP secrets.
 
 ### Unencrypted exports
 
-The LastPass export is unencrypted. As such, additional precuations are necessary to maintain the confidentiality of the data in your exports. This script has the ability to read data directly from the LastPass CLI, avoiding writing secrets to disk. 
+The LastPass export is unencrypted. As such, additional precuations are necessary to maintain the confidentiality of the data in your exports. This script has the ability to read data directly from the LastPass CLI, avoiding writing secrets to disk.
 
 However, if you cannot use the LastPass CLI and must provide a .csv file from your local computer, prior to exporting your LastPass data, consider the following steps:
 
