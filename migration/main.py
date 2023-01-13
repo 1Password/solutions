@@ -10,7 +10,7 @@ def main(argv):
     csv_data = ''
     is_migrating_folders = False
     is_migrating_items = False
-    opts, args = getopt.getopt(argv, "f:fd:i", ["file=", "folders", "items"])
+    opts, args = getopt.getopt(argv, "fi", ["file=", "folders", "items"])
     for opt, arg in opts:
         if opt == "--file":
             print(f'Export secrets from csv file {arg}')
@@ -18,7 +18,7 @@ def main(argv):
                 csv_data = csvfile.read()
             continue
 
-        if opt in ("-fd", "--folders"):
+        if opt in ("-f", "--folders"):
             is_migrating_folders = True
             continue
 
