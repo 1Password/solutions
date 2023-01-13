@@ -7,15 +7,15 @@ from vault_item_import import migrate_items
 
 
 def main(argv):
-    # Can specify file path (-f, or --file, otherwise use lpass cli
     csv_data = ''
     is_migrating_folders = False
     is_migrating_items = False
     opts, args = getopt.getopt(argv, "f:fd:i", ["file=", "folders", "items"])
     for opt, arg in opts:
-        if opt in ("-f", "--file"):
+        if opt == "--file":
             print(f'Export secrets from csv file {arg}')
-            csv_data = '1'
+            with open(arg, newline='') as csvfile:
+                csv_data = csvfile.read()
             continue
 
         if opt in ("-fd", "--folders"):
