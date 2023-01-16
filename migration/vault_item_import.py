@@ -14,6 +14,8 @@ import json
 import subprocess
 import sys
 
+from utils import normalize_vault_name
+
 
 def fetch_item_template():
     # Fetch the login item template, and compare to what's expected
@@ -112,6 +114,8 @@ def migrate_items(csv_data):
             title = row[4]
             vault = row[5]
             otp_secret = None
+
+        vault = normalize_vault_name(vault)
 
         # Omitting Secure Notes
         if url == "http://sn":
