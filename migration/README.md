@@ -5,6 +5,13 @@
 * [Migrate folders and login items from LastPass](#migrate-folders-and-login-items-from-lastpass)
 * [Create 1Password vaults based on LastPass folders](#create-1password-vaults-based-on-lastpass-folders)
 
+## Dependencies
+
+* Python
+* [1Password CLI](https://developer.1password.com/docs/cli)
+  * Ensure you have added your 1Password account to the 1Password CLI and have signed in using `op signin` or `eval $(op signin)` prior to executing the script.
+* Optionally the [LastPass CLI](https://github.com/LastPass/lastpass-cli)
+
 ## Who is this for?
 
 This script is best run by a LastPass administrator or Superadmin, or anyone else responsible for migrating a large number of LastPass folders to 1Password.
@@ -21,13 +28,6 @@ This script uses the 1Password CLI tool to import items from either
 * directly from the LastPass CLI tool.
 
 (this script has not been tested on exports from the LastPass browser extension or other methods).
-
-## Dependencies
-
-* Python
-* [1Password CLI](https://developer.1password.com/docs/cli)
-  * Ensure you have added your 1Password account to the 1Password CLI and have signed in using `op signin` or `eval $(op signin)` prior to executing the script.
-* Optionally the [LastPass CLI](https://github.com/LastPass/lastpass-cli)
 
 ### Usage
 
@@ -79,13 +79,15 @@ Note that unlike the browser-based importer, this script will create vaults for 
 
 ### Handling nested folders
 
-Note that 1Password does not have the concept of nested vaults. If you have nested LastPass folders, they will be created as their own 1Password vault, and will be a sibling to their parent. Vault names reflect the original hierarchy and will have a name similar to `parent\child`
+Note that 1Password does not have the concept of nested vaults. If you have nested LastPass folders, they will be created as their own 1Password vault, and will be a sibling to their parent. Vault names reflect the original hierarchy and will have a name similar to `parent_child`
 
 ### Limitations
 
 **This script only migrates LastPass Sites**. It will not migrate credit cards, secure notes, or any other item type. You might consider extracting secure notes (all of which have the URL `http://sn` in the LastPass export file) into its own .csv file and use the [LastPass importer at 1Password.com](https://support.1password.com/import-lastpass/), which does handle Secure Notes. Imported secure notes will be tagged with the LastPass folder they were a part of, allowing you to use a 1Password application to move imported secure notes to the appropriate vault based on the tag.
 
 **Migrations will not include TOTP secrets when LastPass CLI is the data source**. The LastPass CLI does not include TOTP secrets in it's exports. Therefore if you use the CLI->CLI migration mode, you will have to manually migrate your TOTP secrets.
+
+**This script will substitute underscore `_` characters for `\` or `/` in Folder Names** for compatibility with the 1Password CLI and [Secret References](https://developer.1password.com/docs/cli/secret-references).
 
 ### Unencrypted exports
 
