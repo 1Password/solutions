@@ -12,6 +12,8 @@ import csv
 import json
 import subprocess
 
+from utils import normalize_vault_name
+
 
 def migrate_folders(csv_data):
     created_vault_list = {}
@@ -27,7 +29,7 @@ def migrate_folders(csv_data):
     for row in linereader:
         vault_name = row[6] if is_csv_from_web_exporter else row[5]
         if vault_name:
-            lp_folder_list.add(vault_name)
+            lp_folder_list.add(normalize_vault_name(vault_name))
 
     for folder in lp_folder_list:
         try:
