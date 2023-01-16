@@ -1,3 +1,5 @@
+# A debug script people simply migrating from LastPass to 1Password
+# can disregard as it is not used in the process migrating. 
 from utils import normalize_vault_name
 
 
