@@ -18,6 +18,10 @@ When run by a member of the Owners group, this script will remove the `export it
 
 When run by a non-Owner, this script will remove the `export` permission on vaults that the person running the script also has the `manage vault` permissions for.
 
+### [vault-permission-change.sh](vault-permission-change.sh)
+
+This script, when run by an a user with the `manage vault` (manage access) permission, will remove or add the specified vault permission(s) for the specified group(s) from all vaults (excluding Private vaults). This could be useful if you are looking to systematically remove the Administrators `manage vault` (manage access) permission from all created shared vaults, this leaving this permission to the default owners group. 
+
 ### [bulk-group-prefix-update.sh](bulk-group-prefix-update.sh)
 
 This script, when run by an Owner or Administrator, will change the prefix of all group names according to your specifications. This is particularly helpful if you are needing to change an existing naming scheme.
