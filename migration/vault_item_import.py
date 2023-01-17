@@ -98,7 +98,6 @@ def create_item(vault: str, template):
 def migrate_items(csv_data):
     created_vault_list = {}
     is_csv_from_web_exporter = False
-    template = fetch_login_item_template()
     personal_vault = fetch_personal_vault()
 
     linereader = csv.reader(csv_data, delimiter=',', quotechar='"')
@@ -162,6 +161,7 @@ def migrate_items(csv_data):
                 title = "Untitled Login"
 
             # Create item template
+            template = fetch_login_item_template()
             template["title"] = title
             template["urls"] = [
                 {

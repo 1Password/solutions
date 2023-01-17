@@ -22,27 +22,36 @@ class SecureNoteTransformer:
         self.lpass_raw_data = lpass_raw_data
 
     def transform(self):
-        parsed_data = self._parse()
-        note_type = parsed_data["NoteType"]
-
         template = None
+        parsed_data = self._parse()
+        if not parsed_data:
+            return
+
+        note_type = parsed_data["NoteType"]
         if not note_type:
+            # TODO: implement mapper function for Secure Note item
             pass
         elif note_type == "Credit Card":
             template = fetch_template("Credit Card")
             self._map_credit_card(parsed_data, template)
             return template
+        elif note_type == "Banking Account":
+            # TODO: implement mapper function for Banking Account item
+            pass
 
         if not template:
             return
 
     def _parse(self):
-        parsed_data = {}
-        entries = self.lpass_raw_data.notes.split("\n")
-        for row in entries:
-            [key, value] = row.split(":")
-            parsed_data[key] = value
-        return parsed_data
+        try:
+            parsed_data = {}
+            entries = self.lpass_raw_data.notes.split("\n")
+            for row in entries:
+                [key, value] = row.split(":")
+                parsed_data[key] = value
+            return parsed_data
+        except:
+            logging.warning("Failed to parse LastPass data")
 
     def _map_credit_card(self, data, template):
         template["title"] = data["Name on Card"]
