@@ -21,11 +21,3 @@ def get_lp_data():
         sys.exit("No items were exported from LastPass")
 
     return lp_export
-
-
-def prepare_csv(exported_data: str):
-    return list(filter(lambda row: (len(row) > 0), exported_data.split("\n")))
-
-
-def export_csv():
-    return prepare_csv(get_lp_data())
