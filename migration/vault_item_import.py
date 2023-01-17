@@ -11,13 +11,15 @@
 
 import csv
 import json
+import logging
 import subprocess
 import sys
 
 from utils import normalize_vault_name
+from secure_note_transformer import LPassData, SecureNoteTransformer
 
 
-def fetch_item_template():
+def fetch_login_item_template():
     # Fetch the login item template, and compare to what's expected
     expected_login_template = {
       "title": "",
@@ -86,10 +88,17 @@ def fetch_personal_vault():
     return personal_vault
 
 
+def create_item(vault: str, template):
+    # Create item
+    subprocess.run([
+        "op", "item", "create", "-", f"--vault={vault}"
+    ], input=template, text=True)
+
+
 def migrate_items(csv_data):
     created_vault_list = {}
     is_csv_from_web_exporter = False
-    login_template = fetch_item_template()
+    template = fetch_login_item_template()
     personal_vault = fetch_personal_vault()
 
     linereader = csv.reader(csv_data, delimiter=',', quotechar='"')
@@ -116,20 +125,8 @@ def migrate_items(csv_data):
             otp_secret = None
 
         vault = normalize_vault_name(vault)
-
-        # Omitting Secure Notes
-        if url == "http://sn":
-            continue
-
-        # Account for empty fields
-        if not url:
-            url = "no URL"
-        if not title:
-            title = "Untitled Login"
-
         # Check if vault is defined
         vault_defined = vault and vault != ""
-
         # Create vault, if needed
         if vault_defined and vault not in created_vault_list:
             try:
@@ -139,57 +136,77 @@ def migrate_items(csv_data):
                     "--format=json"
                 ], check=True, capture_output=True)
             except:
-                print(f"Failed to create vault for folder {vault}. Item \"{title}\" on line {linereader.line_num} not migrated.")
+                print(
+                    f"Failed to create vault for folder {vault}. Item \"{title}\" on line {linereader.line_num} not migrated.")
                 continue
             new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
             created_vault_list[vault] = new_vault_uuid
 
-        # Create item template
-        login_template["title"] = title
-        login_template["urls"] = [
-            {
-                "label": "website",
-                "primary": True,
-                "href": url
-            }
-        ]
-        login_template["tags"] = [vault if vault_defined else personal_vault['name']]
-        login_template["fields"] = [
-            {
-                "id": "username",
-                "type": "STRING",
-                "purpose": "USERNAME",
-                "label": "username",
-                "value": username
-            },
-            {
-                "id": "password",
-                "type": "CONCEALED",
-                "purpose": "PASSWORD",
-                "label": "password",
-                "password_details": {
-                    "strength": "TERRIBLE"
+        # Generate template from lpass Secure Notes
+        if url == "http://sn":
+            template = SecureNoteTransformer(LPassData(
+                url=url,
+                username=username,
+                password=password,
+                otp_secret=otp_secret,
+                notes=notes,
+                title=title,
+                vault=vault,
+            )).transform()
+        else:
+            # Generate Login template
+            # Account for empty fields
+            if not url:
+                url = "no URL"
+            if not title:
+                title = "Untitled Login"
+
+            # Create item template
+            template["title"] = title
+            template["urls"] = [
+                {
+                    "label": "website",
+                    "primary": True,
+                    "href": url
+                }
+            ]
+            template["tags"] = [vault if vault_defined else personal_vault['name']]
+            template["fields"] = [
+                {
+                    "id": "username",
+                    "type": "STRING",
+                    "purpose": "USERNAME",
+                    "label": "username",
+                    "value": username
                 },
-                "value": password
-            },
-            {
-                "id": "notesPlain",
-                "type": "STRING",
-                "purpose": "NOTES",
-                "label": "notesPlain",
-                "value": notes
-            }
-        ] + ([{
-            "id": "one-time password",
-            "type": "OTP",
-            "label": "one-time password",
-            "value": otp_secret
-        }] if otp_secret else [])
+                {
+                    "id": "password",
+                    "type": "CONCEALED",
+                    "purpose": "PASSWORD",
+                    "label": "password",
+                    "password_details": {
+                        "strength": "TERRIBLE"
+                    },
+                    "value": password
+                },
+                {
+                    "id": "notesPlain",
+                    "type": "STRING",
+                    "purpose": "NOTES",
+                    "label": "notesPlain",
+                    "value": notes
+                }
+            ] + ([{
+                "id": "one-time password",
+                "type": "OTP",
+                "label": "one-time password",
+                "value": otp_secret
+            }] if otp_secret else [])
 
-        json_login_template = json.dumps(login_template)
+        if not template:
+            logging.warning(f"No template generated for the {title} item. Skipping...")
+            return
 
-        # Create item
-        subprocess.run([
-            "op", "item", "create", "-",
-            f"--vault={created_vault_list[vault] if vault_defined else personal_vault['id'] }"
-        ], input=json_login_template, text=True)
+        json_template = json.dumps(template)
+        vault_to_use = created_vault_list[vault] if vault_defined else personal_vault['id']
+        create_item(vault_to_use, json_template)
