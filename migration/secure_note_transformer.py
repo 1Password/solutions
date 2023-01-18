@@ -73,7 +73,7 @@ class SecureNoteTransformer:
         ]
 
     def _map_credit_card(self, data, template):
-        template["title"] = data["Name on Card"]
+        template["title"] = self.lpass_raw_data.title
         template["fields"] = [
             {
                 "id": "notesPlain",
