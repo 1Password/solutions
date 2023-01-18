@@ -170,7 +170,7 @@ def migrate_items(csv_data):
                     "href": url
                 }
             ]
-            template["tags"] = [vault if vault_defined else personal_vault['name']]
+            template["tags"] = [vault if vault_defined else personal_vault['name'], "LastPass"]
             template["fields"] = [
                 {
                     "id": "username",
