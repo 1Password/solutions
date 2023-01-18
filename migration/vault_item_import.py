@@ -205,7 +205,7 @@ def migrate_items(csv_data):
 
         if not template:
             logging.warning(f"No template generated for the {title} item. Skipping...")
-            return
+            continue
 
         json_template = json.dumps(template)
         vault_to_use = created_vault_list[vault] if vault_defined else personal_vault['id']
