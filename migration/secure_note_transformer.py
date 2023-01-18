@@ -121,7 +121,7 @@ class SecureNoteTransformer:
         ]
 
     def _map_bank_account(self, data, template):
-        template["title"] = data["Bank Name"]
+        template["title"] = self.lpass_raw_data.title
         template["fields"] = [
             {
                 "id": "notesPlain",
