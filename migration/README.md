@@ -12,6 +12,9 @@
   * Ensure you have added your 1Password account to the 1Password CLI and have signed in using `op signin` or `eval $(op signin)` prior to executing the script.
 * Optionally the [LastPass CLI](https://github.com/LastPass/lastpass-cli)
 
+If you don't want to clone this repo, download the bundle of scripts here:  
+**[Download](https://github.com/1Password/solutions/raw/main/migration/lastpass-migrate.zip)**
+
 ## Who is this for?
 
 This script is best run by a LastPass administrator or Superadmin, or anyone else responsible for migrating a large number of LastPass folders to 1Password.
