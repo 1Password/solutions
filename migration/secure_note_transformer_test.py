@@ -12,4 +12,4 @@ def test_secure_note_transformer_credit_card():
         vault="test",
     )
     template = SecureNoteTransformer(lpass_data).transform()
-    assert template['title'] == 'CREDIT_CARD'
+    assert template['title'] == 'Fake card'
