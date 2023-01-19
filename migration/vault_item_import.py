@@ -11,7 +11,6 @@
 
 import csv
 import json
-import logging
 import subprocess
 import sys
 
@@ -92,13 +91,27 @@ def create_item(vault: str, template):
     # Create item
     subprocess.run([
         "op", "item", "create", "-", f"--vault={vault}"
-    ], input=template, text=True)
+    ], input=template, text=True, stdout=subprocess.DEVNULL)
+
+
+def count_credentials_to_migrate(csv_data):
+    linereader = csv.reader(csv_data, delimiter=',', quotechar='"')
+    next(linereader) # skip header row from counting
+    credentials_amount = sum(1 for _ in linereader)
+    print(f"Found {credentials_amount} credentials to migrate:")
+    return credentials_amount
 
 
 def migrate_items(csv_data):
     created_vault_list = {}
     is_csv_from_web_exporter = False
     personal_vault = fetch_personal_vault()
+    stats = {
+        'total': 0,
+        'migrated': 0,
+        'skipped': 0,
+        'vaults': 0,
+    }
 
     linereader = csv.reader(csv_data, delimiter=',', quotechar='"')
     heading = next(linereader)
@@ -106,6 +119,10 @@ def migrate_items(csv_data):
         is_csv_from_web_exporter = True
 
     for row in linereader:
+        if len(row) == 0:
+            continue
+
+        stats['total'] += 1
         if is_csv_from_web_exporter:
             url = row[0]
             username = row[1]
@@ -135,11 +152,12 @@ def migrate_items(csv_data):
                     "--format=json"
                 ], check=True, capture_output=True)
             except:
-                print(
-                    f"Failed to create vault for folder {vault}. Item \"{title}\" on line {linereader.line_num} not migrated.")
+                print(f"\t\"{vault}\" => failed to create new vault \"{vault}\"")
                 continue
             new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
             created_vault_list[vault] = new_vault_uuid
+            stats["vaults"] += 1
+            print(f"\t\"{vault}\" => created new vault \"{vault}\"")
 
         # Generate template from lpass Secure Notes
         if url == "http://sn":
@@ -204,9 +222,14 @@ def migrate_items(csv_data):
             }] if otp_secret else [])
 
         if not template:
-            logging.warning(f"No template generated for the {title} item. Skipping...")
+            print(f"\t\"{title}\" => skipped (incompatible item)")
+            stats["skipped"] += 1
             continue
 
         json_template = json.dumps(template)
         vault_to_use = created_vault_list[vault] if vault_defined else personal_vault['id']
         create_item(vault_to_use, json_template)
+        stats["migrated"] += 1
+        print(f"\t\"{title}\" => migrated")
+    
+    print(f"\nMigration complete! Total {stats['total']} credentials. Migrated {stats['migrated']} credentials, created {stats['vaults']} vaults, skipped {stats['skipped']} credentials.")

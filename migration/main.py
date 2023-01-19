@@ -34,11 +34,11 @@ def main(argv):
         csvfile = io.StringIO(lpass.get_lp_data())
 
     if is_migrating_folders:
-        print('Migrating folders...')
+        print('Migrating folders:')
         migrate_folders(csvfile)
 
     if is_migrating_items:
-        print('Migrating items')
+        print('Migrating items:')
         migrate_items(csvfile)
 
     if csvfile:
