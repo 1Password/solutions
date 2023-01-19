@@ -102,7 +102,7 @@ def count_credentials_to_migrate(csv_data):
     return credentials_amount
 
 
-def migrate_items(csv_data):
+def migrate_items(csv_data, options):
     created_vault_list = {}
     is_csv_from_web_exporter = False
     personal_vault = fetch_personal_vault()
@@ -139,6 +139,11 @@ def migrate_items(csv_data):
             title = row[4]
             vault = row[5]
             otp_secret = None
+
+        if vault.startswith("Shared") and options['ignore-shared']:
+            print(f"\t\"{title}\" => skipped (ignore shared credentials)")
+            stats['skipped'] += 1
+            continue
 
         vault = normalize_vault_name(vault)
         # Check if vault is defined

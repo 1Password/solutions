@@ -37,6 +37,9 @@ python main.py [--item, -i]
 
 # Executes the script (vault_item_import.py) with the export.csv file located on local machine
 python main.py [--item, -i] --file=path_to_csv_file
+
+# Executes the script (vault_item_import.py) skipping credentials from Shared folders
+python main.py [--item, -i] --ignore-shared
 ```
 
 ## Create 1Password vaults based on LastPass folders

@@ -8,10 +8,13 @@ from vault_item_import import migrate_items
 
 
 def main(argv):
+    options = {
+        'ignore-shared': False,
+    }
     csvfile = None
     is_migrating_folders = False
     is_migrating_items = False
-    opts, args = getopt.getopt(argv, "di", ["file=", "directory", "item"])
+    opts, args = getopt.getopt(argv, "di", ["file=", "directory", "item", "ignore-shared"])
     for opt, arg in opts:
         if opt == "--file":
             print(f'Export secrets from csv file {arg}')
@@ -24,6 +27,10 @@ def main(argv):
 
         if opt in ("-i", "--item"):
             is_migrating_items = True
+            continue
+
+        if opt == "--ignore-shared":
+            options["ignore-shared"] = True
             continue
 
     if not is_migrating_items and not is_migrating_folders:
@@ -39,7 +46,7 @@ def main(argv):
 
     if is_migrating_items:
         print('Migrating items:')
-        migrate_items(csvfile)
+        migrate_items(csvfile, options)
 
     if csvfile:
         csvfile.close()
