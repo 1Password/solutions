@@ -42,7 +42,7 @@ def main(argv):
 
     if is_migrating_folders:
         print('Migrating folders:')
-        migrate_folders(csvfile)
+        migrate_folders(csvfile, options)
 
     if is_migrating_items:
         print('Migrating items:')
