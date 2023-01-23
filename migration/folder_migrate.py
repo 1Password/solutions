@@ -59,4 +59,4 @@ def migrate_folders(csv_data, options):
         print(f"\t\"{folder}\" => created")
         stats["migrated"] += 1
 
-    print(f"\nFolders migration complete! Total {stats['total']} folders. Created {stats['migrated']} vaults, skipped {stats['skipped']}.")
+    print(f"\nFolders migration complete!\nTotal {stats['total']} folders.\nCreated {stats['migrated']} vaults.\nSkipped {stats['skipped']}.")

@@ -237,4 +237,4 @@ def migrate_items(csv_data, options):
         stats["migrated"] += 1
         print(f"\t\"{title}\" => migrated")
     
-    print(f"\nMigration complete! Total {stats['total']} credentials. Migrated {stats['migrated']} credentials, created {stats['vaults']} vaults, skipped {stats['skipped']} credentials.")
+    print(f"\nMigration complete!\nTotal {stats['total']} credentials.\nMigrated {stats['migrated']} credentials.\nCreated {stats['vaults']} vaults.\nSkipped {stats['skipped']} credentials.")
