@@ -15,10 +15,15 @@ import subprocess
 from utils import normalize_vault_name
 
 
-def migrate_folders(csv_data):
+def migrate_folders(csv_data, options):
     created_vault_list = {}
     lp_folder_list = set()
     is_csv_from_web_exporter = False
+    stats = {
+        'total': 0,
+        'migrated': 0,
+        'skipped': 0,
+    }
 
     linereader = csv.reader(csv_data, delimiter=',', quotechar='"')
     heading = next(linereader)
@@ -28,9 +33,15 @@ def migrate_folders(csv_data):
 
     for row in linereader:
         vault_name = row[6] if is_csv_from_web_exporter else row[5]
+        if vault_name.startswith("Shared") and options['ignore-shared']:
+            print(f"\t\"{vault_name}\" => skipped (ignore shared folders)")
+            stats["skipped"] += 1
+            continue
+
         if vault_name:
             lp_folder_list.add(normalize_vault_name(vault_name))
 
+    stats['total'] = len(lp_folder_list)
     for folder in lp_folder_list:
         try:
             vault_create_command_output = subprocess.run([
@@ -39,9 +50,13 @@ def migrate_folders(csv_data):
                 "--format=json"
             ], check=True, capture_output=True)
         except:
-            print(f"A vault with name {vault_name} could not be created.")
+            print(f"\t\"{folder}\" => skipped (cannot be created)")
+            stats["skipped"] += 1
+
             continue
         new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
         created_vault_list[folder] = new_vault_uuid
-    print(f"The following 1Password vaults were created:")
-    print("\n".join(created_vault_list))
+        print(f"\t\"{folder}\" => created")
+        stats["migrated"] += 1
+
+    print(f"\nFolders migration complete!\nTotal {stats['total']} folders.\nCreated {stats['migrated']} vaults.\nSkipped {stats['skipped']}.")

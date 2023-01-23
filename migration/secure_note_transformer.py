@@ -58,7 +58,7 @@ class SecureNoteTransformer:
                 parsed_data[key] = value
             return parsed_data
         except:
-            logging.warning("Failed to parse LastPass data")
+            pass  # silence error here but prints in the vault_item_import.py
 
     def _map_secure_note(self, data: LPassData, template):
         template["title"] = data.title

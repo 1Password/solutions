@@ -8,38 +8,45 @@ from vault_item_import import migrate_items
 
 
 def main(argv):
+    options = {
+        'ignore-shared': False,
+    }
     csvfile = None
     is_migrating_folders = False
     is_migrating_items = False
-    opts, args = getopt.getopt(argv, "fi", ["file=", "folders", "items"])
+    opts, args = getopt.getopt(argv, "di", ["file=", "directory", "item", "ignore-shared"])
     for opt, arg in opts:
         if opt == "--file":
             print(f'Export secrets from csv file {arg}')
             csvfile = open(arg, newline='')
             continue
 
-        if opt in ("-f", "--folders"):
+        if opt in ("-d", "--directory"):
             is_migrating_folders = True
             continue
 
-        if opt in ("-i", "--items"):
+        if opt in ("-i", "--item"):
             is_migrating_items = True
             continue
 
+        if opt == "--ignore-shared":
+            options["ignore-shared"] = True
+            continue
+
     if not is_migrating_items and not is_migrating_folders:
-        sys.exit("Please specify the flag to run migration -i for items, -f for folders")
+        sys.exit("Please specify the flag to run migration -i for items, -d for folders")
 
     if not csvfile:
         print('Export secrets using lpass cli')
         csvfile = io.StringIO(lpass.get_lp_data())
 
     if is_migrating_folders:
-        print('Migrating folders...')
-        migrate_folders(csvfile)
+        print('Migrating folders:')
+        migrate_folders(csvfile, options)
 
     if is_migrating_items:
-        print('Migrating items')
-        migrate_items(csvfile)
+        print('Migrating items:')
+        migrate_items(csvfile, options)
 
     if csvfile:
         csvfile.close()

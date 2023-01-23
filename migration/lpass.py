@@ -5,7 +5,7 @@ import sys
 
 def get_lp_data():
     # Sign user into LastPass
-    lp_username = input("Please enter your LastPass username ")
+    lp_username = input("Please enter your LastPass username.\nWe don’t store this and it will only be used during this session.\n")
     try:
         subprocess.run(["lpass", "login", lp_username])
     except:
