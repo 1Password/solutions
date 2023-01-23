@@ -1,7 +1,7 @@
-from secure_note_transformer import LPassData, SecureNoteTransformer
+from template_generator import LPassData, TemplateGenerator
 
 
-def test_secure_note_transformer_credit_card():
+def test_template_generator_credit_card():
     lpass_data = LPassData(
         url="http://sn",
         username="",
@@ -11,5 +11,5 @@ def test_secure_note_transformer_credit_card():
         title="Fake card",
         vault="test",
     )
-    template = SecureNoteTransformer(lpass_data).transform()
+    template = TemplateGenerator(lpass_data).generate()
     assert template['title'] == 'Fake card'

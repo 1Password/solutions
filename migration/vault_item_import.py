@@ -15,56 +15,7 @@ import subprocess
 import sys
 
 from utils import normalize_vault_name
-from secure_note_transformer import LPassData, SecureNoteTransformer
-
-
-def fetch_login_item_template():
-    # Fetch the login item template, and compare to what's expected
-    expected_login_template = {
-      "title": "",
-      "category": "LOGIN",
-      "fields": [
-        {
-          "id": "username",
-          "type": "STRING",
-          "purpose": "USERNAME",
-          "label": "username",
-          "value": ""
-        },
-        {
-          "id": "password",
-          "type": "CONCEALED",
-          "purpose": "PASSWORD",
-          "label": "password",
-          "password_details": {
-            "strength": "TERRIBLE"
-          },
-          "value": ""
-        },
-        {
-          "id": "notesPlain",
-          "type": "STRING",
-          "purpose": "NOTES",
-          "label": "notesPlain",
-          "value": ""
-        }
-      ]
-    }
-    try:
-        login_template_command_output = subprocess.run([
-            "op", "item", "template", "get", "login",
-            "--format=json"
-        ], check=True, capture_output=True)
-    except:
-        sys.exit("An error occurred when attempting to fetch the login item template.")
-
-    login_template = json.loads(login_template_command_output.stdout)
-    if expected_login_template != login_template:
-        # If the template doesn't match, then CLI behaviour may have changed.
-        # In this case, the script should be updated with the new template.
-        sys.exit("The login template returned by the CLI does not match the expected login template.\n\nThis script may be designed for an older version of the CLI.")
-
-    return login_template
+from template_generator import LPassData, TemplateGenerator
 
 
 def fetch_personal_vault():
@@ -92,14 +43,6 @@ def create_item(vault: str, template):
     subprocess.run([
         "op", "item", "create", "-", f"--vault={vault}"
     ], input=template, text=True, stdout=subprocess.DEVNULL)
-
-
-def count_credentials_to_migrate(csv_data):
-    linereader = csv.reader(csv_data, delimiter=',', quotechar='"')
-    next(linereader) # skip header row from counting
-    credentials_amount = sum(1 for _ in linereader)
-    print(f"Found {credentials_amount} credentials to migrate:")
-    return credentials_amount
 
 
 def migrate_items(csv_data, options):
@@ -164,67 +107,15 @@ def migrate_items(csv_data, options):
             stats["vaults"] += 1
             print(f"\t\"{vault}\" => created new vault \"{vault}\"")
 
-        # Generate template from lpass Secure Notes
-        if url == "http://sn":
-            template = SecureNoteTransformer(LPassData(
-                url=url,
-                username=username,
-                password=password,
-                otp_secret=otp_secret,
-                notes=notes,
-                title=title,
-                vault=vault,
-            )).transform()
-        else:
-            # Generate Login template
-            # Account for empty fields
-            if not url:
-                url = "no URL"
-            if not title:
-                title = "Untitled Login"
-
-            # Create item template
-            template = fetch_login_item_template()
-            template["title"] = title
-            template["urls"] = [
-                {
-                    "label": "website",
-                    "primary": True,
-                    "href": url
-                }
-            ]
-            template["tags"] = [vault if vault_defined else personal_vault['name'], "LastPass"]
-            template["fields"] = [
-                {
-                    "id": "username",
-                    "type": "STRING",
-                    "purpose": "USERNAME",
-                    "label": "username",
-                    "value": username
-                },
-                {
-                    "id": "password",
-                    "type": "CONCEALED",
-                    "purpose": "PASSWORD",
-                    "label": "password",
-                    "password_details": {
-                        "strength": "TERRIBLE"
-                    },
-                    "value": password
-                },
-                {
-                    "id": "notesPlain",
-                    "type": "STRING",
-                    "purpose": "NOTES",
-                    "label": "notesPlain",
-                    "value": notes
-                }
-            ] + ([{
-                "id": "one-time password",
-                "type": "OTP",
-                "label": "one-time password",
-                "value": otp_secret
-            }] if otp_secret else [])
+        template = TemplateGenerator(LPassData(
+            url=url,
+            username=username,
+            password=password,
+            otp_secret=otp_secret,
+            notes=notes,
+            title=title,
+            vault=vault,
+        )).generate()
 
         if not template:
             print(f"\t\"{title}\" => skipped (incompatible item)")
