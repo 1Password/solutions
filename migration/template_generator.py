@@ -18,6 +18,8 @@ class LPassData:
 
 
 class TemplateGenerator:
+    __AVAILABLE_TEMPLATE_TYPES = ["Login", "Secure Note", "Credit Card", "Bank Account"]
+
     def __init__(self, lpass_raw_data: LPassData):
         self.template_type = None
         self.parsed_notes_data = {}
@@ -33,7 +35,7 @@ class TemplateGenerator:
                 self.template_type = self.parsed_notes_data["NoteType"]
 
     def generate(self):
-        if not self.template_type:
+        if self.template_type not in self.__AVAILABLE_TEMPLATE_TYPES:
             return
 
         template = fetch_template(self.template_type)
@@ -45,6 +47,8 @@ class TemplateGenerator:
             self._map_credit_card(template)
         elif self.template_type == "Bank Account":
             self._map_bank_account(template)
+        else:
+            return
 
         template["tags"] = ["LastPass"]
         return template
