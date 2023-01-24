@@ -39,6 +39,9 @@ def main(argv):
     if is_migrating_items and is_migrating_folders:
         sys.exit("Please specify single flag to run migration -i for items and folders, -d for folders only")
 
+    if is_migrating_folders and is_migrating_folders:
+        sys.exit("Please specify single flag to run migration -i for items and folders, -d for folders only")
+
     if not csvfile:
         print('Export secrets using lpass cli.\n')
         csvfile = io.StringIO(lpass.get_lp_data())
