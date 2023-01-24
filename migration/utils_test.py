@@ -6,6 +6,7 @@ import utils
 def test_normalize_vault_name():
     assert utils.normalize_vault_name("dev\sub_dev\\nested folder") == "dev_sub_dev_nested folder"
     assert utils.normalize_vault_name("dev/sub_dev") == "dev_sub_dev"
+    assert utils.normalize_vault_name("test-folder") == "test-folder"
 
 
 def test_lpass_date_to_1password():
