@@ -38,3 +38,7 @@ If you have multiple items with incorrect field types but the correct value (e.g
 ### Share Zoom Recording Link using 1Password Item Share
 
 If you have a Zoom Recording Link that you are looking to share, this script will create a placeholder 1Password Login Item, based off some of the information promoted for. It takes in a standard Zoom Recording link and seperates the two lines out into the URL and Password, to add to the 1Password item accordingly. Lastly it creates a [item-share link](https://developer.1password.com/docs/cli/reference/management-commands/item#item-share) to send out to the provided email addresses. [recording-item-share.sh](recording-item-share.sh) provides an example of how you can utilize the 1Password Item Share to distribute temporary credentials to contacts outside your 1Password account in a secure fashion.
+
+### Create Vault based on item content
+
+ Through this script, [create-vault-based-on-item.sh](create-vault-based-on-item.sh), items in a certain vault are checked, and a new vault is created based of a field in the item. From there the original item is recreated in the new vault and removed from the "landing" vault. The concent behind this, is that perhaps 1Password Connect is in place that is tied to a "landing" vault where new items are being created through a web form and Secrets Automation (this part is not part of the script).
