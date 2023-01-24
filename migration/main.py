@@ -14,18 +14,18 @@ def main(argv):
     csvfile = None
     is_migrating_folders = False
     is_migrating_items = False
-    opts, args = getopt.getopt(argv, "di", ["file=", "directory", "item", "ignore-shared"])
+    opts, args = getopt.getopt(argv, "fi", ["file=", "folders", "items", "ignore-shared"])
     for opt, arg in opts:
         if opt == "--file":
             print(f'Export secrets from csv file {arg}')
             csvfile = open(arg, newline='')
             continue
 
-        if opt in ("-d", "--directory"):
+        if opt in ("-f", "--folders"):
             is_migrating_folders = True
             continue
 
-        if opt in ("-i", "--item"):
+        if opt in ("-i", "--items"):
             is_migrating_items = True
             continue
 
@@ -34,7 +34,7 @@ def main(argv):
             continue
 
     if not is_migrating_items and not is_migrating_folders:
-        sys.exit("Please specify the flag to run migration -i for items and folders, -d for folders only")
+        sys.exit("Please specify the flag to run migration -i for items and folders, -f for folders only")
 
     if is_migrating_items and is_migrating_folders:
         sys.exit("Please specify single flag to run migration -i for items and folders, -d for folders only")

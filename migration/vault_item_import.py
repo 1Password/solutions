@@ -88,24 +88,24 @@ def migrate_items(csv_data, options):
             stats['skipped'] += 1
             continue
 
-        vault = normalize_vault_name(vault)
         # Check if vault is defined
         vault_defined = vault and vault != ""
         # Create vault, if needed
         if vault_defined and vault not in created_vault_list:
             try:
+                normalized_vault_name = normalize_vault_name(vault)
                 vault_create_command_output = subprocess.run([
                     "op", "vault", "create",
-                    vault,
+                    normalized_vault_name,
                     "--format=json"
                 ], check=True, capture_output=True)
             except:
-                print(f"\t\"{vault}\" => failed to create new vault \"{vault}\"")
+                print(f"\t\"{vault}\" => failed to create new vault \"{normalized_vault_name}\"")
                 continue
             new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
             created_vault_list[vault] = new_vault_uuid
             stats["vaults"] += 1
-            print(f"\t\"{vault}\" => created new vault \"{vault}\"")
+            print(f"\t\"{vault}\" => created new vault \"{normalized_vault_name}\"")
 
         template = TemplateGenerator(LPassData(
             url=url,
