@@ -25,14 +25,14 @@ class TemplateGenerator:
         self.parsed_notes_data = {}
         self.lpass_raw_data = lpass_raw_data
 
-        if lpass_raw_data.username and lpass_raw_data.password:
-            self.template_type = "Login"
-        elif lpass_raw_data.url == "http://sn":
+        if lpass_raw_data.url == "http://sn":
             self._parse_notes()
             if not self.lpass_raw_data.notes.startswith("NoteType:"):
                 self.template_type = "Secure Note"
             else:
                 self.template_type = self.parsed_notes_data["NoteType"]
+        else:
+            self.template_type = "Login"
 
     def generate(self):
         if self.template_type not in self.__AVAILABLE_TEMPLATE_TYPES:
