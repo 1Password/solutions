@@ -33,13 +33,13 @@ This script uses the 1Password CLI tool to import items from either
 
 ```bash
 # Executes the script (vault_item_import.py) and ingests data directly from LastPass CLI without writing files to disk. Creates items and converts LastPass folders to vaults. 
-python main.py [--item, -i]
+python main.py [--items, -i]
 
 # Executes the script (vault_item_import.py) with the export.csv file located on local machine
-python main.py [--item, -i] --file=path_to_csv_file
+python main.py [--items, -i] --file=path_to_csv_file
 
 # Executes the script (vault_item_import.py) skipping credentials from Shared folders
-python main.py [--item, -i] --ignore-shared
+python main.py [--items, -i] --ignore-shared
 ```
 
 ## Create 1Password vaults based on LastPass folders
@@ -58,10 +58,10 @@ This script is a good accompaniment to the the [LastPass importer at 1Password.c
 
 ```bash
 # Executes the script in Folder Only mode (folder_migrate.py), ingesting data directly from LastPass CLI without writing files to disk. 
-python main.py [--directory, -d]
+python main.py [--folders, -f]
 
 # Executes the script in Folder Only mode (folder_migrate.py) with export.csv file located on local machine
-python main.py [--directory, -d] --file=path_to_csv_file
+python main.py [--folders, -f] --file=path_to_csv_file
 ```
 
 * Running the script with the folder only option does not create items in 1Password.

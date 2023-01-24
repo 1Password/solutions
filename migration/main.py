@@ -14,18 +14,18 @@ def main(argv):
     csvfile = None
     is_migrating_folders = False
     is_migrating_items = False
-    opts, args = getopt.getopt(argv, "di", ["file=", "directory", "item", "ignore-shared"])
+    opts, args = getopt.getopt(argv, "fi", ["file=", "folders", "items", "ignore-shared"])
     for opt, arg in opts:
         if opt == "--file":
             print(f'Export secrets from csv file {arg}')
             csvfile = open(arg, newline='')
             continue
 
-        if opt in ("-d", "--directory"):
+        if opt in ("-f", "--folders"):
             is_migrating_folders = True
             continue
 
-        if opt in ("-i", "--item"):
+        if opt in ("-i", "--items"):
             is_migrating_items = True
             continue
 
