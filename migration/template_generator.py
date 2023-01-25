@@ -38,15 +38,14 @@ class TemplateGenerator:
         if self.template_type not in self.__AVAILABLE_TEMPLATE_TYPES:
             return
 
-        template = fetch_template(self.template_type)
         if self.template_type == "Login":
-            self._map_login(template)
+            template = self._login_template()
         elif self.template_type == "Secure Note":
-            self._map_secure_note(template)
+            template = self._secure_note_template()
         elif self.template_type == "Credit Card":
-            self._map_credit_card(template)
+            template = self._credit_card_template()
         elif self.template_type == "Bank Account":
-            self._map_bank_account(template)
+            template = self._bank_account_template()
         else:
             return
 
@@ -63,7 +62,9 @@ class TemplateGenerator:
         except:
             pass  # silence error here but prints in the vault_item_import.py
 
-    def _map_secure_note(self, template):
+    def _secure_note_template(self):
+        template = dict()
+        template["category"] = "SECURE_NOTE"
         template["title"] = self.lpass_raw_data.title
         template["fields"] = [
             {
@@ -74,8 +75,11 @@ class TemplateGenerator:
                 "value": self.lpass_raw_data.notes
             }
         ]
+        return template
 
-    def _map_credit_card(self, template):
+    def _credit_card_template(self):
+        template = dict()
+        template["category"] = "CREDIT_CARD"
         template["title"] = self.lpass_raw_data.title
         template["fields"] = [
             {
@@ -122,8 +126,11 @@ class TemplateGenerator:
                 "value": utils.lpass_date_to_1password_format(self.parsed_notes_data["Start Date"])
             },
         ]
+        return template
 
-    def _map_bank_account(self, template):
+    def _bank_account_template(self):
+        template = dict()
+        template["category"] = "BANK_ACCOUNT"
         template["title"] = self.lpass_raw_data.title
         template["fields"] = [
             {
@@ -196,8 +203,11 @@ class TemplateGenerator:
                 "value": self.parsed_notes_data["Branch Address"]
             }
         ]
+        return template
 
-    def _map_login(self, template):
+    def _login_template(self):
+        template = dict()
+        template["category"] = "LOGIN"
         template["title"] = self.lpass_raw_data.title or "Untitled Login"
         template["urls"] = [
             {
@@ -237,14 +247,4 @@ class TemplateGenerator:
             "label": "one-time password",
             "value": self.lpass_raw_data.otp_secret
         }] if self.lpass_raw_data.otp_secret else [])
-
-
-def fetch_template(item_type: str):
-    try:
-        template = subprocess.run([
-            "op", "item", "template", "get", item_type,
-            "--format=json"
-        ], check=True, capture_output=True)
-        return json.loads(template.stdout)
-    except:
-        logging.warning(f"An error occurred when attempting to fetch the {item_type} item template.")
+        return template
