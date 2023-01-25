@@ -65,6 +65,9 @@ python main.py [--folders, -f]
 
 # Executes the script in Folder Only mode (folder_migrate.py) with export.csv file located on local machine
 python main.py [--folders, -f] --file=path_to_csv_file
+
+# Executes the script in Folder Only mode (folder_migrate.py), skipping Shared folders
+python main.py [--folders, -f] --ignore-shared
 ```
 
 * Running the script with the folder only option does not create items in 1Password.
@@ -89,7 +92,7 @@ Note that 1Password does not have the concept of nested vaults. If you have nest
 
 ### Limitations
 
-**This script only migrates LastPass Sites**. It will not migrate credit cards, secure notes, or any other item type. You might consider extracting secure notes (all of which have the URL `http://sn` in the LastPass export file) into its own .csv file and use the [LastPass importer at 1Password.com](https://support.1password.com/import-lastpass/), which does handle Secure Notes. Imported secure notes will be tagged with the LastPass folder they were a part of, allowing you to use a 1Password application to move imported secure notes to the appropriate vault based on the tag.
+**This script only migrates LastPass Sites, Credit Card items, Bank Account items, and Secure Note items**. Other types of secure notes will have to be migrated by other means. 
 
 **Migrations will not include TOTP secrets when LastPass CLI is the data source**. The LastPass CLI does not include TOTP secrets in it's exports. Therefore if you use the CLI->CLI migration mode, you will have to manually migrate your TOTP secrets.
 
