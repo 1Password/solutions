@@ -1,21 +1,24 @@
 #!/usr/bin/env python3
 import getopt
 import sys
+import io
 import lpass
 from folder_migrate import migrate_folders
 from vault_item_import import migrate_items
 
 
 def main(argv):
-    csv_data = ''
+    options = {
+        'ignore-shared': False,
+    }
+    csvfile = None
     is_migrating_folders = False
     is_migrating_items = False
-    opts, args = getopt.getopt(argv, "fi", ["file=", "folders", "items"])
+    opts, args = getopt.getopt(argv, "fi", ["file=", "folders", "items", "ignore-shared"])
     for opt, arg in opts:
         if opt == "--file":
             print(f'Export secrets from csv file {arg}')
-            with open(arg, newline='') as csvfile:
-                csv_data = lpass.prepare_csv(csvfile.read())
+            csvfile = open(arg, newline='')
             continue
 
         if opt in ("-f", "--folders"):
@@ -26,20 +29,29 @@ def main(argv):
             is_migrating_items = True
             continue
 
-    if not is_migrating_items and not is_migrating_folders:
-        sys.exit("Please specify the flag to run migration -i for items, -f for folders")
+        if opt == "--ignore-shared":
+            options["ignore-shared"] = True
+            continue
 
-    if len(csv_data) == 0:
-        print('Export secrets using lpass cli')
-        csv_data = lpass.export_csv()
+    if not is_migrating_items and not is_migrating_folders:
+        sys.exit("Please specify the flag to run migration -i for items and folders, -f for folders only")
+
+    if is_migrating_items and is_migrating_folders:
+        sys.exit("Please specify single flag to run migration -i for items and folders, -f for folders only")
+
+    if not csvfile:
+        print('Export secrets using lpass cli.\n')
+        csvfile = io.StringIO(lpass.get_lp_data())
 
     if is_migrating_folders:
-        print('Migrating folders...')
-        migrate_folders(csv_data)
+        print('Migrating folders:')
+        migrate_folders(csvfile, options)
+    elif is_migrating_items:
+        print('Migrating items:')
+        migrate_items(csvfile, options)
 
-    if is_migrating_items:
-        print('Migrating items')
-        migrate_items(csv_data)
+    if csvfile:
+        csvfile.close()
 
 
 if __name__ == "__main__":

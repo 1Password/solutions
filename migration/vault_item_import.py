@@ -15,55 +15,7 @@ import subprocess
 import sys
 
 from utils import normalize_vault_name
-
-
-def fetch_item_template():
-    # Fetch the login item template, and compare to what's expected
-    expected_login_template = {
-      "title": "",
-      "category": "LOGIN",
-      "fields": [
-        {
-          "id": "username",
-          "type": "STRING",
-          "purpose": "USERNAME",
-          "label": "username",
-          "value": ""
-        },
-        {
-          "id": "password",
-          "type": "CONCEALED",
-          "purpose": "PASSWORD",
-          "label": "password",
-          "password_details": {
-            "strength": "TERRIBLE"
-          },
-          "value": ""
-        },
-        {
-          "id": "notesPlain",
-          "type": "STRING",
-          "purpose": "NOTES",
-          "label": "notesPlain",
-          "value": ""
-        }
-      ]
-    }
-    try:
-        login_template_command_output = subprocess.run([
-            "op", "item", "template", "get", "login",
-            "--format=json"
-        ], check=True, capture_output=True)
-    except:
-        sys.exit("An error occurred when attempting to fetch the login item template.")
-
-    login_template = json.loads(login_template_command_output.stdout)
-    if expected_login_template != login_template:
-        # If the template doesn't match, then CLI behaviour may have changed.
-        # In this case, the script should be updated with the new template.
-        sys.exit("The login template returned by the CLI does not match the expected login template.\n\nThis script may be designed for an older version of the CLI.")
-
-    return login_template
+from template_generator import LPassData, TemplateGenerator
 
 
 def fetch_personal_vault():
@@ -86,11 +38,23 @@ def fetch_personal_vault():
     return personal_vault
 
 
-def migrate_items(csv_data):
+def create_item(vault: str, template):
+    # Create item
+    subprocess.run([
+        "op", "item", "create", "-", f"--vault={vault}"
+    ], input=template, text=True, stdout=subprocess.DEVNULL)
+
+
+def migrate_items(csv_data, options):
     created_vault_list = {}
     is_csv_from_web_exporter = False
-    login_template = fetch_item_template()
     personal_vault = fetch_personal_vault()
+    stats = {
+        'total': 0,
+        'migrated': 0,
+        'skipped': 0,
+        'vaults': 0,
+    }
 
     linereader = csv.reader(csv_data, delimiter=',', quotechar='"')
     heading = next(linereader)
@@ -98,6 +62,10 @@ def migrate_items(csv_data):
         is_csv_from_web_exporter = True
 
     for row in linereader:
+        if len(row) == 0:
+            continue
+
+        stats['total'] += 1
         if is_csv_from_web_exporter:
             url = row[0]
             username = row[1]
@@ -115,81 +83,49 @@ def migrate_items(csv_data):
             vault = row[5]
             otp_secret = None
 
-        vault = normalize_vault_name(vault)
-
-        # Omitting Secure Notes
-        if url == "http://sn":
+        if vault.startswith("Shared") and options['ignore-shared']:
+            print(f"\t\"{title}\" => skipped (ignore shared credentials)")
+            stats['skipped'] += 1
             continue
-
-        # Account for empty fields
-        if not url:
-            url = "no URL"
-        if not title:
-            title = "Untitled Login"
 
         # Check if vault is defined
         vault_defined = vault and vault != ""
-
         # Create vault, if needed
         if vault_defined and vault not in created_vault_list:
             try:
+                normalized_vault_name = normalize_vault_name(vault)
                 vault_create_command_output = subprocess.run([
                     "op", "vault", "create",
-                    vault,
+                    normalized_vault_name,
                     "--format=json"
                 ], check=True, capture_output=True)
             except:
-                print(f"Failed to create vault for folder {vault}. Item \"{title}\" on line {linereader.line_num} not migrated.")
+                print(f"\t\"{vault}\" => failed to create new vault \"{normalized_vault_name}\"")
                 continue
             new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
             created_vault_list[vault] = new_vault_uuid
+            stats["vaults"] += 1
+            print(f"\t\"{vault}\" => created new vault \"{normalized_vault_name}\"")
 
-        # Create item template
-        login_template["title"] = title
-        login_template["urls"] = [
-            {
-                "label": "website",
-                "primary": True,
-                "href": url
-            }
-        ]
-        login_template["tags"] = [vault if vault_defined else personal_vault['name']]
-        login_template["fields"] = [
-            {
-                "id": "username",
-                "type": "STRING",
-                "purpose": "USERNAME",
-                "label": "username",
-                "value": username
-            },
-            {
-                "id": "password",
-                "type": "CONCEALED",
-                "purpose": "PASSWORD",
-                "label": "password",
-                "password_details": {
-                    "strength": "TERRIBLE"
-                },
-                "value": password
-            },
-            {
-                "id": "notesPlain",
-                "type": "STRING",
-                "purpose": "NOTES",
-                "label": "notesPlain",
-                "value": notes
-            }
-        ] + ([{
-            "id": "one-time password",
-            "type": "OTP",
-            "label": "one-time password",
-            "value": otp_secret
-        }] if otp_secret else [])
+        template = TemplateGenerator(LPassData(
+            url=url,
+            username=username,
+            password=password,
+            otp_secret=otp_secret,
+            notes=notes,
+            title=title,
+            vault=vault,
+        )).generate()
 
-        json_login_template = json.dumps(login_template)
+        if not template:
+            print(f"\t\"{title}\" => skipped (incompatible item)")
+            stats["skipped"] += 1
+            continue
 
-        # Create item
-        subprocess.run([
-            "op", "item", "create", "-",
-            f"--vault={created_vault_list[vault] if vault_defined else personal_vault['id'] }"
-        ], input=json_login_template, text=True)
+        json_template = json.dumps(template)
+        vault_to_use = created_vault_list[vault] if vault_defined else personal_vault['id']
+        create_item(vault_to_use, json_template)
+        stats["migrated"] += 1
+        print(f"\t\"{title}\" => migrated")
+    
+    print(f"\nMigration complete!\nTotal {stats['total']} credentials.\nMigrated {stats['migrated']} credentials.\nCreated {stats['vaults']} vaults.\nSkipped {stats['skipped']} credentials.")
