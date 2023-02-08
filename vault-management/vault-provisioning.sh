@@ -48,7 +48,7 @@ revoke_user () {
 
 main () {
     # Get account password from stdin
-    account_password="$(< /dev/stdin)"
+    account_password="$(cat)"
     
     # Sign in and save session token
     session_token=$(echo $account_password | op signin --raw)
