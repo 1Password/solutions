@@ -16,8 +16,8 @@
 # - `op vault user grant --help`
 # - `op vault group grant --help`
 #
-# The script assumes that 1Password CLI has been initialized on the device.
-# The account password can optionally be passed from stdin.
+# The script assumes that 1Password CLI has been initialized on the device. 
+# The account password must be input from stdin.
 
 # Use permissions from environment or fallback to below values
 export REQUESTER_PERMISSIONS=${REQUESTER_PERMISSIONS:-"manage_vault"}
