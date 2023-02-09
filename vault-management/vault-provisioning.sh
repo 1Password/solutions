@@ -81,8 +81,10 @@ main () {
         --no-color \
         --session "$session_token")
     
+    op_group_id=$(extract_id_from_json "$op_group_json")
+    
     # Add group permissions
-    context="group" grant_permissions "$GROUP_NAME" "$GROUP_PERMISSIONS"
+    context="group" grant_permissions "$op_group_id" "$GROUP_PERMISSIONS"
 
     # Get signed in user details
     op_user_json=$(op user get --me \
