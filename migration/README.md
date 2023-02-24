@@ -12,7 +12,7 @@
   * Ensure you have added your 1Password account to the 1Password CLI and have signed in using `op signin` or `eval $(op signin)` prior to executing the script.
 * Optionally the [LastPass CLI](https://github.com/LastPass/lastpass-cli)
 
-If you don't want to clone this repo, download the bundle of scripts here:  
+If you don't want to clone this repo, download the bundle of scripts here:
 **[Download](https://github.com/1Password/solutions/raw/main/migration/lastpass-migrate.zip)**
 
 ## Who is this for?
@@ -35,7 +35,7 @@ This script uses the 1Password CLI tool to import items from either
 ### Usage
 
 ```bash
-# Executes the script (vault_item_import.py) and ingests data directly from LastPass CLI without writing files to disk. Creates items and converts LastPass folders to vaults. 
+# Executes the script (vault_item_import.py) and ingests data directly from LastPass CLI without writing files to disk. Creates items and converts LastPass folders to vaults.
 python main.py [--items, -i]
 
 # Executes the script (vault_item_import.py) with the export.csv file located on local machine
@@ -43,6 +43,9 @@ python main.py [--items, -i] --file=path_to_csv_file
 
 # Executes the script (vault_item_import.py) skipping credentials from Shared folders
 python main.py [--items, -i] --ignore-shared
+
+# Executes the script, skipping credentials that already exist in 1Password
+python main.py [--items, -i] --skip-existing
 ```
 
 ## Create 1Password vaults based on LastPass folders
@@ -60,7 +63,7 @@ This script is a good accompaniment to the the [LastPass importer at 1Password.c
 ### Usage
 
 ```bash
-# Executes the script in Folder Only mode (folder_migrate.py), ingesting data directly from LastPass CLI without writing files to disk. 
+# Executes the script in Folder Only mode (folder_migrate.py), ingesting data directly from LastPass CLI without writing files to disk.
 python main.py [--folders, -f]
 
 # Executes the script in Folder Only mode (folder_migrate.py) with export.csv file located on local machine
@@ -92,7 +95,7 @@ Note that 1Password does not have the concept of nested vaults. If you have nest
 
 ### Limitations
 
-**This script only migrates LastPass Sites, Credit Card items, Bank Account items, and Secure Note items**. Other types of secure notes will have to be migrated by other means. 
+**This script only migrates LastPass Sites, Credit Card items, Bank Account items, and Secure Note items**. Other types of secure notes will have to be migrated by other means.
 
 **Migrations will not include TOTP secrets when LastPass CLI is the data source**. The LastPass CLI does not include TOTP secrets in it's exports. Therefore if you use the CLI->CLI migration mode, you will have to manually migrate your TOTP secrets.
 
