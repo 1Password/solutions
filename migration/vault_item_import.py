@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-# This script will create vaults and login items from a LastPass export 
-# generated through their web-based exported or the lpass CLI (this has not 
-# been tested on exports from their browser extension or other methods). 
-# Shared/Nested folders in 1Password will have separate, non-nested 
-# vaults created. Items not belonging to any shared folder will be created 
+# This script will create vaults and login items from a LastPass export
+# generated through their web-based exported or the lpass CLI (this has not
+# been tested on exports from their browser extension or other methods).
+# Shared/Nested folders in 1Password will have separate, non-nested
+# vaults created. Items not belonging to any shared folder will be created
 # in the user's Private vault.
 #
 # Credit to @jbsoliman for the original script and @svens-uk for many significant enhancements
@@ -124,8 +124,14 @@ def migrate_items(csv_data, options):
 
         json_template = json.dumps(template)
         vault_to_use = created_vault_list[vault] if vault_defined else personal_vault['id']
+
+        if options['dry-run']:
+            print(f"\t\"{title}\" => skipped (dry run)")
+            stats["skipped"] += 1
+            continue
+
         create_item(vault_to_use, json_template)
         stats["migrated"] += 1
         print(f"\t\"{title}\" => migrated")
-    
+
     print(f"\nMigration complete!\nTotal {stats['total']} credentials.\nMigrated {stats['migrated']} credentials.\nCreated {stats['vaults']} vaults.\nSkipped {stats['skipped']} credentials.")
