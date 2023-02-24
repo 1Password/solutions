@@ -10,11 +10,12 @@ from vault_item_import import migrate_items
 def main(argv):
     options = {
         'ignore-shared': False,
+        'skip-existing': False,
     }
     csvfile = None
     is_migrating_folders = False
     is_migrating_items = False
-    opts, args = getopt.getopt(argv, "fi", ["file=", "folders", "items", "ignore-shared"])
+    opts, args = getopt.getopt(argv, "fi", ["file=", "folders", "items", "ignore-shared", "skip-existing"])
     for opt, arg in opts:
         if opt == "--file":
             print(f'Export secrets from csv file {arg}')
@@ -31,6 +32,10 @@ def main(argv):
 
         if opt == "--ignore-shared":
             options["ignore-shared"] = True
+            continue
+
+        if opt == "--skip-existing":
+            options["skip-existing"] = True
             continue
 
     if not is_migrating_items and not is_migrating_folders:

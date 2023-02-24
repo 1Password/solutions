@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-# This script will create vaults and login items from a LastPass export 
-# generated through their web-based exported or the lpass CLI (this has not 
-# been tested on exports from their browser extension or other methods). 
-# Shared/Nested folders in 1Password will have separate, non-nested 
-# vaults created. Items not belonging to any shared folder will be created 
+# This script will create vaults and login items from a LastPass export
+# generated through their web-based exported or the lpass CLI (this has not
+# been tested on exports from their browser extension or other methods).
+# Shared/Nested folders in 1Password will have separate, non-nested
+# vaults created. Items not belonging to any shared folder will be created
 # in the user's Private vault.
 #
 # Credit to @jbsoliman for the original script and @svens-uk for many significant enhancements
@@ -37,6 +37,22 @@ def fetch_personal_vault():
 
     return personal_vault
 
+def item_exists(title: str):
+    # Check if the defined item has already been imported
+    try:
+        command_output = subprocess.run([
+            "op", "item", "get", title,
+            "--format=json"
+        ], check=True, capture_output=True)
+    except:
+        return False
+
+    item_data = json.loads(command_output.stdout)
+
+    if item_data is None:
+        return False
+
+    return True
 
 def create_item(vault: str, template):
     # Create item
@@ -83,6 +99,11 @@ def migrate_items(csv_data, options):
             vault = row[5]
             otp_secret = None
 
+        if item_exists(title) and options['skip-existing']:
+            print(f"\t\"{title}\" => skipped (item exists)")
+            stats['skipped'] += 1
+            continue
+
         if vault.startswith("Shared") and options['ignore-shared']:
             print(f"\t\"{title}\" => skipped (ignore shared credentials)")
             stats['skipped'] += 1
@@ -127,5 +148,5 @@ def migrate_items(csv_data, options):
         create_item(vault_to_use, json_template)
         stats["migrated"] += 1
         print(f"\t\"{title}\" => migrated")
-    
+
     print(f"\nMigration complete!\nTotal {stats['total']} credentials.\nMigrated {stats['migrated']} credentials.\nCreated {stats['vaults']} vaults.\nSkipped {stats['skipped']} credentials.")
