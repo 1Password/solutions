@@ -7,7 +7,7 @@ def test_template_generator_credit_card():
         username="",
         password="",
         otp_secret="",
-        notes="NoteType:Credit Card\nLanguage:en-GB\nName on Card:Test User\nType:card type\nNumber:4141414141414141\nSecurity Code:123\nStart Date:December,2020\nExpiration Date:October,2025\nNotes:Fake credit card",
+        notes="NoteType:Credit Card\nLanguage:en-GB\nName on Card:Test User\nType:card type\nNumber:4141414141414141\nSecurity Code:123\nStart Date:December,2020\nExpiration Date:October,2025\nNotes:Fake credit card\nPIN:1212",
         title="Fake card",
         vault="test",
     )
@@ -29,7 +29,7 @@ def test_template_generator_credit_card():
         elif field['id'] == 'cardholder':
             assert field['value'] == 'Test User'
         elif field['id'] == 'notesPlain':
-            assert field['value'] == 'Fake credit card'
+            assert field['value'] == 'Fake credit card\nPIN:1212'
 
 
 def test_template_generator_bank_account():

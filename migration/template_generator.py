@@ -55,8 +55,14 @@ class TemplateGenerator:
     def _parse_notes(self):
         try:
             entries = self.lpass_raw_data.notes.split("\n")
-            for row in entries:
-                [key, value] = row.split(":")
+            while entries:
+                row = entries.pop(0)
+                # Notes can be multiline, and are the last entry
+                if row.startswith("Notes:"):
+                    entries.insert(0, row)
+                    row = '\n'.join(entries)
+                    entries.clear()
+                [key, value] = row.split(":", 1)
                 self.parsed_notes_data[key] = value
             return self.parsed_notes_data
         except:
