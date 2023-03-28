@@ -18,7 +18,7 @@ def main(argv):
     for opt, arg in opts:
         if opt == "--file":
             print(f'Export secrets from csv file {arg}')
-            csvfile = open(arg, newline='')
+            csvfile = open(arg, newline='', encoding="utf8")
             continue
 
         if opt in ("-f", "--folders"):
