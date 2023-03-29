@@ -35,15 +35,20 @@ This script uses the 1Password CLI tool to import items from either
 ### Usage
 
 ```bash
-# Executes the script (vault_item_import.py) and ingests data directly from LastPass CLI without writing files to disk. Creates items and converts LastPass folders to vaults. 
+# Executes the script (vault_item_import.py) and ingests data directly from LastPass CLI without writing files to disk. Creates items and converts LastPass folders to vaults. Use EITHER --items or -i
 python main.py [--items, -i]
 
-# Executes the script (vault_item_import.py) with the export.csv file located on local machine
+# Executes the script (vault_item_import.py) with the export.csv file located on local machine. Use EITHER --items or -i.
 python main.py [--items, -i] --file=path_to_csv_file
 
-# Executes the script (vault_item_import.py) skipping credentials from Shared folders
+
+# Executes the script (vault_item_import.py) skipping credentials from Shared folders Use EITHER --items or -i
 python main.py [--items, -i] --ignore-shared
 ```
+
+### Dry run
+
+You can use the `--dry-run` flag to preview the behaviour of the script without actually performing any migration. Note that full stats are not available for dry-runs.
 
 ## Create 1Password vaults based on LastPass folders
 
@@ -60,19 +65,23 @@ This script is a good accompaniment to the the [LastPass importer at 1Password.c
 ### Usage
 
 ```bash
-# Executes the script in Folder Only mode (folder_migrate.py), ingesting data directly from LastPass CLI without writing files to disk. 
+# Executes the script in Folder Only mode (folder_migrate.py), ingesting data directly from LastPass CLI without writing files to disk. Use EITHER --folders or -f
 python main.py [--folders, -f]
 
-# Executes the script in Folder Only mode (folder_migrate.py) with export.csv file located on local machine
+# Executes the script in Folder Only mode (folder_migrate.py) with export.csv file located on local machine. Use EITHER --folders or -f
 python main.py [--folders, -f] --file=path_to_csv_file
 
-# Executes the script in Folder Only mode (folder_migrate.py), skipping Shared folders
+# Executes the script in Folder Only mode (folder_migrate.py), skipping Shared folders. Use EITHER --folders or -f
 python main.py [--folders, -f] --ignore-shared
 ```
 
 * Running the script with the folder only option does not create items in 1Password.
 * Running the script with the folder only option will not create multiple vaults of the same name. If you have two LastPass folders with the same name, only one 1Password vault will be created.
 * 1Password does not have the concept of nested vaults. If you have nested LastPass folders, they will be created as their own 1Password vault and will be a sibling to their parent.
+
+### Dry run
+
+You can use the `--dry-run` flag to preview the behaviour of the script without actually performing any migration. Note that full stats are not available for dry-runs.
 
 ## Consider 1Password's browser-based importer
 

@@ -92,21 +92,26 @@ def migrate_items(csv_data, options):
         vault_defined = vault and vault != ""
         # Create vault, if needed
         if vault_defined and vault not in created_vault_list:
-            try:
+            if not options['dry-run']:
+                try:
+                    normalized_vault_name = normalize_vault_name(vault)
+                    vault_create_command_output = subprocess.run([
+                        "op", "vault", "create",
+                        normalized_vault_name,
+                        "--format=json"
+                    ], check=True, capture_output=True)
+                except:
+                    print(f"\t\"{vault}\" => failed to create new vault \"{normalized_vault_name}\"")
+                    continue
+                new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
+                created_vault_list[vault] = new_vault_uuid
+                stats["vaults"] += 1
+                print(f"\t\"{vault}\" => created new vault \"{normalized_vault_name}\"")
+            else: 
                 normalized_vault_name = normalize_vault_name(vault)
-                vault_create_command_output = subprocess.run([
-                    "op", "vault", "create",
-                    normalized_vault_name,
-                    "--format=json"
-                ], check=True, capture_output=True)
-            except:
-                print(f"\t\"{vault}\" => failed to create new vault \"{normalized_vault_name}\"")
-                continue
-            new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
-            created_vault_list[vault] = new_vault_uuid
-            stats["vaults"] += 1
-            print(f"\t\"{vault}\" => created new vault \"{normalized_vault_name}\"")
-
+                created_vault_list[vault] = vault
+                print(f"\tVault \"{vault}\" => would be created as \"{normalized_vault_name}\"; skipped (dry run)")
+                
         template = TemplateGenerator(LPassData(
             url=url,
             username=username,
@@ -123,11 +128,11 @@ def migrate_items(csv_data, options):
             continue
 
         json_template = json.dumps(template)
-        vault_to_use = created_vault_list[vault] if vault_defined else personal_vault['id']
+        if not options['dry-run']:
+            vault_to_use = created_vault_list[vault] if vault_defined else personal_vault['id']
 
         if options['dry-run']:
-            print(f"\t\"{title}\" => skipped (dry run)")
-            stats["skipped"] += 1
+            print(f"\tCreating item \"{title}\" => skipped (dry run)")
             continue
 
         create_item(vault_to_use, json_template)

@@ -43,20 +43,28 @@ def migrate_folders(csv_data, options):
 
     stats['total'] = len(lp_folder_list)
     for folder in lp_folder_list:
-        try:
-            vault_create_command_output = subprocess.run([
-                "op", "vault", "create",
-                folder,
-                "--format=json"
-            ], check=True, capture_output=True)
-        except:
-            print(f"\t\"{folder}\" => skipped (cannot be created)")
-            stats["skipped"] += 1
+        if not options['dry-run']:
+            try:
+                vault_create_command_output = subprocess.run([
+                    "op", "vault", "create",
+                    folder,
+                    "--format=json"
+                ], check=True, capture_output=True)
+            except:
+                print(f"\t\"{folder}\" => skipped (cannot be created)")
+                stats["skipped"] += 1
 
-            continue
-        new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
-        created_vault_list[folder] = new_vault_uuid
-        print(f"\t\"{folder}\" => created")
-        stats["migrated"] += 1
+                continue
+            new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
+            created_vault_list[folder] = new_vault_uuid
+            print(f"\t\"{folder}\" => created")
+            stats["migrated"] += 1
+        else:
+            created_vault_list[folder] = folder
+            print(f"\tVault \"{folder}\" => would be created as \"{folder}\"; skipped (dry run)")
+            stats["migrated"] += 1
 
-    print(f"\nFolders migration complete!\nTotal {stats['total']} folders.\nCreated {stats['migrated']} vaults.\nSkipped {stats['skipped']}.")
+    if not options['dry-run']:
+        print(f"\nFolders migration complete!\nTotal {stats['total']} folders.\nCreated {stats['migrated']} vaults.\nSkipped {stats['skipped']}.")
+    else:
+        print(f"\nFolders migration dry run complete!\nTotal {stats['total']} folders.\nCreated {stats['migrated']} vaults.\nSkipped {stats['skipped']} folders.")
