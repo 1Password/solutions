@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-# This script will create vaults and login items from a LastPass export 
-# generated through their web-based exported or the lpass CLI (this has not 
-# been tested on exports from their browser extension or other methods). 
-# Shared/Nested folders in 1Password will have separate, non-nested 
-# vaults created. Items not belonging to any shared folder will be created 
+# This script will create vaults and login items from a LastPass export
+# generated through their web-based exported or the lpass CLI (this has not
+# been tested on exports from their browser extension or other methods).
+# Shared/Nested folders in 1Password will have separate, non-nested
+# vaults created. Items not belonging to any shared folder will be created
 # in the user's Private vault.
 #
 # Credit to @jbsoliman for the original script and @svens-uk for many significant enhancements
@@ -92,21 +92,26 @@ def migrate_items(csv_data, options):
         vault_defined = vault and vault != ""
         # Create vault, if needed
         if vault_defined and vault not in created_vault_list:
-            try:
+            if not options['dry-run']:
+                try:
+                    normalized_vault_name = normalize_vault_name(vault)
+                    vault_create_command_output = subprocess.run([
+                        "op", "vault", "create",
+                        normalized_vault_name,
+                        "--format=json"
+                    ], check=True, capture_output=True)
+                except:
+                    print(f"\t\"{vault}\" => failed to create new vault \"{normalized_vault_name}\"")
+                    continue
+                new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
+                created_vault_list[vault] = new_vault_uuid
+                stats["vaults"] += 1
+                print(f"\tFrom LastPass folder \"{vault}\" => created new vault \"{normalized_vault_name}\"")
+            else: 
                 normalized_vault_name = normalize_vault_name(vault)
-                vault_create_command_output = subprocess.run([
-                    "op", "vault", "create",
-                    normalized_vault_name,
-                    "--format=json"
-                ], check=True, capture_output=True)
-            except:
-                print(f"\t\"{vault}\" => failed to create new vault \"{normalized_vault_name}\"")
-                continue
-            new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
-            created_vault_list[vault] = new_vault_uuid
-            stats["vaults"] += 1
-            print(f"\t\"{vault}\" => created new vault \"{normalized_vault_name}\"")
-
+                created_vault_list[vault] = vault
+                print(f"\tFrom LastPass folder \"{vault}\" => created new vault \"{normalized_vault_name}\"; skipped (dry run)")
+                
         template = TemplateGenerator(LPassData(
             url=url,
             username=username,
@@ -123,9 +128,15 @@ def migrate_items(csv_data, options):
             continue
 
         json_template = json.dumps(template)
-        vault_to_use = created_vault_list[vault] if vault_defined else personal_vault['id']
+        if not options['dry-run']:
+            vault_to_use = created_vault_list[vault] if vault_defined else personal_vault['id']
+
+        if options['dry-run']:
+            print(f"\t\"{title}\" => migrated; skipped (dry run)")
+            continue
+
         create_item(vault_to_use, json_template)
         stats["migrated"] += 1
         print(f"\t\"{title}\" => migrated")
-    
+
     print(f"\nMigration complete!\nTotal {stats['total']} credentials.\nMigrated {stats['migrated']} credentials.\nCreated {stats['vaults']} vaults.\nSkipped {stats['skipped']} credentials.")
