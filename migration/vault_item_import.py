@@ -106,11 +106,11 @@ def migrate_items(csv_data, options):
                 new_vault_uuid = json.loads(vault_create_command_output.stdout)["id"]
                 created_vault_list[vault] = new_vault_uuid
                 stats["vaults"] += 1
-                print(f"\t\"{vault}\" => created new vault \"{normalized_vault_name}\"")
+                print(f"\tFrom LastPass folder \"{vault}\" => created new vault \"{normalized_vault_name}\"")
             else: 
                 normalized_vault_name = normalize_vault_name(vault)
                 created_vault_list[vault] = vault
-                print(f"\tVault \"{vault}\" => would be created as \"{normalized_vault_name}\"; skipped (dry run)")
+                print(f"\tFrom LastPass folder \"{vault}\" => created new vault \"{normalized_vault_name}\"; skipped (dry run)")
                 
         template = TemplateGenerator(LPassData(
             url=url,
@@ -132,7 +132,7 @@ def migrate_items(csv_data, options):
             vault_to_use = created_vault_list[vault] if vault_defined else personal_vault['id']
 
         if options['dry-run']:
-            print(f"\tCreating item \"{title}\" => skipped (dry run)")
+            print(f"\t\"{title}\" => migrated; skipped (dry run)")
             continue
 
         create_item(vault_to_use, json_template)

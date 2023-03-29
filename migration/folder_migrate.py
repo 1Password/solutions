@@ -34,7 +34,7 @@ def migrate_folders(csv_data, options):
     for row in linereader:
         vault_name = row[6] if is_csv_from_web_exporter else row[5]
         if vault_name.startswith("Shared") and options['ignore-shared']:
-            print(f"\t\"{vault_name}\" => skipped (ignore shared folders)")
+            print(f"\tLastPass folder \"{vault_name}\" => skipped (ignore shared folders)")
             stats["skipped"] += 1
             continue
 
@@ -51,7 +51,7 @@ def migrate_folders(csv_data, options):
                     "--format=json"
                 ], check=True, capture_output=True)
             except:
-                print(f"\t\"{folder}\" => skipped (cannot be created)")
+                print(f"\tLastPass folder \"{folder}\" => skipped (cannot be created)")
                 stats["skipped"] += 1
 
                 continue
@@ -59,9 +59,9 @@ def migrate_folders(csv_data, options):
             created_vault_list[folder] = new_vault_uuid
             print(f"\t\"{folder}\" => created")
             stats["migrated"] += 1
-        else:
+        else: # if dry run
             created_vault_list[folder] = folder
-            print(f"\tVault \"{folder}\" => would be created as \"{folder}\"; skipped (dry run)")
+            print(f"\t\"{folder}\" => created; skipped (dry run)")
             stats["migrated"] += 1
 
     if not options['dry-run']:
