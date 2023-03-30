@@ -44,9 +44,9 @@ def create_item(vault: str, template, options):
         subprocess.run([
             "op", "item", "create", "-", f"--vault={vault}"
         ], input=template, text=True, stdout=subprocess.DEVNULL)
-    else:
+    else: # If dry run
         subprocess.run([
-            "op", "item", "create", "-", f"--vault={vault}", "--dry-run"
+            "op", "item", "create", "-", "--dry-run"
         ], input=template, text=True, stdout=subprocess.DEVNULL)
 
 def migrate_items(csv_data, options):
@@ -114,7 +114,7 @@ def migrate_items(csv_data, options):
             else: 
                 normalized_vault_name = normalize_vault_name(vault)
                 created_vault_list[vault] = vault
-                print(f"\tFrom LastPass folder \"{vault}\" => created new vault \"{normalized_vault_name}\"; skipped (dry run)")
+                print(f"\tFrom LastPass folder \"{vault}\" => created new vault \"{normalized_vault_name}\" (dry run)")
                 
         template = TemplateGenerator(LPassData(
             url=url,
@@ -132,15 +132,15 @@ def migrate_items(csv_data, options):
             continue
 
         json_template = json.dumps(template)
-        if not options['dry-run']:
-            vault_to_use = created_vault_list[vault] if vault_defined else personal_vault['id']
+        vault_to_use = created_vault_list[vault] if vault_defined else personal_vault['id']
 
-        if options['dry-run']:
-            print(f"\t\"{title}\" => migrated; skipped (dry run)")
-            continue
-
-        create_item(vault_to_use, json_template)
+        create_item(vault_to_use, json_template, options)
         stats["migrated"] += 1
-        print(f"\t\"{title}\" => migrated")
-
-    print(f"\nMigration complete!\nTotal {stats['total']} credentials.\nMigrated {stats['migrated']} credentials.\nCreated {stats['vaults']} vaults.\nSkipped {stats['skipped']} credentials.")
+        if options['dry-run']:
+            print(f"\t\"{title}\" => migrated (dry-run)")
+        else:
+            print(f"\t\"{title}\" => migrated")
+    if options['dry-run']:
+        print(f"\nMigration complete!\nTotal {stats['total']} credentials.\nMigrated {stats['migrated']} credentials.\nCreated {stats['vaults']} vaults (Vault stats unavailble during dry-run).\nSkipped {stats['skipped']} credentials.")
+    else: 
+        print(f"\nMigration complete!\nTotal {stats['total']} credentials.\nMigrated {stats['migrated']} credentials.\nCreated {stats['vaults']} vaults.\nSkipped {stats['skipped']} credentials.")

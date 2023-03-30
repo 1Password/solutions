@@ -61,10 +61,10 @@ def migrate_folders(csv_data, options):
             stats["migrated"] += 1
         else: # if dry run
             created_vault_list[folder] = folder
-            print(f"\t\"{folder}\" => created; skipped (dry run)")
+            print(f"\t\"{folder}\" => created; (dry run)")
             stats["migrated"] += 1
 
     if not options['dry-run']:
         print(f"\nFolders migration complete!\nTotal {stats['total']} folders.\nCreated {stats['migrated']} vaults.\nSkipped {stats['skipped']}.")
     else:
-        print(f"\nFolders migration dry run complete!\nTotal {stats['total']} folders.\nCreated {stats['migrated']} vaults.\nSkipped {stats['skipped']} folders.")
+        print(f"\nFolders migration dry run complete!\nUnable to provide stats for folder-only dry runs.")
