@@ -38,12 +38,16 @@ def fetch_personal_vault():
     return personal_vault
 
 
-def create_item(vault: str, template):
+def create_item(vault: str, template, options):
     # Create item
-    subprocess.run([
-        "op", "item", "create", "-", f"--vault={vault}"
-    ], input=template, text=True, stdout=subprocess.DEVNULL)
-
+    if not options['dry-run']:
+        subprocess.run([
+            "op", "item", "create", "-", f"--vault={vault}"
+        ], input=template, text=True, stdout=subprocess.DEVNULL)
+    else:
+        subprocess.run([
+            "op", "item", "create", "-", f"--vault={vault}", "--dry-run"
+        ], input=template, text=True, stdout=subprocess.DEVNULL)
 
 def migrate_items(csv_data, options):
     created_vault_list = {}
