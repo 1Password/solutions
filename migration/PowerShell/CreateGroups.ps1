@@ -5,7 +5,7 @@
 
 $groupDataColumns = @{
     GroupName        = 'GroupName'
-    GroupDescription = 'Description'
+    # GroupDescription = 'Description'
 }
 
 $groupsFile = Join-Path -Path $csvPath -ChildPath $csvFileNames.GroupData -Resolve
@@ -21,15 +21,26 @@ Import-Csv -Path $groupsFile | ForEach-Object -Begin {
             $groupLookup ??= @{}
         }
     } -Process {
-        $groupName = $_.($groupDataColumns.GroupName)
-        $groupDescription = $_.($groupDataColumns.GroupDescription)
+        # Group name is limited to 60 chars; truncate longer names
+        $fullGroupName = $_.($groupDataColumns.GroupName)
+        if ($fullGroupName.Length -gt 60) {
+            switch -Wildcard ($fullGroupName) {
+                '*-ReadOnly' { $groupName = $fullGroupName.Substring(0, 51) + '-ReadOnly'; Break }
+                '*-ReadWrite' { $groupName = $fullGroupName.Substring(0, 50) + '-ReadWrite' }
+            }
+        } else {
+            $groupName = $fullGroupName
+        }
+        # Use group description to store full name
+        $groupDescription = $fullGroupName
         $group = @(
             $groupName
             "--description=$groupDescription"
         )
         # Create group and add ID to lookup
         $groupUuid = (& $op group create @group | ConvertFrom-Json).id
-        $groupLookup.$groupName = $groupUuid
+        # Use full name in lookup
+        $groupLookup.$groupDescription = $groupUuid
         # Remove signed in user from group
         $groupUserRevocation = @(
             "--group=$groupUuid"
