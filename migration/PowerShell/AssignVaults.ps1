@@ -29,11 +29,13 @@ $null = Import-Csv -Path $groupsFile |
         $groupLookup ??= Get-Content -Raw $groupLookupFile | ConvertFrom-Json -AsHashtable
     } -Process {
         $groupName = $_.($vaultGroupColumns.GroupName)
-        $trimEnd = switch -Wildcard ($groupName) {
+        $groupPrefix = 'PSG-'
+        $groupSuffix = switch -Wildcard ($groupName) {
             '*-ReadOnly' { '-ReadOnly'; Break }
             '*-ReadWrite' { '-ReadWrite' }
         }
-        $vaultName = $groupName.TrimStart('PSG-').TrimEnd($trimEnd)
+        $vaultPattern = [regex]::Escape($groupPrefix) + '(?<vaultName>.*?)' + [regex]::Escape($groupSuffix)
+        $vaultName = [regex]::Match($groupName, $vaultPattern).Groups['vaultName'].Value
         # Lookup UUIDs
         $vaultUuid = $vaultLookup.($vaultName)
         $groupUuid = $groupLookup.($groupName)
