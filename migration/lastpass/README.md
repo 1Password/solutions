@@ -1,10 +1,12 @@
 # Advanced LastPass migration tools
 
-This is an example of a script that can perform a number of tasks that may help with migrating data from LastPass to 1Password.
+This is an example of how the 1Password CLI can be scripted to potentially perform various tasks that may help with migrating data from LastPass to 1Password.
 
-If you are migrating from LastPass to 1Password, please review documentation for our native import solution. Most people will be best-served by the LastPass importer built into the 1Password desktop applications. Learn more about that here: <https://support.1password.com/import-lastpass/>
+**⚠️This is an example script, this is not the primary or preferred method to migrate your items from LastPass to 1Password.**
 
-If you've had trouble using the LastPass importer in the 1Password desktop application or at 1Password.com, please reach out to [1Password support](https://support.1password.com/contact/).
+💡 If you are migrating from LastPass to 1Password, please review documentation for our native import solution. Most people will be best-served by the LastPass importer built into the 1Password desktop applications. Learn more about that here: <https://support.1password.com/import-lastpass/>
+
+If you've had trouble using the LastPass importer in the 1Password desktop application or at 1Password.com, please reach out to [1Password support](https://support.1password.com/contact/). 1Password Support does not provide support for examplesp in this repository. If you spot a bug or would ike to propose a change, please open an Issue or Pull Request in this repo. 
 
 This script should be used only if other migration options are not possible or not suitable for your needs.
 
