@@ -2,7 +2,8 @@
 #########################################################
 # REPLACE HTTP WITH HTTPS 
 #########################################################
-# This script replaces or adds the value of the website field for all items in a specified vault
+# This script will replace "http" with "https" for the 
+# website field of all Login items in the specified vault 
 
 #Provide a vault UUID or vault name
 vaultUUID=""
