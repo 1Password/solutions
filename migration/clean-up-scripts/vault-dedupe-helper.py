@@ -11,12 +11,12 @@ from datetime import datetime
 scriptPath = os.path.dirname(__file__)
 outputPath = scriptPath  # Optionally choose an alternative output path here.
 
-# get a list of vaults the logged-in user has access to
+# Get a list of vaults the logged-in user has access to
 def getVaults():
     return subprocess.run(
         "op vault list --group=Owners --format=json", shell=True, check=True, capture_output=True).stdout
 
-# get a list of users and their permissions for a vault
+# Get a list of users and their permissions for a vault
 def getVaultUserList(vaultID):
     return subprocess.run(f"op vault user list {vaultID} --format=json", shell=True, check=True, capture_output=True).stdout
 
@@ -24,6 +24,7 @@ def getVaultUserList(vaultID):
 def getVaultDetails(vaultID):
     return subprocess.run(f"op vault get {vaultID} --format=json", shell=True, check=True, capture_output=True).stdout
 
+# Make dates returned from the CLI a bit nicer
 def formatDate(date):
     isoDate = datetime.fromisoformat(date)
     return f"{isoDate.year}-{isoDate.month}-{isoDate.day} {isoDate.hour}:{isoDate.minute}:{isoDate.second}"
