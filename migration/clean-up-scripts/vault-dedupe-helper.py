@@ -13,20 +13,19 @@ outputPath = scriptPath  # Optionally choose an alternative output path here.
 # get a list of vaults the logged-in user has access to
 def getVaults():
     return subprocess.run(
-        ["op", "vault", "list", "--group=Owners", "--format=json"], check=True, capture_output=True).stdout
+        "op vault list --group=Owners --format=json", shell=True, check=True, capture_output=True).stdout
 
 # get a list of users and their permissions for a vault
 def getVaultUserList(vaultID):
-    return subprocess.run(
-        ["op", "vault", "user", "list", vaultID, "--format=json"], check=True, capture_output=True).stdout
+    return subprocess.run(f"op vault user list {vaultID} --format=json", shell=True, check=True, capture_output=True).stdout
 
 # Get the details of a vault
 def getVaultDetails(vaultID):
-    return subprocess.run([f"op vault get {vaultID} --format=json"], shell=True, check=True, capture_output=True).stdout
+    return subprocess.run(f"op vault get {vaultID} --format=json", shell=True, check=True, capture_output=True).stdout
 
 def main():
     vaultList = json.loads(getVaults())
-    with open(f"{outputPath}/vault-item-report.csv", "w", newline="") as outputFile:
+    with open(f"{outputPath}/vaultreport.csv", "w", newline="") as outputFile:
         csvWriter = csv.writer(outputFile)
         fields = ["vaultName", "vaultUUD", "itemCount", "vaultCreated", "vaultUpdated", "userCount"]
         csvWriter.writerow(fields)
