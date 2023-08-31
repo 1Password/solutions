@@ -50,7 +50,7 @@ def deleteVault():
 
 
 
-# prefixVault()
+prefixVault()
 
 ########
 # If you want to delete the vaults contained in the list provided to this script,
@@ -58,4 +58,4 @@ def deleteVault():
 # DELETING VAULTS IS PERMANENT AND CANNOT BE UNDONE.
 #######
 
-deleteVault()
+# deleteVault()
