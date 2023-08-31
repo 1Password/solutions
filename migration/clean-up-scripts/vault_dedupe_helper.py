@@ -13,16 +13,27 @@ outputPath = scriptPath  # Optionally choose an alternative output path here.
 
 # Get a list of vaults the logged-in user has access to
 def getVaults():
-    return subprocess.run(
-        "op vault list --group=Owners --format=json", shell=True, check=True, capture_output=True).stdout
-
+    try:
+        return subprocess.run("op vault list --group=Owners --format=json", shell=True, check=True, capture_output=True).stdout
+    except (Exception) as err:
+        print(f"Encountered an error getting the list of vaults you have access to: ", err)
+        return
+    
 # Get a list of users and their permissions for a vault
 def getVaultUserList(vaultID):
-    return subprocess.run(f"op vault user list {vaultID} --format=json", shell=True, check=True, capture_output=True).stdout
+    try:
+        return subprocess.run(f"op vault user list {vaultID} --format=json", shell=True, check=True, capture_output=True).stdout
+    except (Exception) as err:
+        print(f"Encountered an error getting the list of users for vault {vaultID}: ", err)
+        return
 
 # Get the details of a vault
 def getVaultDetails(vaultID):
-    return subprocess.run(f"op vault get {vaultID} --format=json", shell=True, check=True, capture_output=True).stdout
+    try:
+        return subprocess.run(f"op vault get {vaultID} --format=json", shell=True, check=True, capture_output=True).stdout
+    except (Exception) as err:
+        print(f"Encountered an error getting details for vault {vaultID}: ", err)
+        return
 
 # Make dates returned from the CLI a bit nicer
 def formatDate(date):
@@ -53,4 +64,11 @@ def main():
                 dateUpdated,
                 userCount
             ]) 
+            
+            print(vault["name"],
+                vault["id"],
+                vaultDetails["items"],
+                dateCreated,
+                dateUpdated,
+                userCount)
 main()

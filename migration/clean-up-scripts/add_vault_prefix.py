@@ -1,17 +1,61 @@
 import subprocess
-import getopt
+import argparse
+import json
 import sys
 
-def main(argv):
-    opts, args = getopt.getopt(argv, None, ["file="])
-    for opt, arg in opts:
-        print(opt)
-        print(arg)
-        if opt != "--file":
-            sys.exit("please use the --file option to specify a path to a file containing a list of vault UUIDs for vaults you'd like to delete.")
-    # with open("tests/vaultlist", "r", encoding="utf-8") as vaultList:
-        # for vault in vaultList.readlines():
-            # subprocess.run(f"op vault delete {vault}", shell=True, check=True, capture_output=True)
+parser = argparse.ArgumentParser("Vault Prefixer", "Provide a path to a list of vault UUIDs.", "Prefixes all vaults passed to the script from the specified file with '!'.")
+parser.add_argument("--file", action="store", dest="filepath", required=True)
+args = parser.parse_args()
+
+# Prefix each vault in the input list with an exclamation mark to make them easy to locate and assess duplicate status. {}
+def prefixVault():
+    with open(args.filepath, "r", encoding="utf-8") as vaultList:
+        for vault in vaultList:
+            vaultID = vault.rstrip()
+            try:
+                vaultDetails = json.loads(subprocess.run(f"op vault get {vaultID} --format=json", shell=True, check=True, capture_output=True).stdout)
+                vaultName = vaultDetails['name']
+            except (Exception) as err:
+                print(f"Encountered an error getting the details for vault with ID {vaultID}: ", err)
+                continue
+            try:
+                subprocess.run(f"op vault edit {vaultID} --name=!{vaultName}", shell=True, check=True, capture_output=True)
+                print(f"Changed {vaultName} to !{vaultName}")
+            except (Exception) as err:
+                print(f"Encountered an error renaming {vaultName}: ", err)
+                continue
+            
+
+# Deletes each vault passed into this script
+def deleteVault():
+    # TRIPLE CHECK that the script runner understands the implications of their decision
+    understands = False
+    if understands == False:
+        print("\n\tDELETING VAULTS IS PERMANENT.\n\tBe very sure that you want to delete the vaults you are passing to this script.\n\n")
+        response = input("I know what I am doing and UNDERSTAND THAT I CANNOT RESTORE DELETED VAULTS (yes/no): ")
+        if response == "yes":
+            understands = True
+        else:
+            sys.exit("If you'd like to proceed with deleting vaults, please run the script again and type 'yes' when prompted.")
+    
+    with open(args.filepath, "r", encoding="utf-8") as vaultList:
+        for vault in vaultList:
+            vaultID = vault.rstrip()
+            try:
+                subprocess.run(f"op vault delete {vaultID}", shell=True, check=True, capture_output=True)
+                print(f"Deleted vault {vaultID}")
+            except (Exception) as err:
+                print(f"Encountered an error deleting vault with ID {vaultID}: ", err)
+                continue
 
 
-main(sys.argv[1:])
+
+# prefixVault()
+
+########
+# If you want to delete the vaults contained in the list provided to this script,
+# uncomment the function call below and comment prefixVault()
+# DELETING VAULTS IS PERMANENT AND CANNOT BE UNDONE.
+#######
+
+deleteVault()
