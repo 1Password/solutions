@@ -5,7 +5,7 @@ This is a collection of scripts that can help you clean up your 1Password accoun
 * [vault_dedupe_helper.py](#vault_dedupe_helperpy) generates a report for all shared vaults in your account that can help you identify which duplicates to delete, and which to retain. 
 * [add_vault_prefix.py](#add_vault_prefixpy) can take a list of vault UUIDs and prefix each vault name with `!` to make them easy to identify in 1Password for further assessment. Alternatively using the `-r` will delete each vault provided in the list. 
 
-## Identify candidates for removal with [vault_dedupe_helper.py](./vault_dedupe_helper.py)
+## Identify duplicate vaults for removal with [vault_dedupe_helper.py](./vault_dedupe_helper.py)
 
 This script will create a csv-like report intended to help you identify duplicate vaults that may have been created under certain circumstances when multiple members of your 1Password account used the LastPass importer. The generated report will be created in the same directory as the script. 
 
@@ -41,7 +41,7 @@ ieeogr3drcxght5jk2fyhip7pa
 gameqe75bm5l34uqk5j5enuipa
 ```
 
-### Further investigate or delete selected vaults with [add_vault_prefix.py](./add_vault_prefix.py)
+### Further investigate or delete potential duplicate vaults with [add_vault_prefix.py](./add_vault_prefix.py)
 This script will apply `!` as a prefix to all vaults provided as a list of vault UUIDs to the script. The script requires the `--file` flag, which must point to a file containing a linebreak-deliminted list of vault UUIDs.
 
 #### Usage
