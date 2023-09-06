@@ -2,13 +2,15 @@
 
 This is a collection of scripts that can help you clean up your 1Password account after performing a migration from LastPass. 
 
-> **note**
-> 
-> Learn more about migrating your data from LastPass to 1Password [here](https://support.1password.com/import-lastpass/).  
+## Contents
 
 * [vault_dedupe_helper.py](#identify-duplicate-vaults-for-removal-with-vault_dedupe_helperpy) generates a report for all shared vaults in your account that can help you identify which duplicates to delete, and which to retain. 
 * [add_vault_prefix.py](#further-investigate-or-delete-potential-duplicate-vaults-with-add_vault_prefixpy) can take a list of vault UUIDs and prefix each vault name with `!` to make them easy to identify in 1Password for further assessment. Alternatively using the `-r` will delete each vault provided in the list. 
 * [remove_imported_prefix.py](#remove-imported-prefix-from-imported-vaults-with-remove_imported_prefixpy) will remove the "Imported " prefix from the name of all vaults in your 1Password account. Handy to clean things up once you have finalized your migration. 
+
+> **note**
+> 
+> Learn more about migrating your data from LastPass to 1Password [here](https://support.1password.com/import-lastpass/).  
 
 ## Identify duplicate vaults for removal with [vault_dedupe_helper.py](./vault_dedupe_helper.py)
 
@@ -41,9 +43,7 @@ wupizr5o5z4vrehdjsaaicr2cu
 mvdcqrmfg7a7osxjz5lu76fyra
 n7gh6luc2x53losrps2rgjx65a
 evorxmphuygomvsuwdroo2nnq4
-hz7dmac3lgs6pvc2qsolgcpqhu
-ieeogr3drcxght5jk2fyhip7pa
-gameqe75bm5l34uqk5j5enuipa
+...
 ```
 
 ### Further investigate or delete potential duplicate vaults with [add_vault_prefix.py](./add_vault_prefix.py)
@@ -70,9 +70,7 @@ wupizr5o5z4vrehdjsaaicr2cu
 mvdcqrmfg7a7osxjz5lu76fyra
 n7gh6luc2x53losrps2rgjx65a
 evorxmphuygomvsuwdroo2nnq4
-hz7dmac3lgs6pvc2qsolgcpqhu
-ieeogr3drcxght5jk2fyhip7pa
-gameqe75bm5l34uqk5j5enuipa
+...
 ```
 
 This allows you to easily sort all vaults identified using the [vault_dedupe_helper.py](#vault_dedupe_helperpy) script (or by other means) to the top or bottom of the vault list of 1Password.com for further assessment as potential duplicate vaults for removal. 
