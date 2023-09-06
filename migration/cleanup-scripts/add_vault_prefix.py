@@ -21,7 +21,7 @@ def prefixVault():
                 print(f"Encountered an error getting the details for vault with ID {vaultID}: ", err)
                 continue
             try:
-                subprocess.run(f"op vault edit {vaultID} --name=!{vaultName}", shell=True, check=True, capture_output=True)
+                subprocess.run(["op", "vault", "edit", vaultID, f"--name=!{vaultName}"], check=True, capture_output=True)
                 print(f"Changed {vaultName} to !{vaultName}")
             except (Exception) as err:
                 print(f"Encountered an error renaming {vaultName}: ", err)

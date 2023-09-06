@@ -2,8 +2,13 @@
 
 This is a collection of scripts that can help you clean up your 1Password account after performing a migration from LastPass. 
 
+> **note**
+> 
+> Learn more about migrating your data from LastPass to 1Password [here](https://support.1password.com/import-lastpass/).  
+
 * [vault_dedupe_helper.py](#identify-duplicate-vaults-for-removal-with-vault_dedupe_helperpy) generates a report for all shared vaults in your account that can help you identify which duplicates to delete, and which to retain. 
 * [add_vault_prefix.py](#further-investigate-or-delete-potential-duplicate-vaults-with-add_vault_prefixpy) can take a list of vault UUIDs and prefix each vault name with `!` to make them easy to identify in 1Password for further assessment. Alternatively using the `-r` will delete each vault provided in the list. 
+* [remove_imported_prefix.py](#remove-imported-prefix-from-imported-vaults-with-remove_imported_prefixpy) will remove the "Imported " prefix from the name of all vaults in your 1Password account. Handy to clean things up once you have finalized your migration. 
 
 ## Identify duplicate vaults for removal with [vault_dedupe_helper.py](./vault_dedupe_helper.py)
 
@@ -12,7 +17,7 @@ This script will create a csv-like report intended to help you identify duplicat
 #### Usage
 `python3 vault_dedupe_helper.py`
 
-The script has no options and requires no input. 
+The script has no options and requires no input. It assumes you have signed in to your 1Password account as a member of the Owners group using `op signin` or `eval $(op signin)`. 
 
 The generated report will list all shared vault in your account, with columns for:
 ```
@@ -52,6 +57,8 @@ This script will apply `!` as a prefix to all vaults provided as a list of vault
 
 `-r` runs the script in Delete Mode, deleting all vaults in the provided list. 
 
+It assumes you have signed in to your 1Password account as a member of the Owners group using `op signin` or `eval $(op signin)`. 
+
 > **warning**
 > 
 > Deleting vaults is _irreversible_. Be extremely careful running this script in Delete Mode. You may want to run the script in default mode to ensure that you have selected the correct vault candidates for deletion.  
@@ -71,3 +78,18 @@ gameqe75bm5l34uqk5j5enuipa
 This allows you to easily sort all vaults identified using the [vault_dedupe_helper.py](#vault_dedupe_helperpy) script (or by other means) to the top or bottom of the vault list of 1Password.com for further assessment as potential duplicate vaults for removal. 
 
 After you've determined that you've selected the correct vaults for deletion, you can optionally run the script again using the `-r` flag to delete vaults. 
+
+## Remove "Imported" prefix from imported vaults with [remove_imported_prefix.py](./remove_imported_prefix.py)
+
+This script will remove the "Imported " prefix added to all vaults migrated using the LastPass importer built into the 1Password application. 
+
+#### Usage
+`python3 remove_imported_prefix.py`
+
+The script requires no arguments and has no flags or options. 
+
+It assumes you have signed in to your 1Password account as a member of the Owners group using `op signin` or `eval $(op signin)`. 
+
+> **warning**
+> 
+> Run this script only after you have migrated all data from LastPass and have migrated permissions for all groups and users. Removing the Imported prefix or changing the name of imported vaults in any way before you have finalized your migration may result in duplicate vaults or failure to migrate permissions. 
