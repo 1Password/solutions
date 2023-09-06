@@ -5,11 +5,10 @@ This is a collection of scripts that can help you clean up your 1Password accoun
 ## Contents
 
 * [vault_dedupe_helper.py](#identify-duplicate-vaults-for-removal-with-vault_dedupe_helperpy) generates a report for all shared vaults in your account that can help you identify which duplicates to delete, and which to retain. 
-* [add_vault_prefix.py](#further-investigate-or-delete-potential-duplicate-vaults-with-add_vault_prefixpy) can take a list of vault UUIDs and prefix each vault name with `!` to make them easy to identify in 1Password for further assessment. Alternatively using the `-r` will delete each vault provided in the list. 
+* [add_vault_prefix.py](#further-investigate-or-delete-potential-duplicate-vaults-with-add_vault_prefixpy) can take a list of vault UUIDs and prefix each vault name with `!` to make them easy to identify in 1Password for further assessment. Alternatively using the `-r` option will delete each vault provided in the list. 
 * [remove_imported_prefix.py](#remove-imported-prefix-from-imported-vaults-with-remove_imported_prefixpy) will remove the "Imported " prefix from the name of all vaults in your 1Password account. Handy to clean things up once you have finalized your migration. 
 
-> **note**
-> 
+> **note**  
 > Learn more about migrating your data from LastPass to 1Password [here](https://support.1password.com/import-lastpass/).  
 
 ## Identify duplicate vaults for removal with [vault_dedupe_helper.py](./vault_dedupe_helper.py)
@@ -32,11 +31,10 @@ For example, among a set of identically-named vaults, you might keep the one tha
 
 There may be other criteria that you can use to determine which duplicates should be removed. 
 
-> **Warning**
->
+> **Warning**  
 > This script should be run by a member of the Owners group of your 1Password account. 
 
-Once you have identified canadidates for removmal, you can copy the UUIDs of those vaults into a separate file containing only a list of linebreak-delimited vault UUIDS for further processing, such as by the [add_vault_prefix.py](#add_vault_prefixpy) script, or a script of your own. That list should be formatted as:
+Once you have identified candidates for removmal, you can copy the UUIDs of those vaults into a separate file containing only a list of linebreak-delimited vault UUIDS for further processing, such as by the [add_vault_prefix.py](#further-investigate-or-delete-potential-duplicate-vaults-with-add_vault_prefixpy) script, or a script of your own. That list should be formatted as:
 
 ```
 wupizr5o5z4vrehdjsaaicr2cu
@@ -59,8 +57,7 @@ This script will apply `!` as a prefix to all vaults provided as a list of vault
 
 It assumes you have signed in to your 1Password account as a member of the Owners group using `op signin` or `eval $(op signin)`. 
 
-> **warning**
-> 
+> **warning**  
 > Deleting vaults is _irreversible_. Be extremely careful running this script in Delete Mode. You may want to run the script in default mode to ensure that you have selected the correct vault candidates for deletion.  
 
 ### Format for vault list file
@@ -73,7 +70,7 @@ evorxmphuygomvsuwdroo2nnq4
 ...
 ```
 
-This allows you to easily sort all vaults identified using the [vault_dedupe_helper.py](#vault_dedupe_helperpy) script (or by other means) to the top or bottom of the vault list of 1Password.com for further assessment as potential duplicate vaults for removal. 
+This allows you to easily sort all vaults identified using the [vault_dedupe_helper.py](#identify-duplicate-vaults-for-removal-with-vault_dedupe_helperpy) script (or by other means) to the top or bottom of the vault list of 1Password.com for further assessment as potential duplicate vaults for removal. 
 
 After you've determined that you've selected the correct vaults for deletion, you can optionally run the script again using the `-r` flag to delete vaults. 
 
@@ -88,6 +85,5 @@ The script requires no arguments and has no flags or options.
 
 It assumes you have signed in to your 1Password account as a member of the Owners group using `op signin` or `eval $(op signin)`. 
 
-> **warning**
-> 
+> **warning**  
 > Run this script only after you have migrated all data from LastPass and have migrated permissions for all groups and users. Removing the Imported prefix or changing the name of imported vaults in any way before you have finalized your migration may result in duplicate vaults or failure to migrate permissions. 
