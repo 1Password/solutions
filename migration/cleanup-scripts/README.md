@@ -16,7 +16,7 @@ This is a collection of scripts that can help you clean up your 1Password accoun
 
 This script will create a csv-like report intended to help you identify duplicate vaults that may have been created under certain circumstances when multiple members of your 1Password account used the LastPass importer. The generated report will be created in the same directory as the script. 
 
-#### Usage
+### Usage
 `python3 vault_dedupe_helper.py`
 
 The script has no options and requires no input. It assumes you have signed in to your 1Password account as a member of the Owners group using `op signin` or `eval $(op signin)`. 
@@ -46,10 +46,10 @@ evorxmphuygomvsuwdroo2nnq4
 ...
 ```
 
-### Further investigate or delete potential duplicate vaults with [add_vault_prefix.py](./add_vault_prefix.py)
+## Further investigate or delete potential duplicate vaults with [add_vault_prefix.py](./add_vault_prefix.py)
 This script will apply `!` as a prefix to all vaults provided as a list of vault UUIDs to the script. The script requires the `--file` flag, which must point to a file containing a linebreak-deliminted list of vault UUIDs.
 
-#### Usage
+### Usage
 
 `python3 add_vault_prefix.py --file=path/to/vaultList [OPTIONS]`
 
@@ -63,7 +63,7 @@ It assumes you have signed in to your 1Password account as a member of the Owner
 > 
 > Deleting vaults is _irreversible_. Be extremely careful running this script in Delete Mode. You may want to run the script in default mode to ensure that you have selected the correct vault candidates for deletion.  
 
-#### Format for vault list file
+### Format for vault list file
 The script expects a file containinga list of vault UUIDs formatted in this way:
 ```
 wupizr5o5z4vrehdjsaaicr2cu
@@ -81,7 +81,7 @@ After you've determined that you've selected the correct vaults for deletion, yo
 
 This script will remove the "Imported " prefix added to all vaults migrated using the LastPass importer built into the 1Password application. 
 
-#### Usage
+### Usage
 `python3 remove_imported_prefix.py`
 
 The script requires no arguments and has no flags or options. 
