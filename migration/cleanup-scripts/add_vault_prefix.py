@@ -5,7 +5,7 @@ import sys
 
 parser = argparse.ArgumentParser("Vault Prefixer", "Provide a path to a list of vault UUIDs.", "Prefixes all vaults passed to the script from the specified file with '!'.")
 parser.add_argument("--file", action="store", dest="filepath", help="Required. Specify the path to a file containing a linebreak-delimited list of vault UUIDs you'd like to process.", required=True)
-parser.add_argument("-rm", action="store_true", dest="deletemode", help="Use this option to delete vaults in the provided list, rather than append `!` to the vault name. USE WITH CAUTION.")
+parser.add_argument("--delete", action="store_true", dest="deletemode", help="Use this option to delete vaults in the provided list, rather than append `!` to the vault name. USE WITH CAUTION.")
 args = parser.parse_args()
 
 # Prefix each vault in the input list with an exclamation mark to make them easy to locate and assess duplicate status. {}
