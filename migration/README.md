@@ -17,6 +17,6 @@ This directory contains several scripts to help people identify or clean up cert
 ### [/lastpass](./lastpass/)
 This directory contains a script that offers a variety of ways to import data from LastPass to 1Password. 
 
-We strongly encourage you to use the LastPass import too included with 1Password for macOS, Windows, and Linux. If you are migrating from LastPass, read more about our LastPass importer here: <https://support.1password.com/import-lastpass/>
+We strongly encourage you to use the LastPass import tool included with 1Password for macOS, Windows, and Linux. If you are migrating from LastPass, read more about our LastPass importer here: <https://support.1password.com/import-lastpass/>
 
 However, this script may be helpful in certain scenarios, or as a demonstration of the capabilities of the [1Password CLI](https://developer.1password.com/docs/cli).
