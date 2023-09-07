@@ -5,7 +5,7 @@ This is a collection of scripts that can help you clean up your 1Password accoun
 ## Contents
 
 * [vault_dedupe_helper.py](#identify-duplicate-vaults-for-removal-with-vault_dedupe_helperpy) generates a report for all shared vaults in your account that can help you identify which duplicates to delete, and which to retain. 
-* [add_vault_prefix.py](#further-investigate-or-delete-potential-duplicate-vaults-with-add_vault_prefixpy) can take a list of vault UUIDs and prefix each vault name with `!` to make them easy to identify in 1Password for further assessment. Alternatively using the `-r` option will delete each vault provided in the list. 
+* [add_vault_prefix.py](#further-investigate-or-delete-potential-duplicate-vaults-with-add_vault_prefixpy) can take a list of vault UUIDs and prefix each vault name with `!` to make them easy to identify in 1Password for further assessment. Alternatively using the `-rm` option will delete each vault provided in the list. 
 * [remove_imported_prefix.py](#remove-imported-prefix-from-imported-vaults-with-remove_imported_prefixpy) will remove the "Imported " prefix from the name of all vaults in your 1Password account. Handy to clean things up once you have finalized your migration. 
 
 > **note**  
@@ -53,7 +53,7 @@ This script will apply `!` as a prefix to all vaults provided as a list of vault
 
 `--file` should be a path to a file containing a list of vault UUIDs (and nothing else)
 
-`-r` runs the script in Delete Mode, deleting all vaults in the provided list. 
+`-rm` runs the script in Delete Mode, deleting all vaults in the provided list. 
 
 It assumes you have signed in to your 1Password account as a member of the Owners group using `op signin` or `eval $(op signin)`. 
 
@@ -72,7 +72,7 @@ evorxmphuygomvsuwdroo2nnq4
 
 This allows you to easily sort all vaults identified using the [vault_dedupe_helper.py](#identify-duplicate-vaults-for-removal-with-vault_dedupe_helperpy) script (or by other means) to the top or bottom of the vault list of 1Password.com for further assessment as potential duplicate vaults for removal. 
 
-After you've determined that you've selected the correct vaults for deletion, you can optionally run the script again using the `-r` flag to delete vaults. 
+After you've determined that you've selected the correct vaults for deletion, you can optionally run the script again using the `-rm` flag to delete vaults. 
 
 ## Remove "Imported" prefix from imported vaults with [remove_imported_prefix.py](./remove_imported_prefix.py)
 
