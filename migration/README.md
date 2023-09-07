@@ -11,7 +11,7 @@ If you are migrating from LastPass, read more about our LastPass importer here: 
 ### [/cleanup-scripts](./cleanup-scripts/)
 This directory contains several scripts to help people identify or clean up certain things after performing a migration from another password manager. Currently the scripts target certain tasks that LastPass migrators may encounter. 
 
-* `vault_dedupe_helper.py` generates a csv-like report containing a list of all shared vaults you have access to, along with metadata about each vault. If, after migrating, you ended up with some duplicate vaults, this report might help you identify which duplicates to delte, and which one to retain
+* `vault_dedupe_helper.py` generates a csv-like report containing a list of all shared vaults you have access to, along with metadata about each vault. If, after migrating, you ended up with some duplicate vaults, this report might help you identify which duplicates to delete, and which one to retain
 * `add_vault_prefix.py` acts on a list of vault UUIDs. By default, it will prefix each vault name with `!` to make it easier to sort and further assess potential duplicates. This script can optionally be run in Delete Mode, which will delete the vault. 
 
 ### [/lastpass](./lastpass/)
