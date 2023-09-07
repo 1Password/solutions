@@ -11,7 +11,7 @@ This is a collection of scripts that can help you clean up your 1Password accoun
 > **note**  
 > Learn more about migrating your data from LastPass to 1Password [here](https://support.1password.com/import-lastpass/).  
 
-## Identify duplicate vaults for removal with [vault_dedupe_helper.py](./vault_dedupe_helper.py)
+## Identify duplicate vaults for removal with [`vault_dedupe_helper.py`](./vault_dedupe_helper.py)
 
 This script will create a csv-like report intended to help you identify duplicate vaults that may have been created under certain circumstances when multiple members of your 1Password account used the LastPass importer. The generated report will be created in the same directory as the script. 
 
