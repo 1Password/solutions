@@ -22,9 +22,9 @@ def prefixVault():
                 continue
             try:
                 subprocess.run(["op", "vault", "edit", vaultID, f"--name=!{vaultName}"], check=True, capture_output=True)
-                print(f"Changed {vaultName} to !{vaultName}")
+                print(f"\tChanged \"{vaultName}\" => \"!{vaultName}\"")
             except (Exception) as err:
-                print(f"Encountered an error renaming {vaultName}: ", err)
+                print(f"Encountered an error renaming \"{vaultName}\": ", err)
                 continue
             
 # Deletes each vault passed into this script
@@ -45,7 +45,7 @@ def deleteVault():
             vaultID = vault.rstrip()
             try:
                 subprocess.run(f"op vault delete {vaultID}", shell=True, check=True, capture_output=True)
-                print(f"Deleted vault {vaultID}")
+                print(f"\tDeleted vault {vaultID}")
             except (Exception) as err:
                 print(f"Encountered an error deleting vault with ID {vaultID}: ", err)
                 continue
