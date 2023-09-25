@@ -85,10 +85,9 @@ def main():
 
 
 
-# op vault list = all vault UUIDs
-
-# op vault group list $vaultUUID = all groups with access to that vault
-
-# op vault user list $vaultUUID = all users with access to that vault
-
-# op group user list <group> = all members of a group.
+# "vaultName", "vaultUUID", "name", "email", "userUUID", "assignment"
+# where "assignment" indicates whether a person has access to the vault by direct assignemnt (value would be "direct") or by membership in an assigned group (value would be "group (group name)")
+#
+#
+#
+#
