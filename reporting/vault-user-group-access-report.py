@@ -24,6 +24,9 @@ class User:
     def addGroup(self, group):
         self.groups.append(group)
 
+    def addVault(self, vault):
+        self.vault.append(vault)
+
 class Vault:
     def __init__(self, name, uuid, users, groups):
         self.name = name
@@ -40,6 +43,8 @@ class Group:
         self.uuid = uuid
 
 vaults = [Vault]
+users = [User]
+grous = [Group]
 
 def getAllOwnerVaults():
     vaultList = subprocess.run(
