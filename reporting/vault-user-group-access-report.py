@@ -103,8 +103,7 @@ def getAllUsers():
     for user in json.loads(accountUserList):
         # users.update({user['id']: User(email=user['email'],
         #              name=user['name'], uuid=user['id'])})
-        users.append(User(email=user['email'],
-                     name=user['name'], uuid=user['id']))
+        User(email=user['email'], name=user['name'], uuid=user['id'])
 
 
 def getAllGroups():
@@ -113,7 +112,7 @@ def getAllGroups():
     for group in json.loads(accountGroupList):
         # groups.update(
         #     {group['id']: Group(name=group['name'], uuid=group['id'])})
-        groups.append(Group(name=group['name'], uuid=group['id']))
+        Group(name=group['name'], uuid=group['id'])
 
 
 # def getVaultUserList(vaultID):
