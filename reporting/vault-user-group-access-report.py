@@ -15,11 +15,9 @@ scriptPath = os.path.dirname(__file__)
 outputPath = scriptPath
 
 
-users = []
-groups = []
-
-
 class User:
+    users = []
+
     def __init__(self, name, email, uuid, groups=None):
         self.name = name
         self.email = email
@@ -33,8 +31,20 @@ class User:
     def addVault(self, vault):
         self.vault.append(vault)
 
+    @classmethod
+    def getAll(cls):
+        return [inst for inst in cls.users]
+
+    @classmethod
+    def getByID(cls, userID):
+        for user in cls.users:
+            if user.uuid == userID:
+                return user
+
 
 class Group:
+    groups = []
+
     def __init__(self, name, uuid):
         self.name = name
         self.uuid = uuid
@@ -42,6 +52,16 @@ class Group:
 
     def addUser(self, user: User):
         self.users.append(user)
+
+    @classmethod
+    def getAll(cls):
+        return [inst for inst in cls.groups]
+
+    @classmethod
+    def getByID(cls, groupID):
+        for group in cls.groups:
+            if group.uuid == groupID:
+                return group
 
 
 class Vault:
