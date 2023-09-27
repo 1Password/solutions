@@ -140,22 +140,6 @@ def getGroupMembers(groupID):
 
 
 def writeReport(vaults: Vault):
-    # for vault in vaults:
-    #     vaultName = vault.name
-    #     vaultUUID = vault.uuid
-    #     groups = vault.groups
-    #     userNames = ""
-    #     userIDs = ""
-    #     userAssignments = ""
-
-    #     for user in vault.users:
-    #         userNames += user['name']
-    #         userIDs += user['uuid']
-    #         userAssignments += user['assignment']
-    #     print(vaultName)
-    #     print("USERNAMES: ", userNames)
-    #     print("USERIDs: ", userIDs)
-    #     print("ASSIGNMENTS: ", userAssignments)
 
     with open(f"{outputPath}/vaultAccessReport.csv", "w", newline="") as outputFile:
         csvWriter = csv.writer(outputFile)
@@ -172,17 +156,20 @@ def writeReport(vaults: Vault):
                     None, None, user['name'], user['email'], user['uuid'], user['assignment']
                 ])
                 print(
-                    f"{user['name']}, {user['email']}, {user['uuid']}, {user['assignment']}")
+                    f"\t{user['name']}, {user['email']}, {user['uuid']}, {user['assignment']}")
 
 
 def main():
+    counter = 1
     # Populate initial data
     getAllOwnerVaults()
 
     # Get user assignments and group assignments
     vaults = Vault.getAll()
+    vaultCount = len(vaults)
     for vault in vaults:
-        print(f"\tPROCESSING {vault.name}. This may take a moment...")
+        print(
+            f"\tPROCESSING vault {counter}/{vaultCount} \"{vault.name}\". This may take a moment...")
         users = json.loads(getVaultUserList(vault.uuid))
         for user in users:
             vault.users.append(
@@ -198,17 +185,9 @@ def main():
                 for groupUser in groupUsers:
                     vault.users.append(
                         {'name': groupUser['name'], 'email': groupUser['email'], 'uuid': groupUser['id'], 'assignment': f'group ({group["name"]})'})
+        counter += 1
 
     writeReport(vaults)
 
 
 main()
-
-# "vaultName", "vaultUUID", "name", "email", "userUUID", "assignment"
-# where "assignment" indicates whether a person has access to the vault
-# by direct assignemnt (value would be "direct") or by membership in an
-# assigned group (value would be "group (group name)")
-#
-#
-#
-#
