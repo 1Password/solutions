@@ -25,22 +25,6 @@ class User:
         self.groups = []
         self.vaults = []
 
-    def addGroup(self, group):
-        self.groups.append(group)
-
-    def addVault(self, vault):
-        self.vault.append(vault)
-
-    @classmethod
-    def getAll(cls):
-        return [inst for inst in cls.users]
-
-    @classmethod
-    def getByID(cls, userID):
-        for user in cls.users:
-            if user.uuid == userID:
-                return user
-
 
 class Group:
     groups = []
@@ -49,19 +33,6 @@ class Group:
         self.name = name
         self.uuid = uuid
         self.users = []
-
-    def addUser(self, user: User):
-        self.users.append(user)
-
-    @classmethod
-    def getAll(cls):
-        return [inst for inst in cls.groups]
-
-    @classmethod
-    def getByID(cls, groupID):
-        for group in cls.groups:
-            if group.uuid == groupID:
-                return group
 
 
 class Vault:
@@ -149,14 +120,13 @@ def writeReport(vaults: Vault):
         for vault in vaults:
             vaultName = vault.name
             vaultUUID = vault.uuid
+            # write vault header row
             csvWriter.writerow([vaultName, vaultUUID, None, None, None, None])
-            print(vaultName, ", ", vaultUUID)
+            # write rows for each user with access to that vault
             for user in vault.users:
                 csvWriter.writerow([
                     None, None, user['name'], user['email'], user['uuid'], user['assignment']
                 ])
-                print(
-                    f"\t{user['name']}, {user['email']}, {user['uuid']}, {user['assignment']}")
 
 
 def main():
@@ -184,7 +154,7 @@ def main():
             if groupUsers is not None:
                 for groupUser in groupUsers:
                     vault.users.append(
-                        {'name': groupUser['name'], 'email': groupUser['email'], 'uuid': groupUser['id'], 'assignment': f'group ({group["name"]})'})
+                        {'name': groupUser['name'], 'email': groupUser['email'], 'uuid': groupUser['id'], 'assignment': f'Group ({group["name"]})'})
         counter += 1
 
     writeReport(vaults)
