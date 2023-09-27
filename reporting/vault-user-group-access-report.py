@@ -140,33 +140,39 @@ def getGroupMembers(groupID):
 
 
 def writeReport(vaults: Vault):
-    for vault in vaults:
-        vaultName = vault.name
-        vaultUUID = vault.uuid
-        users = vault.users
-        groups = vault.groups
-        print(f"VAULT: {vaultName} \t {vaultUUID}")
-        for user in users:
-            print(
-                f"USERS: {user['name']} \t {user['uuid']} \t {user['assignment']}")
-        for group in groups:
-            print(f"GROUPS: {group['name']} \n\n")
+    # for vault in vaults:
+    #     vaultName = vault.name
+    #     vaultUUID = vault.uuid
+    #     groups = vault.groups
+    #     userNames = ""
+    #     userIDs = ""
+    #     userAssignments = ""
 
-    # with open(f"{outputPath}/vaultAccessReport.csv", "w", newline="") as outputFile:
-    #     csvWriter = csv.writer(outputFile)
-    #     fields = ["vaultName", "vaultUUID", "name",
-    #               "email", "userUUID", "assignment"]
-    #     csvWriter.writerow(fields)
-        # for vault in vaults:
-        #     vaultUserList = json.loads(getVaultUserList(vault["id"]))
-        #     for user in vaultUserList:
-        #         csvWriter.writerow([vault["name"],
-        #                             vault["id"],
-        #                             user["name"],
-        #                             user["email"],
-        #                             user["id"],
-        #                             user["permissions"]])
-        #         print(vault["name"], vault["id"], user["name"], user["email"], user["id"], user["permissions"])
+    #     for user in vault.users:
+    #         userNames += user['name']
+    #         userIDs += user['uuid']
+    #         userAssignments += user['assignment']
+    #     print(vaultName)
+    #     print("USERNAMES: ", userNames)
+    #     print("USERIDs: ", userIDs)
+    #     print("ASSIGNMENTS: ", userAssignments)
+
+    with open(f"{outputPath}/vaultAccessReport.csv", "w", newline="") as outputFile:
+        csvWriter = csv.writer(outputFile)
+        fields = ["vaultName", "vaultUUID", "name",
+                  "email", "userUUID", "assignment"]
+        csvWriter.writerow(fields)
+        for vault in vaults:
+            vaultName = vault.name
+            vaultUUID = vault.uuid
+            csvWriter.writerow([vaultName, vaultUUID, None, None, None, None])
+            print(vaultName, ", ", vaultUUID)
+            for user in vault.users:
+                csvWriter.writerow([
+                    None, None, user['name'], user['email'], user['uuid'], user['assignment']
+                ])
+                print(
+                    f"{user['name']}, {user['email']}, {user['uuid']}, {user['assignment']}")
 
 
 def main():
