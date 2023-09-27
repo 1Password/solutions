@@ -129,17 +129,34 @@ def getVaultGroupList(vaultID):
 
 def getGroupMembers(groupID):
     # Array of group members
-    groupMembers = subprocess.run(
-        ["op", "group", "user", "list", groupID, "--format=json"], check=True, capture_output=True).stdout
+    try:
+        groupMembers = subprocess.run(
+            ["op", "group", "user", "list", groupID, "--format=json"], check=True, capture_output=True).stdout
+    except (Exception):
+        groupMembers = []
+        print("group has no members")
+
     return groupMembers
 
 
-def writeReport():
-    with open(f"{outputPath}/vaultAccessReport.csv", "w", newline="") as outputFile:
-        csvWriter = csv.writer(outputFile)
-        fields = ["vaultName", "vaultUUID", "name",
-                  "email", "userUUID", "assignment"]
-        csvWriter.writerow(fields)
+def writeReport(vaults: Vault):
+    for vault in vaults:
+        vaultName = vault.name
+        vaultUUID = vault.uuid
+        users = vault.users
+        groups = vault.groups
+        print(f"VAULT: {vaultName} \t {vaultUUID}")
+        for user in users:
+            print(
+                f"USERS: {user['name']} \t {user['uuid']} \t {user['assignment']}")
+        for group in groups:
+            print(f"GROUPS: {group['name']} \n\n")
+
+    # with open(f"{outputPath}/vaultAccessReport.csv", "w", newline="") as outputFile:
+    #     csvWriter = csv.writer(outputFile)
+    #     fields = ["vaultName", "vaultUUID", "name",
+    #               "email", "userUUID", "assignment"]
+    #     csvWriter.writerow(fields)
         # for vault in vaults:
         #     vaultUserList = json.loads(getVaultUserList(vault["id"]))
         #     for user in vaultUserList:
@@ -155,27 +172,28 @@ def writeReport():
 def main():
     # Populate initial data
     getAllOwnerVaults()
-    # getAllUsers()
-    # getAllGroups()
 
+    # Get user assignments and group assignments
     vaults = Vault.getAll()
-    for vault in vaults:
+    for vault in vaults[:5]:
+        print(f"\tPROCESSING {vault.name}. This may take a moment...")
         users = json.loads(getVaultUserList(vault.uuid))
         for user in users:
-            # print(vault.name + " accessible by user: " + user['name'])
             vault.users.append(
                 {'name': user['name'], 'email': user['email'], 'uuid': user['id'], 'assignment': 'Direct'})
 
+    # For assigned groups, decompose into individual users
         groups = json.loads(getVaultGroupList(vault.uuid))
         for group in groups:
             vault.groups.append(
-                {'groupName': group['name'], 'groupUUID': group['id']})
+                {'name': group['name'], 'groupUUID': group['id']})
             groupUsers = json.loads(getGroupMembers(group['id']))
-            for groupUser in groupUsers:
-                print(groupUser['name'])
+            if groupUsers is not None:
+                for groupUser in groupUsers:
+                    vault.users.append(
+                        {'name': groupUser['name'], 'email': groupUser['email'], 'uuid': groupUser['id'], 'assignment': f'group ({group["name"]})'})
 
-    # for vault in Vault.getAll():
-    #     print(vault.name, " ", vault.uuid)
+    writeReport(vaults)
 
 
 main()
