@@ -8,8 +8,6 @@ import subprocess
 import csv
 import json
 from dataclasses import dataclass
-import argparse
-import sys
 
 scriptPath = os.path.dirname(__file__)
 outputPath = scriptPath
@@ -64,16 +62,12 @@ def getAllOwnerVaults():
         ["op", "vault", "list", "--group=Owners", "--format=json"], check=True, capture_output=True).stdout
     for vault in json.loads(vaultList):
         Vault(name=vault['name'], uuid=vault['id'],)
-        # vaults.update({vault["id"]: Vault(vault['name'], vault['id'])})
-        # vaults.append(Vault(vault['name'], vault['id']))
 
 
 def getAllUsers():
     accountUserList = subprocess.run(
         ["op", "user", "list", "--format=json"], check=True, capture_output=True).stdout
     for user in json.loads(accountUserList):
-        # users.update({user['id']: User(email=user['email'],
-        #              name=user['name'], uuid=user['id'])})
         User(email=user['email'], name=user['name'], uuid=user['id'])
 
 
@@ -81,8 +75,6 @@ def getAllGroups():
     accountGroupList = subprocess.run(
         ["op", "group", "list", "--format=json"], check=True, capture_output=True).stdout
     for group in json.loads(accountGroupList):
-        # groups.update(
-        #     {group['id']: Group(name=group['name'], uuid=group['id'])})
         Group(name=group['name'], uuid=group['id'])
 
 
@@ -99,10 +91,10 @@ def getVaultGroupList(vaultID):
 
 
 def getGroupMembers(groupID):
-    # Array of group members
     try:
         groupMembers = subprocess.run(
             ["op", "group", "user", "list", groupID, "--format=json"], check=True, capture_output=True).stdout
+    # If the vault has no assigned groups, prevent the script from stopping when None is returned
     except (Exception):
         groupMembers = []
         print("group has no members")
