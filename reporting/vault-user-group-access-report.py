@@ -181,7 +181,7 @@ def main():
 
     # Get user assignments and group assignments
     vaults = Vault.getAll()
-    for vault in vaults[:5]:
+    for vault in vaults:
         print(f"\tPROCESSING {vault.name}. This may take a moment...")
         users = json.loads(getVaultUserList(vault.uuid))
         for user in users:
