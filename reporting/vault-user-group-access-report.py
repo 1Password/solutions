@@ -112,13 +112,10 @@ def writeReport(vaults: Vault):
         for vault in vaults:
             vaultName = vault.name
             vaultUUID = vault.uuid
-            # write vault header row
-            csvWriter.writerow([vaultName, vaultUUID, None, None, None, None])
-            # write rows for each user with access to that vault
+            # write each row
             for user in vault.users:
-                csvWriter.writerow([
-                    None, None, user['name'], user['email'], user['uuid'], user['assignment']
-                ])
+                csvWriter.writerow(
+                    [vaultName, vaultUUID, user['name'], user['email'], user['uuid'], user['assignment']])
 
 
 def main():
