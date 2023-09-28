@@ -16,10 +16,11 @@ outputPath = scriptPath
 class User:
     users = []
 
-    def __init__(self, name, email, uuid, groups=None):
+    def __init__(self, name, email, uuid, state, groups=None):
         self.name = name
         self.email = email
         self.uuid = uuid
+        self.state = state
         self.groups = []
         self.vaults = []
 
@@ -68,7 +69,8 @@ def getAllUsers():
     accountUserList = subprocess.run(
         ["op", "user", "list", "--format=json"], check=True, capture_output=True).stdout
     for user in json.loads(accountUserList):
-        User(email=user['email'], name=user['name'], uuid=user['id'])
+        User(email=user['email'], name=user['name'],
+             uuid=user['id'], state=user['state'])
 
 
 def getAllGroups():
@@ -107,7 +109,7 @@ def writeReport(vaults: Vault):
     with open(f"{outputPath}/vaultAccessReport.csv", "w", newline="") as outputFile:
         csvWriter = csv.writer(outputFile)
         fields = ["vaultName", "vaultUUID", "name",
-                  "email", "userUUID", "assignment"]
+                  "email", "userUUID", "status", "assignment"]
         csvWriter.writerow(fields)
         for vault in vaults:
             vaultName = vault.name
@@ -115,7 +117,7 @@ def writeReport(vaults: Vault):
             # write each row
             for user in vault.users:
                 csvWriter.writerow(
-                    [vaultName, vaultUUID, user['name'], user['email'], user['uuid'], user['assignment']])
+                    [vaultName, vaultUUID, user['name'], user['email'], user['uuid'], user['state'], user['assignment']])
 
 
 def main():
@@ -132,7 +134,7 @@ def main():
         users = json.loads(getVaultUserList(vault.uuid))
         for user in users:
             vault.users.append(
-                {'name': user['name'], 'email': user['email'], 'uuid': user['id'], 'assignment': 'Direct'})
+                {'name': user['name'], 'email': user['email'], 'uuid': user['id'], 'assignment': 'Direct', 'state': user['state']})
 
     # For assigned groups, decompose into individual users
         groups = json.loads(getVaultGroupList(vault.uuid))
@@ -143,7 +145,7 @@ def main():
             if groupUsers is not None:
                 for groupUser in groupUsers:
                     vault.users.append(
-                        {'name': groupUser['name'], 'email': groupUser['email'], 'uuid': groupUser['id'], 'assignment': f'Group ({group["name"]})'})
+                        {'name': groupUser['name'], 'email': groupUser['email'], 'uuid': groupUser['id'], 'assignment': f'Group ({group["name"]})', 'state': user['state']})
         counter += 1
 
     writeReport(vaults)
