@@ -128,7 +128,7 @@ def main():
     # Get user assignments and group assignments
     vaults = Vault.getAll()
     vaultCount = len(vaults)
-    for vault in vaults:
+    for vault in vaults[:3]:
         print(
             f"\tPROCESSING vault {counter}/{vaultCount} \"{vault.name}\". This may take a moment...")
         users = json.loads(getVaultUserList(vault.uuid))
@@ -145,7 +145,7 @@ def main():
             if groupUsers is not None:
                 for groupUser in groupUsers:
                     vault.users.append(
-                        {'name': groupUser['name'], 'email': groupUser['email'], 'uuid': groupUser['id'], 'assignment': f'Group ({group["name"]})', 'state': user['state']})
+                        {'name': groupUser['name'], 'email': groupUser['email'], 'uuid': groupUser['id'], 'assignment': f'Group ({group["name"]})', 'state': groupUser['state']})
         counter += 1
 
     writeReport(vaults)
