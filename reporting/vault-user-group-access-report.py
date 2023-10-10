@@ -7,6 +7,7 @@ import os
 import subprocess
 import csv
 import json
+import sys
 from dataclasses import dataclass
 
 scriptPath = os.path.dirname(__file__)
@@ -123,7 +124,10 @@ def writeReport(vaults: Vault):
 def main():
     counter = 1
     # Populate initial data
-    getAllOwnerVaults()
+    try:
+        getAllOwnerVaults()
+    except (Exception) as e:
+        sys.exit("Unable to get a list of vaults for the Owner group. Please sign into 1Password as a member of the Owners group. Error: ", e)
 
     # Get user assignments and group assignments
     vaults = Vault.getAll()
@@ -131,24 +135,38 @@ def main():
     for vault in vaults:
         print(
             f"\tPROCESSING vault {counter}/{vaultCount} \"{vault.name}\". This may take a moment...")
-        users = json.loads(getVaultUserList(vault.uuid))
+        try:
+            users = json.loads(getVaultUserList(vault.uuid))
+        except (Exception) as e:
+            sys.exit(
+                f"Unable to get a list of users directly assigned to vault {vault.name}. Error: {e}")
         for user in users:
             vault.users.append(
                 {'name': user['name'], 'email': user['email'], 'uuid': user['id'], 'assignment': 'Direct', 'state': user['state']})
 
     # For assigned groups, decompose into individual users
-        groups = json.loads(getVaultGroupList(vault.uuid))
+        try:
+            groups = json.loads(getVaultGroupList(vault.uuid))
+        except (Exception) as e:
+            sys.exit(
+                f"Unable to get a list of groups assigned to vault {vault.name}. Error: {e}")
         for group in groups:
             vault.groups.append(
                 {'name': group['name'], 'groupUUID': group['id']})
-            groupUsers = json.loads(getGroupMembers(group['id']))
+            try:
+                groupUsers = json.loads(getGroupMembers(group['id']))
+            except (Exception) as e:
+                sys.exit(
+                    f"Unable to get a list of group members in group {group['name']} assigned to vault {vault.name}. Error: {e}")
             if groupUsers is not None:
                 for groupUser in groupUsers:
                     vault.users.append(
                         {'name': groupUser['name'], 'email': groupUser['email'], 'uuid': groupUser['id'], 'assignment': f'Group ({group["name"]})', 'state': groupUser['state']})
         counter += 1
-
-    writeReport(vaults)
+    try:
+        writeReport(vaults)
+    except (Exception) as e:
+        sys.exit("Unable to write data to a file on disk.")
 
 
 main()
