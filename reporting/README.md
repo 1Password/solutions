@@ -2,7 +2,7 @@
 
 This directory provides a series of scripts demonstrating how to use the CLI to generate summary reports of vault access, contents, and permissions.
 
-## User Access Reports
+## User vault access reports
 The following scripts provide information about people who are directly granted access to vaults. It does not include groups.  
 
 ### [`user-and-item-list.py`](./user-and-item-list.py)
@@ -20,7 +20,7 @@ The following scripts provide information about people who are directly granted 
 - This does NOT show users who have access to vaults as a result of their membership in an assigned group.
 
 
-## User and Group access reports
+## User and group vault access reports
 The following scripts provide information about vault access for both groups and individual users. Some scripts will decompose groups into their individual members, some may only provide information about the group itself.
 
 ### [`vault-user-group-access-report.py`](./vault-user-group-access-report.py)
