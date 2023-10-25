@@ -136,7 +136,7 @@ def main():
     # Get user assignments and group assignments
     vaults = Vault.getAll()
     vaultCount = len(vaults)
-    for vault in vaults[:8]:
+    for vault in vaults:
         print(
             f"\tPROCESSING vault {counter}/{vaultCount} \"{vault.name}\". This may take a moment...")
         try:
