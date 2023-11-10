@@ -7,6 +7,7 @@ This is a collection of scripts that can help you clean up your 1Password accoun
 * [`vault_dedupe_helper.py`](#identify-duplicate-vaults-for-removal-with-vault_dedupe_helperpy) generates a report for all shared vaults in your account that can help you identify which duplicates to delete, and which to retain. 
 * [`add_vault_prefix.py`](#further-investigate-or-delete-potential-duplicate-vaults-with-add_vault_prefixpy) can take a list of vault UUIDs and prefix each vault name with `!` to make them easy to identify in 1Password for further assessment. Alternatively using the `--delete` option will delete each vault provided in the list. 
 * [`remove_imported_prefix.py`](#remove-imported-prefix-from-imported-vaults-with-remove_imported_prefixpy) will remove the "Imported " prefix from the name of all vaults in your 1Password account. Handy to clean things up once you have finalized your migration. 
+* [`recreate_metadata_entry.py`](#recreate-metadata-entry) will reconstruct the metadata entries in the metadata vault to point to the oldest imported vaults
 
 > **note**  
 > Learn more about migrating your data from LastPass to 1Password [here](https://support.1password.com/import-lastpass/).  
@@ -87,3 +88,21 @@ It assumes you have signed in to your 1Password account as a member of the Owner
 
 > **warning**  
 > Run this script only after you have migrated all data from LastPass and have migrated permissions for all groups and users. Removing the Imported prefix or changing the name of imported vaults in any way before you have finalized your migration may result in duplicate vaults or failure to migrate permissions. 
+
+
+## Recreate the metadata vault metadata entries after a duplication occurred with [`recreate_metadata_entry.py`](./recreate_metadata_entry.py)
+
+This script will recreate the metadata folder entries. An 'import folder permissions only' will correctly find the old vaults, rather than create empty duplicate vaults again.
+
+### Usage
+
+Run `python3 vault_dedupe_helper.py` to regenerate the dedup CSV.
+
+Then run `python3 recreate_metadata_entry.py` which will create a `LastPass Metadata Recreated` item in the LastPass metadata vault.
+
+The script requires no arguments and has no flags or options. 
+
+It assumes you have signed in to your 1Password account as a member of the Owners group using `op signin` or `eval $(op signin)`. 
+
+> **warning**  
+> After running this script archive all other `LastPass Metadata <date>` items except for `LastPass Metadata Recreated`. This will ensure that duplication will not occur again when importing permissions.
