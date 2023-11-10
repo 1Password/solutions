@@ -92,7 +92,7 @@ It assumes you have signed in to your 1Password account as a member of the Owner
 
 ## Recreate the metadata vault metadata entries after a duplication occurred with [`recreate_metadata_entry.py`](./recreate_metadata_entry.py)
 
-This script will recreate the metadata folder entries. An 'import folder permissions only' will correctly find the old vaults, rather than create empty duplicate vaults again.
+This script will recreate the metadata folder entries. Once recreated, using the LastPass importer in the 1Password desktop application with 'import folder permissions only' selected will correctly find the old vaults, rather than create empty duplicate vaults again.
 
 ### Usage
 
