@@ -2,6 +2,9 @@
 
 This directory provides a series of scripts demonstrating how to use the CLI to generate summary reports of vault access, contents, and permissions.
 
+> ⚠️ **Warning**  
+> Currently, you must use version 2.21 or older of the 1Password CLI when running these scripts. Version 2.22 and newer introduced changes that prevent these scripts from performing as-expected. Download version 2.21 the 1Password website [here](https://app-updates.agilebits.com/product_history/CLI2#v2210002).
+
 ## [`user-and-item-list.py`](./user-and-item-list.py)
 
 - Creates a csv file of each user and item that has access to a list of vaults.

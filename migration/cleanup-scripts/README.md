@@ -2,6 +2,9 @@
 
 This is a collection of scripts that can help you clean up your 1Password account after performing a migration from LastPass. 
 
+> ⚠️ **Warning**  
+> Currently, you must use version 2.21 or older of the 1Password CLI when running these scripts. Version 2.22 and newer introduced changes that prevent these scripts from performing as-expected. Download version 2.21 the 1Password website [here](https://app-updates.agilebits.com/product_history/CLI2#v2210002).
+
 ## Contents
 
 * [`vault_dedupe_helper.py`](#identify-duplicate-vaults-for-removal-with-vault_dedupe_helperpy) generates a report for all shared vaults in your account that can help you identify which duplicates to delete, and which to retain. 
