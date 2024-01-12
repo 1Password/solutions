@@ -7,12 +7,10 @@ import argparse
 
 scriptPath = os.path.dirname(__file__)
 
-
 parser = argparse.ArgumentParser(
     "Bulk-revoke permissions.",
     "Revoke one or more specified permissions from all users and groups for all vaults the person running the script can access. ",
 )
-
 parser.add_argument(
     "--grant",
     "-g",
