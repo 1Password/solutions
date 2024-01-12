@@ -12,6 +12,16 @@ parser = argparse.ArgumentParser(
     "Bulk-revoke permissions.",
     "Revoke one or more specified permissions from all users and groups for all vaults the person running the script can access. ",
 )
+
+parser.add_argument(
+    "--grant",
+    "-g",
+    action="store_const",
+    const="grant",
+    default="revoke",
+    dest="action",
+    metavar="Grant",
+)
 parser.add_argument(
     "--as-admin",
     action="store_true",
@@ -19,11 +29,25 @@ parser.add_argument(
     help="Set this flag if you are running this script as a member of the Administrators group.",
 )
 parser.add_argument(
-    "--permissions",
+    "--permission",
     "-p",
-    action="store",
+    action="append",
+    choices=[
+        "view_items",
+        "create_items",
+        "edit_items",
+        "archive_items",
+        "delete_items",
+        "view_and_copy_passwords",
+        "view_item_history",
+        "import_items",
+        "export_items",
+        "copy_and_share_items",
+        "print_items",
+        "manage_vault",
+    ],
     dest="permissions",
-    help=f"Provide a comma-seprated list of permissions to revoke using the following permission names: view_items, create_items, edit_items, archive_items, delete_items, view_and_copy_passwords, view_item_history, import_items, export_items, copy_and_share_items, print_items, manage_vault",
+    help=f"Provide the name of a permission to modify. To modify multiple permissions, set this flag multiple times. E.g., -p view_items -p archive_items",
 )
 args = parser.parse_args()
 
@@ -32,7 +56,9 @@ if args.isAdmin:
 else:
     userGroup = "Owners"
 
-permissions = args.permissions
+action = args.action
+
+permissions = ",".join(args.permissions)
 
 
 # get a list of vaults the logged-in user has access to
@@ -65,13 +91,13 @@ def getVaultGroupList(vaultUUID):
 
 
 # revokes the specified vault permissions from the grou
-def revokeGroupPermissions(vaultUUID, groupUUID):
+def modifyGroupPermissions(vaultUUID, groupUUID):
     subprocess.run(
         [
             "op",
             "vault",
             "group",
-            "revoke",
+            action,
             f"--vault={vaultUUID}",
             f"--group={groupUUID}",
             f"--permissions={permissions}",
@@ -81,13 +107,13 @@ def revokeGroupPermissions(vaultUUID, groupUUID):
 
 
 # revokes the specified vault permissions from the grou
-def revokeUserPermissions(vaultUUID, userUUID):
+def modifyUserPermissions(vaultUUID, userUUID):
     subprocess.run(
         [
             "op",
             "vault",
             "user",
-            "revoke",
+            action,
             f"--vault={vaultUUID}",
             f"--user={userUUID}",
             f"--permissions={permissions}",
@@ -101,7 +127,8 @@ def main():
         sys.exit(
             "Please provide a list of permissions with --permissions=PERMISSIONS and run the script again"
         )
-
+    print("THING: ", action)
+    print("PERMISSIONS: ", permissions)
     accountVaults = json.loads(getAllOwnerVaults())
 
     for vault in accountVaults:
@@ -117,10 +144,10 @@ def main():
                 print("OWNER")
             else:
                 print("NEITHER OWNER NOR ADMIN: ", group["name"])
-                revokeGroupPermissions(vault["id"], group["id"])
+                modifyGroupPermissions(vault["id"], group["id"])
 
         for user in vaultUsers:
-            revokeUserPermissions(vault["id"], user["id"])
+            modifyUserPermissions(vault["id"], user["id"])
 
 
 main()
