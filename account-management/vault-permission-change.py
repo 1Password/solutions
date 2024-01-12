@@ -90,7 +90,7 @@ def getVaultGroupList(vaultUUID):
     return allgroups
 
 
-# revokes the specified vault permissions from the grou
+# modifies the specified vault permissions from the group
 def modifyGroupPermissions(vaultUUID, groupUUID):
     subprocess.run(
         [
@@ -102,11 +102,12 @@ def modifyGroupPermissions(vaultUUID, groupUUID):
             f"--group={groupUUID}",
             f"--permissions={permissions}",
             "--no-input",
-        ]
+        ],
+        capture_output=True,
     )
 
 
-# revokes the specified vault permissions from the grou
+# modifies the specified vault permissions for the user
 def modifyUserPermissions(vaultUUID, userUUID):
     subprocess.run(
         [
@@ -118,7 +119,8 @@ def modifyUserPermissions(vaultUUID, userUUID):
             f"--user={userUUID}",
             f"--permissions={permissions}",
             "--no-input",
-        ]
+        ],
+        capture_output=True,
     )
 
 
@@ -127,27 +129,42 @@ def main():
         sys.exit(
             "Please provide a list of permissions with --permissions=PERMISSIONS and run the script again"
         )
-    print("THING: ", action)
-    print("PERMISSIONS: ", permissions)
+    print(
+        f"Proceeding to {action} the following permissions: {permissions} from all users and groups except Administrators and Owners groups"
+    )
+
     accountVaults = json.loads(getAllOwnerVaults())
 
     for vault in accountVaults:
-        print(f"HI! {vault['id']}")
+        if (
+            "Private Vault" in vault["name"] or vault["name"] == "Private"
+        ):  # skip your own Private vault and Private vaults of pending users
+            continue
+
         vaultGroups = json.loads(getVaultGroupList(vault["id"]))
         vaultUsers = json.loads(getVaultUserList(vault["id"]))
-        print("VAULT GROUPS: ", vaultGroups)
-
+        print(
+            f"\n\nModifying permissions for vault '{vault['name']}', with the UUID {vault['id']}."
+        )
         for group in vaultGroups:
             if group["name"] == "Administrators":
-                print("ADMINISTRATOR")
+                # Skip permission modification for Administrators Group
+                continue
             elif group["name"] == "Owners":
-                print("OWNER")
+                # Skip permission modification for Owners Group
+                continue
             else:
-                print("NEITHER OWNER NOR ADMIN: ", group["name"])
+                # Modify permissions because group is neither Owners nor Administrators
                 modifyGroupPermissions(vault["id"], group["id"])
+                print(
+                    f"\tPermissions modified for group '{group['name']}' and UUID of '{group['id']}'"
+                )
 
         for user in vaultUsers:
             modifyUserPermissions(vault["id"], user["id"])
+            print(
+                f"\tPermissions modified for user '{user['name']}' and UUID of '{user['id']}'"
+            )
 
 
 main()
