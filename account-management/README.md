@@ -24,6 +24,9 @@ This script, when run by an a user with the `manage vault` (manage access) permi
 
 ### [`vault-permission-change.py`](./vault-permission-change.py)
 
+> ⚠️ **Warning**  
+> Currently, you must use version 2.21 or older of the 1Password CLI when running these scripts. Version 2.22 and newer introduced changes that prevent these scripts from performing as-expected. Download version 2.21 the 1Password website [here](https://app-updates.agilebits.com/product_history/CLI2#v2210002).
+
 Similar to [`vault-permission-change.sh`](#vault-permission-changesh) above, but with several additional options. It is also written in Python for greater cross-compatibility. 
 
 When run by a member of the Owners group, for each vault the person running the script has at "Manage Vault" permissions for, the specified permission(s) will be removed from all people or groups assigned to the vault. Permissions for Owners and Administrators groups are not affected. Using the `--grant` or `-g` option will grant the specified permissions instead of revoking them.  
@@ -35,8 +38,6 @@ The script accepts the following options:
 `--permission -p` Required. Use one or more times to specify a permission to be added or removed. This option can be specified an arbitrary number of times. A list of permissions is listed in the script's Help, or [learn more about vault permissions](https://developer.1password.com/docs/cli/vault-permissions/)
 `--grant -g` Optional. Grants, rather than revokes, the specified permissions. 
 `--as-admin` Optional. Use this flag if the person running the script is a member of the Administrators group, not the Owners group.
-
-
 
 ### [`bulk-group-prefix-update.sh`](./bulk-group-prefix-update.sh)
 
