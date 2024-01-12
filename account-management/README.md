@@ -6,19 +6,19 @@ These examples are intended to demonstrate how the 1Password command line tool c
 
 ## Script Descriptions
 
-### [vault-details.sh](./vault-details.sh)
+### [`vault-details.sh`](./vault-details.sh)
 
 When run by a member of the Owners group, this script provides the vault name, the number of items in the vault, the last time the vault contents were updated, and list which users and groups have access to that vault along with their permissions.
 
 When run by a non-Owner, it will provide these details for all vaults the user running the script has access to.
 
-### [remove-export-all-groups-and-vaults.sh](./remove-export-all-groups-and-vault.sh)
+### [`remove-export-all-groups-and-vaults.sh`](./remove-export-all-groups-and-vault.sh)
 
 When run by a member of the Owners group, this script will remove the `export items` permission for every vault that every group has access to without exception.
 
 When run by a non-Owner, this script will remove the `export` permission on vaults that the person running the script also has the `manage vault` permissions for.
 
-### [vault-permission-change.sh](./vault-permission-change.sh)
+### [`vault-permission-change.sh`](./vault-permission-change.sh)
 
 This script, when run by an a user with the `manage vault` (manage access) permission, will remove or add the specified vault permission(s) for the specified group(s) from all vaults (excluding Private vaults). This could be useful if you are looking to systematically remove the Administrators `manage vault` (manage access) permission from all created shared vaults, this leaving this permission to the default owners group. 
 
@@ -38,13 +38,13 @@ The script accepts the following options:
 
 
 
-### [bulk-group-prefix-update.sh](./bulk-group-prefix-update.sh)
+### [`bulk-group-prefix-update.sh`](./bulk-group-prefix-update.sh)
 
 This script, when run by an Owner or Administrator, will change the prefix of all group names according to your specifications. This is particularly helpful if you are needing to change an existing naming scheme.
 If you want to add prefixes where one doesn't already exist, then you can modify the `sed` substitution to: `sed 's/^/PREFIX/g'` to add a prefix to all groups.
 This does not change the name of any built in groups (e.g., "Administrators", "Owners", "Team Members").
 
-### [compliance-export.sh](./compliance-export.sh)
+### [`compliance-export.sh`](./compliance-export.sh)
 
 This script, when run by an adminstrator, will output all items within the specified scope (e.g., with a specific tag) as a long-formatted CSV. The export excludes any concealed fields such as password fields.
 This script may be helpful if you need to have someone verify the accuracy of the details of a 1Password item without revealing any secret values stored in that item.
