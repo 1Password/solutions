@@ -20,7 +20,7 @@ echo -e "\033[0;32mUse the Enter key twice to exit the input\033[0m"
 zoomPaste=$(sed '/^$/q')
 stringarray=($zoomPaste)
 zoomURL=${stringarray[0]}
-zoomPC=${stringarray[2]}#
+zoomPC=${stringarray[2]}
 
 #creates new item for sharing
 op item create --vault private --category=login --title="${itemTitle}" --url="${zoomURL}" password="${zoomPC}" notes="This recording will only be accessible for 7 days."
