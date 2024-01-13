@@ -9,7 +9,6 @@ This directory provides a series of scripts demonstrating how to use the CLI to 
 The following scripts provide information about people who are directly granted access to vaults. It does not include groups.  
 
 ### [`user-and-item-list.py`](./user-and-item-list.py)
-
 - Creates a csv file of each user and item that has access to a list of vaults.
   - use `--file path/to/vaultlist` to provide a list of UUIDs, or use no flag to get a report for all vaults the Owners group has access to.
   - Columns included: "vaultName", "vaultUUD", "userName", "userEmail", "userUUID", "userPermissions", "itemName", "itemUUID"
