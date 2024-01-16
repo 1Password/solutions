@@ -100,6 +100,7 @@ def main():
     rawUsers = getAllUsers()
     accountUsers = []
 
+    for user in rawUsers:
         userData = getUserInfo(user["id"])
         userGroups = getUserGroups(user["id"])
         userVaults = getUserVaults(user["id"])
