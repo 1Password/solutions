@@ -2,8 +2,6 @@ import os
 import subprocess
 import csv
 import json
-import sys
-from dataclasses import dataclass
 
 scriptPath = os.path.dirname(__file__)
 outputPath = scriptPath
@@ -63,8 +61,6 @@ def getUserGroups(userUUID):
 
 
 def writeReport(users):
-    # username, userEmail, UserUUID, userState, userType, userCreated_at, userUpdated_at,
-    # [directly assigned vaults], [groups they belong to]
     with open(f"{outputPath}/user_access_list.csv", "w", newline="") as outputFile:
         csvWriter = csv.writer(outputFile)
         fields = [
@@ -90,8 +86,8 @@ def writeReport(users):
                     user.type,
                     user.createdAt,
                     user.updatedAt,
-                    user.groups,
                     user.vaults,
+                    user.groups,
                 ]
             )
 
@@ -100,13 +96,12 @@ def main():
     rawUsers = getAllUsers()
     accountUsers = []
 
-    for user in rawUsers:
+    for user in rawUsers[:10]:
         userData = getUserInfo(user["id"])
         userGroups = getUserGroups(user["id"])
         userVaults = getUserVaults(user["id"])
         groups = [(group["name"], group["id"]) for group in userGroups]
         vaults = [(vault["name"], vault["id"]) for vault in userVaults]
-        print(groups)
         accountUsers.append(
             User(
                 name=user["name"],
@@ -116,8 +111,8 @@ def main():
                 type=user["type"],
                 createdAt=userData["created_at"],
                 updatedAt=userData["updated_at"],
-                groups=str(groups).replace("[", "").replace("]", ""),
-                vaults=str(vaults).replace("[", "").replace("]", ""),
+                groups=str(groups).removeprefix("[").removesuffix("]"),
+                vaults=str(vaults).removeprefix("[").removesuffix("]"),
             )
         )
 
