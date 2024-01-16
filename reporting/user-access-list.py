@@ -100,11 +100,12 @@ def main():
     rawUsers = getAllUsers()
     accountUsers = []
 
-    for user in rawUsers:
         userData = getUserInfo(user["id"])
         userGroups = getUserGroups(user["id"])
         userVaults = getUserVaults(user["id"])
-
+        groups = [(group["name"], group["id"]) for group in userGroups]
+        vaults = [(vault["name"], vault["id"]) for vault in userVaults]
+        print(groups)
         accountUsers.append(
             User(
                 name=user["name"],
@@ -114,8 +115,8 @@ def main():
                 type=user["type"],
                 createdAt=userData["created_at"],
                 updatedAt=userData["updated_at"],
-                groups=userGroups,
-                vaults=userVaults,
+                groups=str(groups).replace("[", "").replace("]", ""),
+                vaults=str(vaults).replace("[", "").replace("]", ""),
             )
         )
 
