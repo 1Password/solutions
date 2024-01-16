@@ -1,6 +1,3 @@
-# username, userEmail, UserUUID, userState, userType, userCreated_at, userUpdated_at,  [directly assigned vaults], [groups they belong to]
-
-
 import os
 import subprocess
 import csv
@@ -65,6 +62,40 @@ def getUserGroups(userUUID):
     )
 
 
+def writeReport(users):
+    # username, userEmail, UserUUID, userState, userType, userCreated_at, userUpdated_at,
+    # [directly assigned vaults], [groups they belong to]
+    with open(f"{outputPath}/user_access_list.csv", "w", newline="") as outputFile:
+        csvWriter = csv.writer(outputFile)
+        fields = [
+            "userName",
+            "userEmail",
+            "userUUID",
+            "userState",
+            "userType",
+            "userCreatedAt",
+            "userUpdatedAt",
+            "directlyAssignedVaults",
+            "groups",
+        ]
+        csvWriter.writerow(fields)
+
+        for user in users:
+            csvWriter.writerow(
+                [
+                    user.name,
+                    user.email,
+                    user.uuid,
+                    user.state,
+                    user.type,
+                    user.createdAt,
+                    user.updatedAt,
+                    user.groups,
+                    user.vaults,
+                ]
+            )
+
+
 def main():
     rawUsers = getAllUsers()
     accountUsers = []
@@ -84,15 +115,11 @@ def main():
                 createdAt=userData["created_at"],
                 updatedAt=userData["updated_at"],
                 groups=userGroups,
-                vault=userVaults,
+                vaults=userVaults,
             )
         )
 
-    # make accountUsers into a CSV
+    writeReport(accountUsers)
 
 
 main()
-
-# for user in userList:
-#     userVaults = op vault list --user user
-#     usergroups = op group list --user user
