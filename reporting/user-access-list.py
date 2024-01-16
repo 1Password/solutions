@@ -97,7 +97,7 @@ def main():
     accountUsers = []
     usercount = len(rawUsers)
     counter = 1
-    for user in rawUsers[:10]:
+    for user in rawUsers:
         print(f"Processing user {counter}/{usercount}")
         userData = getUserInfo(user["id"])
         userGroups = getUserGroups(user["id"])
