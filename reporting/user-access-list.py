@@ -95,8 +95,10 @@ def writeReport(users):
 def main():
     rawUsers = getAllUsers()
     accountUsers = []
-
+    usercount = len(rawUsers)
+    counter = 1
     for user in rawUsers[:10]:
+        print(f"Processing user {counter}/{usercount}")
         userData = getUserInfo(user["id"])
         userGroups = getUserGroups(user["id"])
         userVaults = getUserVaults(user["id"])
@@ -115,6 +117,7 @@ def main():
                 vaults=str(vaults).removeprefix("[").removesuffix("]"),
             )
         )
+        counter += 1
 
     writeReport(accountUsers)
 
