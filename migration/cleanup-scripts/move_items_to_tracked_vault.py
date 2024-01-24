@@ -15,8 +15,7 @@ outputPath = scriptPath  # Optionally choose an alternative output path here.
 def getVaults():
     try:
         return subprocess.run(
-            "op vault list --group=Owners --format=json",
-            shell=True,
+            ["op", "vault", "list", "--group=Owners", "--format=json"],
             check=True,
             capture_output=True,
         ).stdout
