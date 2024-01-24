@@ -11,6 +11,15 @@ scriptPath = os.path.dirname(__file__)
 outputPath = scriptPath  # Optionally choose an alternative output path here.
 
 
+class Vault:
+    def __init__(self, name, uuid, itemCount, created, updated):
+        self.name = name
+        self.uuid = uuid
+        self.itemCount = itemCount
+        self.created = created
+        self.updated = updated
+
+
 # Get a list of vaults the logged-in user has access to
 def getVaults():
     try:
@@ -41,6 +50,13 @@ def getVaultDetails(vaultID):
 
 def main():
     vaults = json.loads(getVaults())
+
+    # Collect all vaults
+    # Identify identically named vaults
+    # For a set of duplicates, sort by number of items
+    # Move items from vault with most items to vault with zero
+    # prefix duplicates with `dup-` and if more than one, add numeric suffix
+    # remove all permissions from non-canonical vaults
 
 
 main()
