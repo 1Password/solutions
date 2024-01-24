@@ -121,14 +121,36 @@ def createItems(vaultName):
             print(f"There was a problem creating an item: {err}")
 
 
+def setVaultPermissions(vaultID):
+    permissions = "view_items,edit_items,create_items,archive_items,delete_items,view_item_history,view_and_copy_passwords,import_items,copy_and_share_items,manage_vault"
+    print(f"setting permissions for vault {vaultID}")
+    permissionSet = subprocess.run(
+        [
+            "op",
+            "vault",
+            "group",
+            "grant",
+            f"--vault={vaultID}",
+            f"--group=f5pgjqtdfxz3qm2c3jw7w62v5q",
+            f"--permissions={permissions}",
+            "--no-input",
+        ],
+        capture_output=True,
+    )
+    print(permissionSet)
+
+
 def createVault(vaultName, numOfDupes):
     for i in range(numOfDupes):
         try:
-            subprocess.run(
+            createdVault = subprocess.run(
                 ["op", "vault", "create", vaultName], check=True, capture_output=True
             )
             if i == 0:
                 createItems(vaultName)
+            if i == 1:
+                vaultID = createdVault.stdout.split()[1].decode()
+                setVaultPermissions(vaultID)
         except Exception as err:
             print(f"There was a problem creating a vault: {err}")
 
