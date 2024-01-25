@@ -151,6 +151,14 @@ def createVault(vaultName, numOfDupes):
             if i == 1:
                 vaultID = createdVault.stdout.split()[1].decode()
                 setVaultPermissions(vaultID)
+            else:
+                vaultID = createdVault.stdout.split()[1].decode()
+                subprocess.run(
+                    f"op item create --title='thirdVault' username=testUser@example.com --vault='{vaultID}' --category=login --generate-password --url='example.com'",
+                    check=True,
+                    shell=True,
+                    capture_output=True,
+                )
         except Exception as err:
             print(f"There was a problem creating a vault: {err}")
 

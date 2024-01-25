@@ -23,11 +23,12 @@ class Vault:
 # Get a list of vaults the logged-in user has access to
 def getVaults():
     try:
-        return subprocess.run(
+        getVaultsCommand = subprocess.run(
             ["op", "vault", "list", "--group=Owners", "--format=json"],
             check=True,
             capture_output=True,
-        ).stdout
+        )
+        return getVaultsCommand.stdout
     except Exception as err:
         print(
             f"Encountered an error getting the list of vaults you have access to: ", err
