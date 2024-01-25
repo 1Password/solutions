@@ -57,6 +57,33 @@ def getVaults():
         return
 
 
+# From a list of vaults within a group of identically-named vaults
+def identifyTrackedVault(vaultGroupName, vaults):
+    # Return early if vaultgroup contains a single vault.
+    if len(vaults) == 1:
+        print(f"Vault with name {vaultGroupName} is unique. Skipping de-duplication.")
+        return
+
+    print("Vault group name being processed: ", vaultGroupName)
+
+    # Sort by item count to facilitate identifying tracked and data vaults
+    vaults.sort(key=lambda vault: vault.itemCount)
+
+    # Identity vault with greatest number of items, assumption being it has canonical data
+    dataVault = vaults[-1]
+
+    # Identify vault with zero items, assumption is that is tracked by metadata vault
+    trackedVault = vaults[0]
+
+    # triplicates or greater that are not data or tracked
+    otherVaults = vaults[1:-1]
+    print("dataVault: ", dataVault.name, "items: ", dataVault.itemCount)
+    print("trackedVault: ", trackedVault.name, "items: ", trackedVault.itemCount)
+    for v in otherVaults:
+        print("Other Vaults: ", v.name, "item count: ", v.itemCount)
+    return (dataVault, trackedVault, otherVaults)
+
+
 def main():
     vaults = []
     vaultGroups = {}
@@ -86,9 +113,7 @@ def main():
         vaultGroups[vault.name].append(vault)
 
     for groupName, vaults in vaultGroups.items():
-        print(groupName)
-        for vault in vaults:
-            print(f"\t Name: ", vault.name, "Items: ", vault.itemCount)
+        identifyTrackedVault(groupName, vaults)
 
     # Collect all vaults
     # Identify identically named vaults
