@@ -21,14 +21,35 @@ class Vault:
 
 
 # Get a list of vaults the logged-in user has access to
+# Skips any Private vaults and the Metadata vault.
+# Fetches all vault details and returns them as a Python object
 def getVaults():
+    vaults = []
     try:
         getVaultsCommand = subprocess.run(
             ["op", "vault", "list", "--group=Owners", "--format=json"],
             check=True,
             capture_output=True,
         )
-        return getVaultsCommand.stdout
+        for vault in json.loads(getVaultsCommand.stdout):
+            if "Private" in vault["name"]:
+                print("Skipping private vault")
+                continue
+            if "Imported Shared Folders Metadata" in vault["name"]:
+                print("Skipping metadata vault")
+                continue
+            processResults = subprocess.run(
+                ["op", "vault", "get", vault["id"], "--format=json"],
+                check=True,
+                capture_output=True,
+            )
+            if processResults.stderr:
+                print(
+                    f"encountered an error geting details of a vault: {processResults.stderr}"
+                )
+                continue
+            vaults.append(json.loads(processResults.stdout))
+        return vaults
     except Exception as err:
         print(
             f"Encountered an error getting the list of vaults you have access to: ", err
@@ -36,21 +57,38 @@ def getVaults():
         return
 
 
-# Get the details of a vault
-def getVaultDetails(vaultID):
-    try:
-        return subprocess.run(
-            ["op", "vault", "get", f"{vaultID}", "--format=json"],
-            check=True,
-            capture_output=True,
-        ).stdout
-    except Exception as err:
-        print(f"Encountered an error getting details for vault {vaultID}: ", err)
-        return
-
-
 def main():
-    vaults = json.loads(getVaults())
+    vaults = []
+    vaultGroups = {}
+    vaultDetails = getVaults()
+    # vaultDetails = getVaultDetails(vaultList)
+
+    for vault in vaultDetails:
+        vaults.append(
+            Vault(
+                name=vault["name"],
+                uuid=vault["id"],
+                created=vault["created_at"],
+                updated=vault["updated_at"],
+                itemCount=vault["items"],
+            )
+        )
+
+    # Ensure vaults are alpha sorted
+    vaults.sort(key=lambda vault: vault.name)
+
+    # Create a dict containing groups of identically named vaults.
+    # Dict keys are a vault name representing all vaults with that name.
+    # The value for each key is a list of Vault class instances
+    for vault in vaults:
+        if vault.name not in vaultGroups:
+            vaultGroups[vault.name] = []
+        vaultGroups[vault.name].append(vault)
+
+    for groupName, vaults in vaultGroups.items():
+        print(groupName)
+        for vault in vaults:
+            print(f"\t Name: ", vault.name, "Items: ", vault.itemCount)
 
     # Collect all vaults
     # Identify identically named vaults
