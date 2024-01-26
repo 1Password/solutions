@@ -109,3 +109,6 @@ It assumes you have signed in to your 1Password account as a member of the Owner
 
 > **warning**  
 > After running this script archive all other `LastPass Metadata <date>` items except for `LastPass Metadata Recreated`. This will ensure that duplication will not occur again when importing permissions.
+
+
+## Move items from untracked vault to tracked vault
