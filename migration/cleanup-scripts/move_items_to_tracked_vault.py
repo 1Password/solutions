@@ -41,14 +41,14 @@ def getVaults():
             )
             if len(processResults.stderr) > 0:
                 print(
-                    f"encountered an error geting details of a vault: {str(processResults.stderr)}"
+                    f"encountered an error getting details of a vault: {str(processResults.stderr)}"
                 )
                 continue
             vaults.append(json.loads(processResults.stdout))
         return vaults
     except Exception as err:
         print(
-            f"Encountered an error getting the list of vaults you have access to: ", err
+            f"Encountered an error getting the list of vaults you have access to: {err}"
         )
         return
 
@@ -104,7 +104,7 @@ def getVaultItems(vaultID):
             capture_output=True,
         ).stdout
     except Exception as err:
-        print(f"Encountered an error getting items for vault {vaultID}: ", err)
+        print(f"Encountered an error getting items for vault {vaultID}: {err}")
         return
 
 

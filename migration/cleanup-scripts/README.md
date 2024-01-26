@@ -111,4 +111,48 @@ It assumes you have signed in to your 1Password account as a member of the Owner
 > After running this script archive all other `LastPass Metadata <date>` items except for `LastPass Metadata Recreated`. This will ensure that duplication will not occur again when importing permissions.
 
 
-## Move items from untracked vault to tracked vault
+## Move items from untracked vault to tracked vault with [`move_items_to_tracked_vault.py`](./move_items_to_tracked_vault.py)
+
+This script should only be used if you are very sure you need to use it. Before you run this script, please reach out to your primary contact at 1Password or [1Password Support](https://support.1password.com/contact/) to determine if this script will be helpful. 
+
+### When to use this script
+
+This script is intended to remediate the following scenario in a 1Password Business account:
+* Data was migrated from LastPass to 1Password using the LastPass imported in 1Password 8. 
+* The import was subsequently run using the "Import Permissions Only" setting enabled. 
+* Duplicate vaults with no data, but updated permissions, were created in 1Password. 
+
+Use this script with caution. This script makes some assumptions that may or may not be true, and which may be hard to verify:
+* That a vault containing data are no longer tracked by the "❗️ LastPass Imported Shared Folders Metadata" vault. 
+* That a vault of the same name as the first, but which has updated permissions and contains no data, is tracked by the "❗️ LastPass Imported Shared Folders Metadata". 
+
+Typically, this scenario arises if the "❗️ LastPass Imported Shared Folders Metadata" vault was manually changed by someone after the initial import and is no longer able to track the vaults that contain the imported data. Subsequent use of the importer would result in the creation of duplicate vaults (since the originals are no longer tracked by "❗️ LastPass Imported Shared Folders Metadata"), but contain no data (because the mechanism used to prevent duplicate data are still in place in LastPass and the data is ignored).  
+
+### What the script does
+This script performs the following actions:
+* Identifies vaults that have identical names and assembles them into groupings. 
+    * The script ignores the "❗️ LastPass Imported Shared Folders Metadata" vault and Private vaults. 
+* For each grouping, the script:
+    * Identifies the vault in the set with the largest number of items. This is considered the "Data vault" containing the correct items. 
+    * Identifies the vault in the set with zero items. This is considered the "Tracked vault" that the "❗️ LastPass Imported Shared Folders Metadata" is tracking. 
+    * If there are more than two identically-named vaults in the set, they are considered "other vaults".
+* The Owners group is granted full permission on each vault in the grouping so it can perform the subsequent parts of this script. 
+* All items are moved from the "Data vault" to the "Tracked vault". Data in "other vaults" is ignored. 
+* The Data and Other vaults are renamed to add `dup-` as a prefix and a numeric suffix. 
+* All users and groups have their access and all permissions revoked from Data and Other vaults 
+
+### Expected outcome
+The intended outcome is:
+
+* All migrated data is in vaults the "❗️ LastPass Imported Shared Folders Metadata" is tracking. 
+* All duplicate vaults not tracked by "❗️ LastPass Imported Shared Folders Metadata" are no longer accessible to end-users and named for easy review and deletion at a future date. 
+* Subsequent use of the LastPass importer with "Import Permissions Only" enabled should update permissions on the vaults into which the data was moved and which should be tracked by "❗️ LastPass Imported Shared Folders Metadata". In theory, no additional duplicates should be created. 
+
+### Usage
+
+Run `python3 move_items_to_tracked_vault.py` to execute the script. This script will take a long time to run. 
+
+It assumes you have signed in to your 1Password account as a member of the Owners group using `op signin` or `eval $(op signin)`. 
+
+The script requires no arguments and has no flags or options. 
+
