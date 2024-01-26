@@ -39,7 +39,7 @@ def getVaults():
                 check=True,
                 capture_output=True,
             )
-            if processResults.stderr:
+            if len(processResults.stderr) > 0:
                 print(
                     f"encountered an error geting details of a vault: {str(processResults.stderr)}"
                 )
@@ -55,7 +55,10 @@ def getVaults():
 
 # From a list of vaults within a group of identically-named vaults
 def identifyTrackedVault(vaultGroupName, vaults):
-    print("Vault group name being processed: ", vaultGroupName)
+    print(
+        "\tIdentifying tracked, data, and other duplicates for vault group: ",
+        vaultGroupName,
+    )
 
     # Sort by item count to facilitate identifying tracked and data vaults
     vaults.sort(key=lambda vault: vault.itemCount)
@@ -74,6 +77,7 @@ def identifyTrackedVault(vaultGroupName, vaults):
 
 def grantOwnerPermissions(vaultID):
     ownerPermissions = "view_items,create_items,edit_items,archive_items,delete_items,view_and_copy_passwords,view_item_history,import_items,export_items,copy_and_share_items,print_items,manage_vault"
+    print(f"\tUpdating permissions on duplicate vault with UUID: {vaultID}")
     subprocess.run(
         [
             "op",
@@ -90,6 +94,9 @@ def grantOwnerPermissions(vaultID):
 
 
 def getVaultItems(vaultID):
+    print(
+        f"\tGetting vault items for vault with UUID: {vaultID}. This may take a while."
+    )
     try:
         return subprocess.run(
             ["op", "item", "list", f"--vault={vaultID}", "--format=json"],
@@ -104,6 +111,9 @@ def getVaultItems(vaultID):
 # Move items from data vault to tracked vault.
 def moveItemsToTrackedVault(trackedVault, dataVault):
     items = json.loads(getVaultItems(dataVault.uuid))
+    print(
+        f"\tMoving items from data vault with UUID: {dataVault.uuid} to tracked vault with UUID: {trackedVault.uuid}. This may take a while."
+    )
     for item in items:
         try:
             moveCmd = subprocess.run(
@@ -118,11 +128,17 @@ def moveItemsToTrackedVault(trackedVault, dataVault):
                 check=True,
                 capture_output=True,
             )
-            if moveCmd.stderr:
-                print(moveCmd.err)
+            print(
+                f"\tMoved item named `{item['title']}` from vault with UUID: {dataVault.uuid} to vault with UUID: {trackedVault.uuid}."
+            )
+            if len(moveCmd.stderr) > 0:
+                print(
+                    f"⚠️ error moving the item with title `{item['title']}` from vault with UUID: {dataVault.uuid} to vault with UUID: {trackedVault.uuid}.",
+                    moveCmd.stderr,
+                )
         except Exception as err:
             print(
-                f"Unable to move item with name '{item['title']}' and ID of '{item['id']}' with error: {err}"
+                f"\tUnable to move item with name '{item['title']}' and ID of '{item['id']}' with error: {err}"
             )
 
 
@@ -136,7 +152,7 @@ def renameUntrackedVaults(untrackedVaults):
             check=True,
             capture_output=True,
         )
-        print(renameCmd.stdout)
+        print(f"\tRENAME untracked vaults result \n\t{renameCmd}")
         suffix += 1
 
 
@@ -144,7 +160,7 @@ def renameUntrackedVaults(untrackedVaults):
 def revokeUntrackedVaultPermissions(untrackedVaults):
     permissions = "view_items,create_items,edit_items,archive_items,delete_items,view_and_copy_passwords,view_item_history,import_items,export_items,copy_and_share_items,print_items,manage_vault"
     for vault in untrackedVaults:
-        print(f"Modifying permissions for vault '{vault.name}'.")
+        print(f"\tModifying permissions for vault '{vault.name}', UUID: {vault.uuid}.")
         allgroups = json.loads(
             subprocess.run(
                 ["op", "vault", "group", "list", vault.uuid, "--format=json"],
@@ -164,7 +180,7 @@ def revokeUntrackedVaultPermissions(untrackedVaults):
 
         for group in allgroups:
             print(
-                f"\t Revoking group {group['name']} permissions for vault '{vault.name}'"
+                f"\tRevoking group '{group['name']}' permissions for vault '{vault.name}', UUID: {vault.uuid}"
             )
             groupRevokeCmd = subprocess.run(
                 [
@@ -179,12 +195,12 @@ def revokeUntrackedVaultPermissions(untrackedVaults):
                 ],
                 capture_output=True,
             )
-            if groupRevokeCmd.stderr:
-                print(f"complete! str({groupRevokeCmd.stderr})")
+            if len(groupRevokeCmd.stderr) > 0:
+                print(f"ERROR: {groupRevokeCmd.stderr}")
 
         for user in allUsers:
             print(
-                f"\t Revoking user {str(user['name'])} permissions for vault '{vault.name}'"
+                f"\tRevoking user '{str(user['name'])}' permissions for vault '{vault.name}', UUID: {vault.uuid}"
             )
             userRevokeCmd = subprocess.run(
                 [
@@ -198,7 +214,7 @@ def revokeUntrackedVaultPermissions(untrackedVaults):
                 ],
                 capture_output=True,
             )
-            if userRevokeCmd.stderr:
+            if len(userRevokeCmd.stderr) > 0:
                 print(f"ERROR! {str(userRevokeCmd.stderr)}")
 
 
@@ -233,26 +249,27 @@ def main():
     for vaultGroupName, vaults in vaultGroups.items():
         if len(vaults) == 1:
             print(
-                f"Vault with name {vaultGroupName} is unique. Skipping de-duplication."
+                f"Vault with name '{vaultGroupName}' is unique. Skipping de-duplication."
             )
             continue
+        print("Processing vault group: ", vaultGroupName)
+        print(
+            f"\tGranting Owners group required permissions for vault named '{vaultGroupName}'"
+        )
         for vault in vaults:
             grantOwnerPermissions(vault.uuid)
+
         trackedVault, dataVault, otherVaults = identifyTrackedVault(
             vaultGroupName, vaults
         )
+        otherVaultNames = "none"
+        if len(otherVaults) > 0:
+            otherVaultNames = ""
+            for vault in otherVaults:
+                otherVaultNames += f"{vault.name}, Items: {vault.itemCount}"
 
         print(
-            "\tTracked Vault: ",
-            trackedVault.name,
-            "ITEMS: ",
-            trackedVault.itemCount,
-            "\n\tData Vault: ",
-            dataVault.name,
-            "ITEMS: ",
-            dataVault.itemCount,
-            "\n\tOther vaults: ",
-            str(otherVaults),
+            f"\tTRACKED VAULT: '{trackedVault.name}' containing: {trackedVault.itemCount} items. \n\tDATA VAULT: '{dataVault.name}' containing {dataVault.itemCount} items. \n\tOTHER VAULTS: {otherVaultNames}."
         )
         moveItemsToTrackedVault(trackedVault, dataVault)
         untrackedVaults = otherVaults
