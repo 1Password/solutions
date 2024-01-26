@@ -36,7 +36,7 @@ def getVaults():
                 print("Skipping Private vault")
                 continue
             if "Imported Shared Folders Metadata" in vault["name"]:
-                print("Skipping metadata vault")
+                print("Skipping LastPass Import Metadata vault")
                 continue
             processResults = subprocess.run(
                 ["op", "vault", "get", vault["id"], "--format=json"],
@@ -45,7 +45,7 @@ def getVaults():
             )
             if processResults.stderr:
                 print(
-                    f"encountered an error geting details of a vault: {processResults.stderr}"
+                    f"encountered an error geting details of a vault: {str(processResults.stderr)}"
                 )
                 continue
             vaults.append(json.loads(processResults.stdout))
@@ -115,15 +115,15 @@ def moveItemsToTrackedVault(trackedVault, dataVault):
 
 # Rename all untracked vaults
 def renameUntrackedVaults(untrackedVaults):
+    suffix = 1
     for vault in untrackedVaults:
-        suffix = 1
         newName = f"dup-{vault.name}-{suffix}"
         renameCmd = subprocess.run(
             ["op", "vault", "edit", vault.uuid, f"--name={newName}"],
             check=True,
             capture_output=True,
         )
-        print(renameCmd)
+        print(renameCmd.stdout)
         suffix += 1
 
 
