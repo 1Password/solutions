@@ -76,6 +76,23 @@ def identifyTrackedVault(vaultGroupName, vaults):
     return dataVault, trackedVault, otherVaults
 
 
+def grantOwnerPermissions(vaultID):
+    ownerPermissions = "view_items,create_items,edit_items,archive_items,delete_items,view_and_copy_passwords,view_item_history,import_items,export_items,copy_and_share_items,print_items,manage_vault"
+    subprocess.run(
+        [
+            "op",
+            "vault",
+            "group",
+            "grant",
+            f"--vault={vaultID}",
+            f"--group=Owners",
+            f"--permissions={ownerPermissions}",
+            "--no-input",
+        ],
+        capture_output=True,
+    )
+
+
 def getVaultItems(vaultID):
     try:
         return subprocess.run(
@@ -129,6 +146,7 @@ def renameUntrackedVaults(untrackedVaults):
 
 # revoke all access and permissions from untracked vaults
 def revokeUntrackedVaultPermissions(untrackedVaults):
+    permissions = "view_items,create_items,edit_items,archive_items,delete_items,view_and_copy_passwords,view_item_history,import_items,export_items,copy_and_share_items,print_items,manage_vault"
     for vault in untrackedVaults:
         print(f"Modifying permissions for vault '{vault.name}'.")
         allgroups = json.loads(
@@ -160,6 +178,7 @@ def revokeUntrackedVaultPermissions(untrackedVaults):
                     "revoke",
                     f"--vault={vault.uuid}",
                     f"--group={group['id']}",
+                    f"--permissions={permissions}",
                     "--no-input",
                 ],
                 capture_output=True,
@@ -220,6 +239,8 @@ def main():
                 f"Vault with name {vaultGroupName} is unique. Skipping de-duplication."
             )
             continue
+        for vault in vaults:
+            grantOwnerPermissions(vault.uuid)
         trackedVault, dataVault, otherVaults = identifyTrackedVault(
             vaultGroupName, vaults
         )
