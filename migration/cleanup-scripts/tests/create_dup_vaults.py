@@ -9,6 +9,8 @@ parser = argparse.ArgumentParser(
     "Generate some number of vaults with random names. This will randomly generate some duplicates and triplicates. It will also generate a random number of Login items in one duplicate vault. Use the --delete flag to delete all non-Private vaults."
 )
 parser.add_argument("--delete", action="store_true", dest="delete")
+parser.add_argument("--vaults", action="store", dest="numberOfVaults", default=10)
+parser.add_argument("--create-duplicates", action="store_true", dest="duplicates")
 args = parser.parse_args()
 
 
@@ -173,11 +175,17 @@ def createVault(vaultName, numOfDupes):
 
 def main():
     if args.delete:
+        print(f"Deleting all non-Private vaults in the account.")
         deleteAllVaults()
 
     else:
-        for name in random.sample(vaultNamelist, 10):
-            numOfDupes = random.randrange(1, 4)
+        print(f"Creating {args.numberOfVaults} vaults. Duplicates: {args.duplicates}")
+        for name in random.sample(vaultNamelist, int(args.numberOfVaults)):
+            if args.duplicates:
+                numOfDupes = random.randrange(1, 4)
+            else:
+                numOfDupes = 1
+            print(f"Creating vault: {name}. Will create {numOfDupes} of the same name.")
             createVault(name, numOfDupes)
 
 

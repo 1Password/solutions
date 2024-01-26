@@ -56,7 +56,7 @@ def getVaults():
 # From a list of vaults within a group of identically-named vaults
 def identifyTrackedVault(vaultGroupName, vaults):
     print(
-        "\tIdentifying tracked, data, and other duplicates for vault group: ",
+        "\tIdentifying tracked, data, and other duplicates for vault group:",
         vaultGroupName,
     )
 
@@ -252,7 +252,7 @@ def main():
                 f"Vault with name '{vaultGroupName}' is unique. Skipping de-duplication."
             )
             continue
-        print("Processing vault group: ", vaultGroupName)
+        print("Processing vault group:", vaultGroupName)
         print(
             f"\tGranting Owners group required permissions for vault named '{vaultGroupName}'"
         )
