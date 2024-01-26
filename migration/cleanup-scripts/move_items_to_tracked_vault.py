@@ -1,11 +1,7 @@
 #!/usr/bin/python3
-
+import json
 import os
 import subprocess
-import csv
-import json
-from collections import defaultdict
-from datetime import datetime
 
 scriptPath = os.path.dirname(__file__)
 outputPath = scriptPath  # Optionally choose an alternative output path here.
@@ -222,12 +218,13 @@ def main():
             )
         )
 
-    # Ensure vaults are alpha sorted
+    # Ensure vaults are alpha sorted to make grouping duplicates easier and more reliable
     vaults.sort(key=lambda vault: vault.name)
 
-    # Create a dict containing groups of identically named vaults.
+    # Create a dict containing groups of identically-named vaults.
     # Dict keys are a vault name representing all vaults with that name.
-    # The value for each key is a list of Vault class instances
+    # The value for each key is a list of Vault class instances with that name,
+    # forming a vault group.
     for vault in vaults:
         if vault.name not in vaultGroups:
             vaultGroups[vault.name] = []
