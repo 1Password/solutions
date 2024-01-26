@@ -1,8 +1,16 @@
 #!/usr/bin/python3
-
+import argparse
 import subprocess
 import random
 import json
+
+
+parser = argparse.ArgumentParser(
+    "Generate some number of vaults with random names. This will randomly generate some duplicates and triplicates. It will also generate a random number of Login items in one duplicate vault. Use the --delete flag to delete all non-Private vaults."
+)
+parser.add_argument("--delete", action="store_true", dest="delete")
+args = parser.parse_args()
+
 
 vaultNamelist = [
     "Radiant Blue Sky",
@@ -164,10 +172,13 @@ def createVault(vaultName, numOfDupes):
 
 
 def main():
-    for name in random.sample(vaultNamelist, 10):
-        numOfDupes = random.randrange(1, 4)
-        createVault(name, numOfDupes)
+    if args.delete:
+        deleteAllVaults()
+
+    else:
+        for name in random.sample(vaultNamelist, 10):
+            numOfDupes = random.randrange(1, 4)
+            createVault(name, numOfDupes)
 
 
 main()
-# deleteAllVaults()
