@@ -20,6 +20,19 @@ class Vault:
 # Get a list of vaults the logged-in user has access to
 # Skips any Private vaults and the Metadata vault.
 # Fetches all vault details and returns them as a Python object
+def getOwnerGroupUUID():
+    results = subprocess.run(
+        ["op", "group", "get", "Owners", "--format=json"],
+        capture_output=True,
+        check=True,
+    )
+    if results.returncode != 0:
+        sys.exit(
+            "Unable to get the UUID of the Owners group. Ensure you are signed into 1Password and are a member of the Owners group."
+        )
+    return json.loads(results.stdout)["id"]
+
+
 def getVaults():
     vaults = []
     try:
@@ -54,6 +67,28 @@ def getVaults():
         return
 
 
+def getOwnerPermissions(vaultID, ownerID):
+    groupListResults = subprocess.run(
+        [
+            "op",
+            "vault",
+            "group",
+            "list",
+            f"{vaultID}",
+            "--format=json",
+        ],
+        capture_output=True,
+    )
+    if groupListResults.returncode != 0:
+        print(
+            f"\t⚠️ Unable to get a list of groups with access to vault with UUID {vaultID}"
+        )
+    jsonData = json.loads(groupListResults.stdout)
+    ownerDetails = [group for group in jsonData if group["id"] == ownerID]
+    ownerPermissions = ",".join(ownerDetails[0]["permissions"])
+    return ownerPermissions
+
+
 # From a list of vaults within a group of identically-named vaults
 def identifyTrackedVault(vaultGroupName, vaults):
     print(
@@ -79,6 +114,23 @@ def identifyTrackedVault(vaultGroupName, vaults):
 def grantOwnerPermissions(vaultID):
     ownerPermissions = "view_items,create_items,edit_items,archive_items,delete_items,view_and_copy_passwords,view_item_history,import_items,export_items,copy_and_share_items,print_items,manage_vault"
     print(f"\tUpdating permissions on duplicate vault with UUID: {vaultID}")
+    subprocess.run(
+        [
+            "op",
+            "vault",
+            "group",
+            "grant",
+            f"--vault={vaultID}",
+            f"--group=Owners",
+            f"--permissions={ownerPermissions}",
+            "--no-input",
+        ],
+        capture_output=True,
+    )
+
+
+def resetOwnerPermissions(vaultID, ownerPermissions):
+    print(f"\tResetting owner permissions on tracked vault with UUID: {vaultID}")
     subprocess.run(
         [
             "op",
@@ -217,19 +269,6 @@ def revokeUntrackedVaultPermissions(untrackedVaults):
                 print(f"ERROR! {str(userRevokeCmd.stderr)}")
 
 
-def getOwnerGroupUUID():
-    results = subprocess.run(
-        ["op", "group", "get", "Owners", "--format=json"],
-        capture_output=True,
-        check=True,
-    )
-    if results.returncode != 0:
-        sys.exit(
-            "Unable to get the UUID of the Owners group. Ensure you are signed into 1Password and are a member of the Owners group."
-        )
-    return json.loads(results.stdout)["id"]
-
-
 def main():
     vaults = []
     vaultGroups = {}
@@ -260,6 +299,7 @@ def main():
         vaultGroups[vault.name].append(vault)
 
     for vaultGroupName, vaults in vaultGroups.items():
+        ownerPermissions = ""
         if len(vaults) == 1:
             print(
                 f"Vault with name '{vaultGroupName}' is unique. Skipping de-duplication."
@@ -269,12 +309,13 @@ def main():
         print(
             f"\tGranting Owners group required permissions for vault named '{vaultGroupName}'"
         )
-        for vault in vaults:
-            grantOwnerPermissions(vault.uuid)
-
         trackedVault, dataVault, otherVaults = identifyTrackedVault(
             vaultGroupName, vaults
         )
+        ownerPermissions = getOwnerPermissions(trackedVault.uuid, ownerGroupUUID)
+        for vault in vaults:
+            grantOwnerPermissions(vault.uuid)
+
         otherVaultNames = "none"
         if len(otherVaults) > 0:
             otherVaultNames = ""
@@ -288,6 +329,7 @@ def main():
         untrackedVaults = otherVaults
         untrackedVaults.append(dataVault)
         renameUntrackedVaults(untrackedVaults)
+        resetOwnerPermissions(trackedVault, ownerPermissions)
         revokeUntrackedVaultPermissions(untrackedVaults)
 
 
