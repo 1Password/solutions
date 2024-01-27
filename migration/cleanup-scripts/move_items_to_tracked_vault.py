@@ -2,6 +2,7 @@
 import json
 import os
 import subprocess
+import sys
 
 scriptPath = os.path.dirname(__file__)
 outputPath = scriptPath  # Optionally choose an alternative output path here.
@@ -164,7 +165,6 @@ def revokeUntrackedVaultPermissions(untrackedVaults):
         allgroups = json.loads(
             subprocess.run(
                 ["op", "vault", "group", "list", vault.uuid, "--format=json"],
-                check=True,
                 capture_output=True,
                 text=True,
             ).stdout
@@ -172,7 +172,6 @@ def revokeUntrackedVaultPermissions(untrackedVaults):
         allUsers = json.loads(
             subprocess.run(
                 ["op", "vault", "user", "list", vault.uuid, "--format=json"],
-                check=True,
                 capture_output=True,
                 text=True,
             ).stdout
@@ -218,10 +217,24 @@ def revokeUntrackedVaultPermissions(untrackedVaults):
                 print(f"ERROR! {str(userRevokeCmd.stderr)}")
 
 
+def getOwnerGroupUUID():
+    results = subprocess.run(
+        ["op", "group", "get", "Owners", "--format=json"],
+        capture_output=True,
+        check=True,
+    )
+    if results.returncode != 0:
+        sys.exit(
+            "Unable to get the UUID of the Owners group. Ensure you are signed into 1Password and are a member of the Owners group."
+        )
+    return json.loads(results.stdout)["id"]
+
+
 def main():
     vaults = []
     vaultGroups = {}
     vaultDetails = getVaults()
+    ownerGroupUUID = getOwnerGroupUUID()
 
     for vault in vaultDetails:
         vaults.append(
