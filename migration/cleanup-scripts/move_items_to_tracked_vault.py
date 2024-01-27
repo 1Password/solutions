@@ -81,7 +81,7 @@ def getOwnerPermissions(vaultID, ownerID):
     )
     if groupListResults.returncode != 0:
         print(
-            f"\t⚠️ Unable to get a list of groups with access to vault with UUID {vaultID}"
+            f"\t⚠️ Unable to get a list of groups with access to vault with UUID {vaultID} and cannot record Owner's permissions."
         )
     jsonData = json.loads(groupListResults.stdout)
     ownerDetails = [group for group in jsonData if group["id"] == ownerID]
@@ -114,7 +114,7 @@ def identifyTrackedVault(vaultGroupName, vaults):
 def grantOwnerPermissions(vaultID):
     ownerPermissions = "view_items,create_items,edit_items,archive_items,delete_items,view_and_copy_passwords,view_item_history,import_items,export_items,copy_and_share_items,print_items,manage_vault"
     print(f"\tUpdating permissions on duplicate vault with UUID: {vaultID}")
-    subprocess.run(
+    results = subprocess.run(
         [
             "op",
             "vault",
@@ -127,11 +127,15 @@ def grantOwnerPermissions(vaultID):
         ],
         capture_output=True,
     )
+    if results.returncode != 0:
+        print(
+            f"⚠️ Unable to set Owner permissions on vault with UUID: {vaultID}. Error: {results.stderr}"
+        )
 
 
 def resetOwnerPermissions(vaultID, ownerPermissions):
     print(f"\tResetting owner permissions on tracked vault with UUID: {vaultID}")
-    subprocess.run(
+    results = subprocess.run(
         [
             "op",
             "vault",
@@ -144,6 +148,10 @@ def resetOwnerPermissions(vaultID, ownerPermissions):
         ],
         capture_output=True,
     )
+    if results.returncode != 0:
+        print(
+            f"⚠️ Unable to reset Owner permissions on vault with UUID: {vaultID}. Error: {results.stderr}"
+        )
 
 
 def getVaultItems(vaultID):
