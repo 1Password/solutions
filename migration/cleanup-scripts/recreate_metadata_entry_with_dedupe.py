@@ -15,10 +15,6 @@ class Vault:
     def __init__(self, csvRow):
         self.name = csvRow[0]
         self.uuid = csvRow[1]
-        self.itemCount = csvRow[2]
-        self.created = csvRow[3]
-        self.updated = csvRow[4]
-        self.userCount = csvRow[5]
 
 
 def findMetadataVaultUuid(vaults: dict):
