@@ -15,6 +15,11 @@ This is a collection of scripts that can help you clean up your 1Password accoun
 > **note**  
 > Learn more about migrating your data from LastPass to 1Password [here](https://support.1password.com/import-lastpass/).  
 
+## Generate a list of vault names and UUIDs with [`vault_name_id_list.py`](./vault_name_id_list.py)
+This is a lightweight script that will generate a csv containing two columns: `vaultName` and `vaultUUID`. Each row represents a vault that the person running the script has access to. 
+
+This script must be run by a member of the Owners group and must be run with v2.21 or older of the `op` cli. 
+
 ## Identify duplicate vaults for removal with [`vault_dedupe_helper.py`](./vault_dedupe_helper.py)
 
 This script will create a CSV file (`vaultreport.csv`) to help you identify duplicate vaults that may have been created under certain circumstances (for example, when multiple members of your 1Password account used the LastPass importer). The CSV file will be created in the same directory as the script.
