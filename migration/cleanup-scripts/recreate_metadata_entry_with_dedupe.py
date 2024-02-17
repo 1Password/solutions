@@ -20,6 +20,7 @@ class Vault:
 def findMetadataVaultUuid(vaults: dict):
     for k, v in vaults.items():
         if v == "❗️ LastPass Imported Shared Folders Metadata":
+            print(f"🟢 Found Metadata Vault")
             return k
     return None
 
@@ -78,6 +79,9 @@ def currDate():
 
 
 def findOriginalVault(vaults):
+    print(
+        f"⌛ A set of identically-named vaults found. Identifying the original vault (oldest creation date)."
+    )
     minimum = (0, currDate())
     for i, vault in enumerate(vaults):
         vaultDetails = getVaultDetails(vault.uuid)
@@ -89,6 +93,7 @@ def findOriginalVault(vaults):
 
 # Get the details of a vault
 def getVaultDetails(vaultID):
+    print(f"⌛Getting details for vault with UUID: {vaultID}")
     try:
         return subprocess.run(
             f"op vault get {vaultID} --format=json",
@@ -146,6 +151,9 @@ def main():
             if len(name) > 0:
                 dupVaults = duplicateVaults[name]
                 origVault = findOriginalVault(dupVaults)
+                print(
+                    f"🟢 Found the original vault among a set of duplicates with name {origVault.name}"
+                )
                 updatedFields.append(
                     {
                         "id": f"{origVault.uuid}.LPID.{lpId}",
