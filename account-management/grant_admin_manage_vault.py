@@ -4,7 +4,6 @@ import json
 import sys
 import time
 import argparse
-import random
 
 scriptPath = os.path.dirname(__file__)
 
@@ -81,7 +80,6 @@ def main():
     vaultCount = len(accountVaults)
     print(f"Preparing to process {vaultCount} vaults.")
     for vault in accountVaults:
-        noise = random.randrange(2, 4)
         counter += 1
         # skip your own Private vault and Private vaults of pending users
         if "Private Vault" in vault["name"] or vault["name"] == "Private":
@@ -103,13 +101,11 @@ def main():
         maxRetries = 3
         while retries < maxRetries:
             result = modifyGroupPermissions(vault, adminGroupUUID)
-            if noise == 3:
-                result.returncode = 429
             # Handle rate limit error
             if result.returncode == 429:
                 # Retry after waiting for 3 seconds
                 print(
-                    f"\t🟡 Hit rate limit. Retrying in a few seconds. {maxRetries-retries} retries left before skipping."
+                    f"\t🟡 Hit rate limit. Retrying in a few seconds. {maxRetries-retries} retries left before skipping. Error: {result.stderr.decode('utf-8')}"
                 )
                 time.sleep(3)
                 retries += 1
@@ -117,7 +113,7 @@ def main():
             # Handle all other errors.
             elif result.returncode != 0:
                 print(
-                    f"\t❌ Unable to modify permissions on vault {vault['name']} with UUID {vault['id']}. Error: {result.stderr}"
+                    f"\t❌ Unable to modify permissions on vault {vault['name']} with UUID {vault['id']}. Error: {result.stderr.decode('utf-8')}"
                 )
                 break
 
