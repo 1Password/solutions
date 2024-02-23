@@ -8,14 +8,14 @@ import argparse
 scriptPath = os.path.dirname(__file__)
 
 parser = argparse.ArgumentParser(
-    "Grant or revoke 'manage_vault' permission for the Administrators group on all non-Private vaults."
+    "Grant only 'manage_vault' permission for the Administrators group on all non-Private vaults. Use --revoke to completely revoke group's access to all vaults."
 )
 parser.add_argument(
-    "--grant",
-    "-g",
+    "--revoke",
+    "-r",
     action="store_const",
-    const="grant",
-    default="revoke",
+    const="revoke",
+    default="grant",
     dest="action",
     metavar="Grant",
 )
@@ -79,6 +79,7 @@ def main():
     accountVaults = json.loads(getAllOwnerVaults())
     vaultCount = len(accountVaults)
     print(f"Preparing to process {vaultCount} vaults.")
+
     for vault in accountVaults:
         counter += 1
         # skip your own Private vault and Private vaults of pending users
