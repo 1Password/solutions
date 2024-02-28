@@ -12,7 +12,7 @@
 #
 # This script requires `jq` is installed on your system. See: https://stedolan.github.io/jq/ for installation instructions.
 
-vault_IDs=($(op vault list --format=json | jq --raw-output '.[] .id'))
+vault_IDs=($(op vault list --permission=manage_vault --format=json | jq --raw-output '.[] .id'))
 
 for vault in $vault_IDs 
 do

@@ -23,6 +23,16 @@ inputFilePath = args.filepath
 outputPath = scriptPath  # Optionally choose an alternative output path here.
 
 
+# Check CLI version
+def checkCLIVersion():
+    r = subprocess.run(["op", "--version", "--format=json"], capture_output=True)
+    major, minor = r.stdout.decode("utf-8").rstrip().split(".", 2)[:2]
+    if not major == 2 and not int(minor) >= 25:
+        sys.exit(
+            "❌ You must be using version 2.25 or greater of the 1Password CLI. Please visit https://developer.1password.com/docs/cli/get-started to download the lastest version."
+        )
+
+
 # get the UUID of the user running the CLI script for use elsewhere in the script.
 def getMyUUID():
     subprocess.run(["op signin"], shell=True, check=True)
@@ -146,6 +156,7 @@ def removeViewPermissions(vaultUserData, vaultUUID):
 
 
 def main():
+    checkCLIVersion()
     if inputFilePath is None:
         try:
             vaultList = json.loads(getAllOwnerVaults())

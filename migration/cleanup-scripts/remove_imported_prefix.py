@@ -1,5 +1,16 @@
 import subprocess
 import json
+import sys
+
+
+# Check CLI version
+def checkCLIVersion():
+    r = subprocess.run(["op", "--version", "--format=json"], capture_output=True)
+    major, minor = r.stdout.decode("utf-8").rstrip().split(".", 2)[:2]
+    if not major == 2 and not int(minor) >= 25:
+        sys.exit(
+            "❌ You must be using version 2.25 or greater of the 1Password CLI. Please visit https://developer.1password.com/docs/cli/get-started to download the lastest version."
+        )
 
 
 def getVaults():
@@ -17,6 +28,7 @@ def getVaults():
 
 
 def main():
+    checkCLIVersion()
     vaultList = json.loads(getVaults())
     print(
         "Removing 'Imported' prefix from all imported vaults in your 1Password account.\n\n"
