@@ -26,7 +26,7 @@ outputPath = scriptPath  # Optionally choose an alternative output path here.
 # get a list of vaults the logged-in user has access to
 def getAllOwnerVaults():
     vaultList = subprocess.run(
-        ["op", "vault", "list", "--group=Owners", "--format=json"],
+        ["op", "vault", "list", "--permission=manage_vault", "--format=json"],
         check=True,
         capture_output=True,
     ).stdout
@@ -50,8 +50,6 @@ def getSpecifiedVaults():
 
 
 # get a list of users and their permissions for a vault
-
-
 def getVaultUserList(vaultID):
     vaultUserList = subprocess.run(
         ["op", "vault", "user", "list", vaultID, "--format=json"],

@@ -37,7 +37,7 @@ def getVaults():
     vaults = []
     try:
         getVaultsCommand = subprocess.run(
-            ["op", "vault", "list", "--group=Owners", "--format=json"],
+            ["op", "vault", "list", "--permission=manage_vault", "--format=json"],
             check=True,
             capture_output=True,
         )
