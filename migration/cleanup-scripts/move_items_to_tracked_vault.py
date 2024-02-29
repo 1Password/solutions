@@ -17,6 +17,16 @@ class Vault:
         self.updated = updated
 
 
+# Check CLI version
+def checkCLIVersion():
+    r = subprocess.run(["op", "--version", "--format=json"], capture_output=True)
+    major, minor = r.stdout.decode("utf-8").rstrip().split(".", 2)[:2]
+    if not major == 2 and not int(minor) >= 25:
+        sys.exit(
+            "❌ You must be using version 2.25 or greater of the 1Password CLI. Please visit https://developer.1password.com/docs/cli/get-started to download the lastest version."
+        )
+
+
 # Get a list of vaults the logged-in user has access to
 # Skips any Private vaults and the Metadata vault.
 # Fetches all vault details and returns them as a Python object
@@ -37,7 +47,7 @@ def getVaults():
     vaults = []
     try:
         getVaultsCommand = subprocess.run(
-            ["op", "vault", "list", "--group=Owners", "--format=json"],
+            ["op", "vault", "list", "--permission=manage_vault", "--format=json"],
             check=True,
             capture_output=True,
         )
@@ -294,6 +304,7 @@ def revokeUntrackedVaultPermissions(untrackedVaults):
 
 
 def main():
+    checkCLIVersion()
     vaults = []
     vaultGroups = {}
     vaultDetails = getVaults()

@@ -23,10 +23,20 @@ inputFilePath = args.filepath
 outputPath = scriptPath  # Optionally choose an alternative output path here.
 
 
+# Check CLI version
+def checkCLIVersion():
+    r = subprocess.run(["op", "--version", "--format=json"], capture_output=True)
+    major, minor = r.stdout.decode("utf-8").rstrip().split(".", 2)[:2]
+    if not major == 2 and not int(minor) >= 25:
+        sys.exit(
+            "❌ You must be using version 2.25 or greater of the 1Password CLI. Please visit https://developer.1password.com/docs/cli/get-started to download the lastest version."
+        )
+
+
 # get a list of vaults the logged-in user has access to
 def getAllOwnerVaults():
     vaultList = subprocess.run(
-        ["op", "vault", "list", "--group=Owners", "--format=json"],
+        ["op", "vault", "list", "--permission=manage_vault", "--format=json"],
         check=True,
         capture_output=True,
     ).stdout
@@ -50,8 +60,6 @@ def getSpecifiedVaults():
 
 
 # get a list of users and their permissions for a vault
-
-
 def getVaultUserList(vaultID):
     vaultUserList = subprocess.run(
         ["op", "vault", "user", "list", vaultID, "--format=json"],
@@ -74,6 +82,7 @@ def getVaultGroupList(vaultID):
 # Given a list of vaults, for each vault, list the users that have access along with their permissions.
 # Write the results to a csv file with columns: "vaultName", "vaultUUID", "name","email", "userUUID", "permissions"
 def main():
+    checkCLIVersion()
     if inputFilePath is None:
         try:
             vaultList = json.loads(getAllOwnerVaults())

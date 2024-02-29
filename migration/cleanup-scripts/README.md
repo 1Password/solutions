@@ -2,8 +2,8 @@
 
 This is a collection of scripts that can help you clean up your 1Password account after performing a migration from LastPass. 
 
-> ⚠️ **Warning**  
-> Currently, you must use version 2.21 or older of the 1Password CLI when running these scripts. Version 2.22 and newer introduced changes that prevent these scripts from performing as-expected. Download version 2.21 the 1Password website [here](https://app-updates.agilebits.com/product_history/CLI2#v2210002).
+> 💡 **NOTE**  
+> Many of these scripts require version 2.25 or newer of the 1Password CLI. Download the latest version [here](https://developer.1password.com/docs/cli/get-started).
 
 ## Contents
 
