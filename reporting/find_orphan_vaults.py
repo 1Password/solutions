@@ -15,6 +15,7 @@ args = parser.parse_args()
 
 scriptPath = os.path.dirname(__file__)
 outputPath = scriptPath  # Optionally choose an alternative output path here.
+opVersion = ""
 
 
 # Check CLI version
@@ -22,15 +23,19 @@ def checkCLIVersion():
     r = subprocess.run(["op", "--version", "--format=json"], capture_output=True)
     major, minor = r.stdout.decode("utf-8").rstrip().split(".", 2)[:2]
     if not major == 2 and not int(minor) >= 25:
-        sys.exit(
-            "❌ You must be using version 2.25 or greater of the 1Password CLI. Please visit https://developer.1password.com/docs/cli/get-started to download the lastest version."
-        )
+        opVersion = "2.21"
+    else:
+        opVersion = "2.25"
 
 
 # get a list of vaults the logged-in user has access to
 def getAllOwnerVaults():
+    if opVersion == "2.21":
+        command = ["op", "vault", "list", "--permission=manage_vault", "--format=json"]
+    if opVersion == "2.25":
+        command = ["op", "vault", "list", "--group=Owners", "--format=json"]
     r = subprocess.run(
-        ["op", "vault", "list", "--permission=manage_vault", "--format=json"],
+        command,
         check=True,
         capture_output=True,
     )
