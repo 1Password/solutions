@@ -15,24 +15,28 @@ args = parser.parse_args()
 
 scriptPath = os.path.dirname(__file__)
 outputPath = scriptPath  # Optionally choose an alternative output path here.
+prefix = "zzArchive"
 opVersion = ""
 
 
-# Check CLI version
+# Check CLI version and use the appropriate `op vault list` command for that version.
 def checkCLIVersion():
+    global opVersion
     r = subprocess.run(["op", "--version", "--format=json"], capture_output=True)
     major, minor = r.stdout.decode("utf-8").rstrip().split(".", 2)[:2]
-    if not major == 2 and not int(minor) >= 25:
-        opVersion = "2.21"
-    else:
+    if minor >= "25":
         opVersion = "2.25"
+    else:
+        opVersion = "2.21"
 
 
 # get a list of vaults the logged-in user has access to
 def getAllOwnerVaults():
-    if opVersion == "2.21":
-        command = ["op", "vault", "list", "--permission=manage_vault", "--format=json"]
+    global opVersion
+    command = ""
     if opVersion == "2.25":
+        command = ["op", "vault", "list", "--permission=manage_vault", "--format=json"]
+    if opVersion == "2.21":
         command = ["op", "vault", "list", "--group=Owners", "--format=json"]
     r = subprocess.run(
         command,
@@ -106,7 +110,6 @@ def main():
     checkCLIVersion()
 
     vaultList = json.loads(getAllOwnerVaults())
-    print(vaultList)
     with open(f"{outputPath}/orphan_vault_report.csv", "w", newline="") as outputFile:
         csvWriter = csv.writer(outputFile)
         fields = [
@@ -120,9 +123,12 @@ def main():
         csvWriter.writerow(fields)
         for vault in vaultList:
             # Excluding zzArchived vaults
-            if vault["name"].startswith("zzArchive"):
+            if vault["name"].startswith(prefix) or "Private" in vault["name"]:
+                print(
+                    f"Skipping vault \"{vault['name']}\" because it is Private or archived."
+                )
                 continue
-
+            print(f"\t⌛ Processing vault \"{vault['name']}\"")
             groups = json.loads(getVaultGroupList(vault))
 
             # Subtracting one from length of group array to exclude Owners group, since Owners will always be listed for all vaults.
@@ -130,10 +136,22 @@ def main():
             users = json.loads(getVaultUserList(vault))
             userCount = len(users)
 
-            # This is only being called to get item count. If item count isn't critical, omitting it could save a lot of timem.
-            # TODO: Implement basic backoff to handle rate limiting.
+            # Generate comma-seperated string of group names
+            groupNamesRaw = [group["name"] for group in groups]
+            groupNames = ", ".join(groupNamesRaw)
+            # This is only being called to get item count. If item count isn't critical, omitting it could save a lot of time.
             vaultDetails = json.loads(getVaultDetails(vault))
             itemCount = vaultDetails["items"]
+            csvWriter.writerow(
+                [
+                    vault["name"],
+                    vault["id"],
+                    groupCount,
+                    userCount,
+                    groupNames,
+                    itemCount,
+                ]
+            )
 
 
 main()
