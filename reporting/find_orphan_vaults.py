@@ -11,11 +11,11 @@ parser = argparse.ArgumentParser(
     "Outputs a CSV report.",
 )
 
+
 args = parser.parse_args()
 
 scriptPath = os.path.dirname(__file__)
 outputPath = scriptPath  # Optionally choose an alternative output path here.
-prefix = "zzArchive"
 opVersion = ""
 
 
@@ -94,18 +94,6 @@ def getVaultDetails(vault):
     return r.stdout
 
 
-# - Number of users per vault (ex Owners) (op vault user list)
-# - Number of groups per vault (ex Owners) (op vault group list)
-# - Group/s and names associated with each vault (op vault group list)
-# - Number of items in vault (op vault get)
-# - Vault name (op vault list)
-# - Vault uuid (op vault list)890
-# - Exclude the zzArchived vaults (still dealing with these)
-# - Bonus feature: Nummber of users in group/s
-
-
-# Given a list of vaults, for each vault, list the users that have access along with their permissions.
-# Write the results to a csv file with columns: "vaultName", "vaultUUID", "name","email", "userUUID", "permissions"
 def main():
     checkCLIVersion()
 
@@ -122,17 +110,13 @@ def main():
         ]
         csvWriter.writerow(fields)
         for vault in vaultList:
-            # Excluding zzArchived vaults
-            if vault["name"].startswith(prefix) or "Private" in vault["name"]:
-                print(
-                    f"Skipping vault \"{vault['name']}\" because it is Private or archived."
-                )
+            if "Private" in vault["name"]:
+                print(f"Skipping vault \"{vault['name']}\" because it is Private.")
                 continue
             print(f"\t⌛ Processing vault \"{vault['name']}\"")
             groups = json.loads(getVaultGroupList(vault))
 
-            # Subtracting one from length of group array to exclude Owners group, since Owners will always be listed for all vaults.
-            groupCount = len(groups) - 1
+            groupCount = len(groups)
             users = json.loads(getVaultUserList(vault))
             userCount = len(users)
 
