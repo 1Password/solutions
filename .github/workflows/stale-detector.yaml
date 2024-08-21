@@ -6,7 +6,9 @@
 name: Mark stale issues and pull requests
 
 on:
-  [push]
+  push:
+    branches:
+      - sl/repo/*
   # schedule:
   #   - cron: $cron-daily
 
