@@ -6,11 +6,8 @@
 name: Mark stale issues and pull requests
 run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
 on:
-  push:
-    branches:
-      - sl/repo/*
-  # schedule:
-  #   - cron: $cron-daily
+  schedule:
+    - cron: $cron-daily
 
 jobs:
   stale:
@@ -23,7 +20,9 @@ jobs:
       - uses: actions/stale@v5
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          stale-issue-message: "Stale issue message"
-          stale-pr-message: "Stale pull request message"
+          stale-issue-message: "This issue is "
+          exempt-issue-labels: "community"
+          days-before-issue-stale: 2
           stale-issue-label: "no-issue-activity"
+          stale-pr-message: "Stale pull request message"
           stale-pr-label: "no-pr-activity"
