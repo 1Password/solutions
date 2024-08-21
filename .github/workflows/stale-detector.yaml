@@ -6,8 +6,9 @@
 name: Mark stale issues and pull requests
 
 on:
-  schedule:
-    - cron: $cron-daily
+  [push]
+  # schedule:
+  #   - cron: $cron-daily
 
 jobs:
   stale:
