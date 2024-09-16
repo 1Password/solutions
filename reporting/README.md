@@ -8,7 +8,7 @@ This directory provides a series of scripts demonstrating how to use the CLI to 
 ## User vault access reports
 The following scripts provide information about people who are directly granted access to vaults. It does not include groups.  
 
-### ['user-access-list.py`](./user-access-list.py)
+### [`user-access-list.py`](./user-access-list.py)
 - Creates a csv file for each user in your 1Password account, and includes the following columns:
   - userName, userEmail, userUUID, userState, userCreatedAt, userUpdatedAt, directlyAssignedVaults, groups
   - where `userState` is their status (e.g., ACTIVE, SUSPENDED, etc), `directlyAssignedVaults` refers to vaults the user has been granted access to directly (not by group membership) and `groups` is a list of groups the person is a member of. 
