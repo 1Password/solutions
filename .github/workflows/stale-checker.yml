@@ -21,8 +21,23 @@ jobs:
       - uses: actions/stale@v5
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          stale-issue-message: "This issue has been quiet for a while. Nudging the assigned person."
-          stale-pr-message: "This PR has been quiet for a while. Nudging the assignee and reviewers."
+          days-before-stale: 14
           stale-issue-label: "stale:needs-attention"
+          stale-issue-message: >
+            This issue has been automatically marked as stale because it has not had recent activity.
+            It will be closed in two weeks if no further activity occurs.
+            1Password employees have been nudged.
           stale-pr-label: "stale:needs-attention"
-          days-before-stale: 0
+          stale-pr-message: >
+            This PR has been automatically marked as stale because it has not had recent activity.
+            It will be closed in two weeks if no further activity occurs.
+            1Password employees have been nudged.
+          days-before-close: 14
+          close-issue-message: >
+            This issue has been automatically closed due to inactivity.
+            Please re-open if this still requires attention.
+          close-pr-message: >
+            This pull request has been automatically closed due to inactivity.
+            Please re-open if it is still required.
+          exempt-issue-labels: "keep-alive"
+          exempt-pr-labels: "keep-alive"
