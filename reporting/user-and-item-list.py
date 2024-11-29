@@ -178,6 +178,8 @@ def main():
             "userPermissions",
             "itemName",
             "itemUUID",
+            "itemUsername",
+            "itemUrl",
         ]
         csvWriter.writerow(fields)
 
@@ -200,7 +202,18 @@ def main():
                 continue
 
             csvWriter.writerow(
-                [vault["name"], vault["id"], None, None, None, None, None, None]
+                [
+                    vault["name"],
+                    vault["id"],
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                ]
             )
             print(vault["name"], vault["id"])
 
@@ -220,10 +233,38 @@ def main():
                 print(user["name"], user["email"], user["id"], user["permissions"])
 
             for item in itemList:
+                username = ""
+                if item["category"] == "LOGIN":
+                    username = (
+                        item["additional_information"]
+                        if item.get("additional_information")
+                        else ""
+                    )
+                website = ""
+                if item.get("urls"):
+                    website = next(
+                        (
+                            itemURL["href"]
+                            for itemURL in item["urls"]
+                            if itemURL["primary"] == True
+                        ),
+                        "",
+                    )
                 csvWriter.writerow(
-                    [None, None, None, None, None, None, item["title"], item["id"]]
+                    [
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        item["title"],
+                        item["id"],
+                        username,
+                        website,
+                    ]
                 )
-                print(item["title"], item["id"])
+                print(item["title"], item["id"], username, website)
             if (
                 permissionsModified == True
             ):  # if permission was added, remove the permission
@@ -231,3 +272,51 @@ def main():
 
 
 main()
+
+
+# {
+#   "id": "c4qkveam5ctkjujsm5vluynkc4",
+#   "title": "testLogin",
+#   "version": 1,
+#   "vault": {
+#     "id": "g6ry6knpuqcryb4ap2hcexwhwm",
+#     "name": "Employee"
+#   },
+#   "category": "LOGIN",
+#   "last_edited_by": "LYNHQG2JGRFV3JMLVKHQWTLNR4",
+#   "created_at": "2024-11-29T19:25:37Z",
+#   "updated_at": "2024-11-29T19:25:37Z",
+#   "additional_information": "scott@scottlougheed.com",
+#   "fields": [
+#     {
+#       "id": "username",
+#       "type": "STRING",
+#       "purpose": "USERNAME",
+#       "label": "username",
+#       "value": "scott@scottlougheed.com",
+#       "reference": "op://Employee/testLogin/username"
+#     },
+#     {
+#       "id": "password",
+#       "type": "CONCEALED",
+#       "purpose": "PASSWORD",
+#       "label": "password",
+#       "value": "f3RFbUB2jV.QVx8HBbP.sCWVu.Ensej-",
+#       "entropy": 189.70021057128906,
+#       "reference": "op://Employee/testLogin/password",
+#       "password_details": {
+#         "entropy": 189,
+#         "generated": true,
+#         "strength": "FANTASTIC",
+#         "history": ["eLzQGppXLbz2BfwEPEew"]
+#       }
+#     },
+#     {
+#       "id": "notesPlain",
+#       "type": "STRING",
+#       "purpose": "NOTES",
+#       "label": "notesPlain",
+#       "reference": "op://Employee/testLogin/notesPlain"
+#     }
+#   ]
+# }
