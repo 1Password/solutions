@@ -7,17 +7,21 @@ op signin
 for vault in $(op vault list --format=json | jq --raw-output '.[] .id')
 do
         echo ""
-        echo "**************Vault Details**************"
+        echo "Vault Details"
         op vault get $vault --format=json | jq -r '.|{name, items, updated_at}'
+        sleep 1
         echo ""
-        echo "**************Users**************"
+        echo "Users"
         op vault user list $vault
+        sleep 1
         echo ""
-        echo "**************Groups**************"
+        echo "Groups"
         op vault group list $vault
+        sleep 1
         echo ""
-        echo "*****************************************"
-        echo "*****************************************"
+        echo "End of Vault Details"
+        sleep 2
+        clear
         echo ""
         echo ""
 done
