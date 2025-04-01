@@ -11,7 +11,8 @@ These examples are not intended to be used for production purposes. They are int
 
 # Examples
 
-## [Use 1Password as a backend for web app](./demo-inventory-tracker-webapp/)
+## [Use 1Password as a backend for web app](./demo-inventory-tracker-webapp/)  
+By: Scott Lougheed  
 #### Description
 This web application allows you to create and manage "IT Resources" such as computers. 
 * Create new "Devices", including their name, model, serial number, and Admin user credentials. 
@@ -22,6 +23,8 @@ This web application allows you to create and manage "IT Resources" such as comp
 #### Featuring
 * 1Password Javascript SDK
 * 1Password Service Accounts
+* 1Password Secret References
+* 1Password CLI (`op run`)
 
 #### Highlights
 * Collect sensitive information from anyone using a web form and store that information securely in 1Password
@@ -33,7 +36,9 @@ This web application allows you to create and manage "IT Resources" such as comp
   * Credit card information for clients
 * Provide limited access to information stored in 1Password, such as to employees in an internal app. 
 
-## [Migrate data between 1Password tenants](./demo-vault-migration/)
+## [Migrate data between 1Password tenants](./demo-vault-migration/)  
+By: Ron Doucette  
+
 #### Description
 This web application facilitates the movement of vaults and their contents between two separate 1Password accounts. 
 
@@ -50,7 +55,8 @@ This web application facilitates the movement of vaults and their contents betwe
 * Consolidating 1Password information across multiple accounts during mergers, acquisitions or other organizational transitions.
 
 
-## [Share files and markdown securely with Secure Item Sharing Links](./demo-share-script/)
+## [Share files and markdown securely with Secure Item Sharing Links](./demo-share-script/)  
+By: Amanda Crawley
 #### Description
 This Python script creates a 1Password item from files in a directory of your choice for the purposes of securely sharing source code and a README. A README.md file present in the directory becomes the markdown-formatted contents of the Notes section of a 1Password item. Other files in the directory are attached to the 1Password item. 
 
@@ -71,7 +77,8 @@ Finally, the script produces a Secure Item Sharing Link so you can securely shar
 * Share text and files securely with anyone, whether they use 1Password or not. 
 * Create custom sharing utilities 
 
-## [Secure and Streamline Employee Onboarding with Okta](./demo-create-okta-user/)
+## [Secure and streamline employee onboarding with Okta](./demo-create-okta-user/)  
+By: Amanda Crawley
 #### Description
 This Python script is an example of how you can streamline and secure employee onboarding. Running this script allows you to create a new Okta user and generate a strong password for their Okta account. The script provides a Secure Item Share Link for the new Okta user's Okta credentials which can be shared with the new employee, such as through a non-work email or other means. 
 
