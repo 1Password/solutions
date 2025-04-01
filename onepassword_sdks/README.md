@@ -1,11 +1,13 @@
 # Example apps for Marketing Launch of Complete Item Management
 
 # General Details
-* Promote newly-implemented item management-related features of the 1Password SDK. 
+Securely automate your workflows with SDKs from 1Password. Here you will find example scripts and apps levergaing 1Password's SDKs addressing a variety of use-cases. 
 
+These examples are not intended to be used for production purposes. They are intended to demonstrate the capabilities of the SDK, highlight specific use-cases, and provide basic guidance for how to accomplish certain tasks with the SDKs. 
 
-# Date
-* April 15 Marketing launch (tier II) 
+## Getting started
+* Learn more about 1Password's SDKs [here](https://developer.1password.com/docs/sdks)
+* Follow the Getting Started documentation [here](https://developer.1password.com/docs/sdks/setup-tutorial)
 
 # Examples
 
