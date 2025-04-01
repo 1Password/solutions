@@ -1,4 +1,4 @@
-# Example apps for Marketing Launch of Complete Item Management
+# 1Password SDK Examples
 
 # General Details
 Securely automate your workflows with SDKs from 1Password. Here you will find example scripts and apps levergaing 1Password's SDKs addressing a variety of use-cases. 
