@@ -1,0 +1,10 @@
+services:
+  it-tracker:
+    build:
+      context: .
+    environment:
+      NODE_ENV: production
+      OP_SERVICE_ACCOUNT_TOKEN:
+      OP_VAULT:
+    ports:
+      - 3000:3000
