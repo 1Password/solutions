@@ -1,7 +1,5 @@
 # JS SDK Example: Computer Inventory Tracker
 
-- [Demo video](https://1password.zoom.us/clips/share/WiuWv5kPSEa0DyiRYNymGw)
-
 ## Prerequisites
 * Docker installed and running ([Docker Documentation](https://docs.docker.com/get-started/get-docker/))
 * 1Password CLI installed and linked to a 1Password account ([Get Started with 1Password CLI](https://developer.1password.com/docs/cli/get-started))
