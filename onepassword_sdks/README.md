@@ -36,7 +36,7 @@ This web application allows you to create and manage "IT Resources" such as comp
   * Credit card information for clients
 * Provide limited access to information stored in 1Password, such as to employees in an internal app. 
 
-## [Migrate data between 1Password tenants](./demo-vault-migration/)  
+## [Migrate data between 1Password tenants](./demo-vault-migration-webapp/)  
 By: Ron Doucette  
 
 #### Description
@@ -77,7 +77,7 @@ Finally, the script produces a Secure Item Sharing Link so you can securely shar
 * Share text and files securely with anyone, whether they use 1Password or not. 
 * Create custom sharing utilities 
 
-## [Secure and streamline employee onboarding with Okta](./demo-create-okta-user/)  
+## [Secure and streamline employee onboarding with Okta](./demo-share-okta-user-script/)  
 By: Amanda Crawley
 #### Description
 This Python script is an example of how you can streamline and secure employee onboarding. Running this script allows you to create a new Okta user and generate a strong password for their Okta account. The script provides a Secure Item Share Link for the new Okta user's Okta credentials which can be shared with the new employee, such as through a non-work email or other means. 
