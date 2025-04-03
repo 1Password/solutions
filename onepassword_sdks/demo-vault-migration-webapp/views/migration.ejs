@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vault Migration</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    .connection-info {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #ECF0F1;
+      background-color: transparent;
+    }
+    .connection-info p {
+      margin: 0;
+      font-size: 1.1em;
+      color: #2ECC71;
+      background-color: transparent;
+    }
+    .connection-info button {
+      padding: 5px 10px;
+      background-color: #9B59B6;
+      color: #ECF0F1;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin-left: 10px;
+    }
+    .connection-info button:hover {
+      background-color: #8E44AD;
+    }
+    .migrate-btn, .migrate-all-btn, .cancel-btn {
+      padding: 5px 10px;
+      background-color: #9B59B6;
+      color: #ECF0F1;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin-right: 10px;
+    }
+    .migrate-btn:hover, .migrate-all-btn:hover, .cancel-btn:hover {
+      background-color: #8E44AD;
+    }
+    .cancel-btn {
+      background-color: #E74C3C;
+    }
+    .cancel-btn:hover {
+      background-color: #C0392B;
+    }
+    .progress-container {
+      width: 80%;
+      background-color: #34495E;
+      border-radius: 5px;
+      margin: 20px auto;
+      height: 30px;
+      display: none;
+    }
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background-color: #3498DB;
+      border-radius: 5px;
+      text-align: center;
+      line-height: 30px;
+      color: #ECF0F1;
+      transition: width 0.3s ease-in-out;
+    }
+    .loading-message {
+      text-align: center;
+      color: #ECF0F1;
+      margin-bottom: 10px;
+      display: none;
+    }
+    .container {
+      display: flex;
+      height: 100vh;
+      background-color: #2C3E50;
+    }
+    .sidebar {
+      width: 250px;
+      background: linear-gradient(180deg, #34495E 0%, #2C3E50 100%);
+      color: #ECF0F1;
+      padding-top: 20px;
+      transition: width 0.3s;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
+    }
+    .sidebar h1 {
+      color: #3498DB;
+      font-size: 1.8em;
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 10px;
+      border-bottom: 1px solid #2C3E50;
+    }
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .sidebar ul li {
+      padding: 15px 20px;
+      border-bottom: 1px solid #2C3E50;
+      transition: background 0.3s;
+    }
+    .sidebar ul li a {
+      color: #ECF0F1;
+      text-decoration: none;
+      font-size: 1.2em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: color 0.3s, transform 0.3s;
+    }
+    .sidebar ul li a:hover,
+    .sidebar ul li a.active {
+      color: #3498DB;
+      transform: scale(1.05);
+    }
+    .sidebar ul li a:hover {
+      background: rgba(52, 73, 94, 0.8);
+    }
+    .sidebar ul li a i {
+      width: 20px;
+      text-align: center;
+    }
+    .content {
+      flex-grow: 1;
+      padding: 20px;
+      background-color: #2C3E50;
+      color: #ECF0F1;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .content h2 {
+      color: #3498DB;
+      font-size: 2em;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .form-container {
+      background: rgba(52, 73, 94, 0.8);
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      margin-bottom: 20px;
+      max-width: 1800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .form-container h3 {
+      color: #3498DB;
+      margin-bottom: 25px;
+      text-align: center;
+      font-size: 1.8em;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+    .form-container form {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+    .form-container .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+    }
+    .form-container label {
+      color: #ECF0F1;
+      font-size: 1em;
+      font-weight: bold;
+    }
+    .form-container input {
+      padding: 12px;
+      border: 1px solid #34495E;
+      border-radius: 5px;
+      font-size: 1em;
+      background-color: #ECF0F1;
+      color: #2C3E50;
+      width: 80%;
+      min-width: 600px;
+      max-width: 1200px;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+      transition: border-color 0.3s;
+    }
+    .form-container input:focus {
+      border-color: #3498DB;
+      outline: none;
+    }
+    .form-container button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 5px;
+      font-size: 0.9em;
+      background-color: #9B59B6;
+      color: #ECF0F1;
+      cursor: pointer;
+      transition: background 0.3s;
+      width: 40%;
+      min-width: 300px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .form-container button:hover {
+      background-color: #8E44AD;
+    }
+    .error {
+      color: #E74C3C;
+      text-align: center;
+      margin-top: 10px;
+    }
+    .vault-list {
+      flex-grow: 1;
+      padding: 20px;
+      background: rgba(52, 73, 94, 0.5);
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      width: 900px;
+      min-width: 600px;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+      box-sizing: border-box;
+    }
+    .vault-list h3 {
+      color: #3498DB;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    .vault-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    .vault-table th,
+    .vault-table td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #34495E;
+    }
+    .vault-table th {
+      background-color: #3498DB;
+      color: #ECF0F1;
+    }
+    .vault-table tr:nth-child(even) {
+      background-color: rgba(52, 73, 94, 0.3);
+    }
+    .vault-table tr:hover {
+      background-color: rgba(52, 73, 94, 0.5);
+    }
+    .vault-table-container {
+      width: 100%;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+      box-sizing: border-box;
+    }
+    .search-container {
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    .search-container input {
+      padding: 8px;
+      border: 1px solid #34495E;
+      border-radius: 5px;
+      font-size: 1em;
+      background-color: #ECF0F1;
+      color: #2C3E50;
+      width: 50%;
+      min-width: 300px;
+      max-width: 500px;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+      transition: border-color 0.3s;
+    }
+    .search-container input:focus {
+      border-color: #3498DB;
+      outline: none;
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 60px;
+      }
+      .sidebar h1 {
+        font-size: 1em;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        margin: 20px 0;
+      }
+      .sidebar ul li {
+        padding: 10px;
+      }
+      .sidebar ul li a {
+        font-size: 0;
+      }
+      .sidebar ul li a i {
+        font-size: 1.2em;
+      }
+      .content {
+        padding: 10px;
+      }
+      .form-container {
+        padding: 15px;
+      }
+      .form-container form {
+        flex-direction: column;
+      }
+      .form-container input,
+      .form-container button {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+      }
+      .vault-list {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+      }
+      .vault-table th,
+      .vault-table td {
+        padding: 5px;
+        font-size: 0.9em;
+      }
+      .search-container input {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h1>Vault Migration Tool</h1>
+      <ul>
+        <li><a href="/" class="<%= currentPage === 'welcome' ? 'active' : '' %>"><i class="fas fa-home"></i> Home</a></li>
+        <li><a href="/migration" class="<%= currentPage === 'migration' ? 'active' : '' %>"><i class="fas fa-exchange-alt"></i> Vault Migration</a></li>
+      </ul>
+    </div>
+    <div class="content">
+      <% if (error) { %>
+        <p class="error"><%= error %></p>
+      <% } %>
+
+      <div class="connection-info" id="connection-info" style="display: none;">
+        <p id="connection-status">Source and Destination accounts connected</p>
+        <button onclick="editTokens()">Edit</button>
+      </div>
+      <div class="form-container" id="migration-form-container">
+        <h3>Migration Setup</h3>
+        <form id="migration-form">
+          <div class="form-group">
+            <label for="sourceToken">1Password Source Tenant Service Token</label>
+            <input type="password" id="sourceToken" name="sourceToken" placeholder="Enter source tenant service token" required>
+          </div>
+          <div class="form-group">
+            <label for="destToken">1Password Destination Tenant Service Token</label>
+            <input type="password" id="destToken" name="destToken" placeholder="Enter destination tenant service token" required>
+          </div>
+          <button type="submit">Connect</button>
+        </form>
+      </div>
+      <div class="vault-list" id="source-vaults-list" style="display: none;">
+        <h3>Source Vaults</h3>
+        <div class="vault-table-container">
+          <div class="search-container">
+            <input type="text" id="vault-search" placeholder="Search vaults by name..." />
+          </div>
+          <button onclick="migrateSelectedVaults()" class="migrate-btn">Migrate Selected Vaults</button>
+          <button onclick="migrateAllVaults()" class="migrate-all-btn">Migrate All Vaults</button>
+          <div class="progress-container" id="migrate-progress" style="display: none;">
+            <div class="progress-bar" id="migrate-progress-bar">0%</div>
+          </div>
+          <div class="loading-message" id="migrate-loading-message" style="display: none;">
+            Migrating vaults...
+            <button onclick="cancelMigration()" class="cancel-btn">Cancel</button>
+          </div>
+          <table class="vault-table">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="select-all-vaults"></th>
+                <th>Name</th>
+                <th>ID</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="source-vault-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global variables to track vaults and migration state
+    let allVaults = [];
+    let selectedVaults = new Set();
+    let isMigrationRunning = false;
+
+    // Handle form submission to fetch and display source vaults
+    document.getElementById('migration-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const formData = new FormData(event.target);
+      const data = Object.fromEntries(formData);
+
+      sessionStorage.setItem('sourceToken', data.sourceToken);
+      sessionStorage.setItem('destToken', data.destToken);
+
+      try {
+        const response = await fetch('/migration/list-vaults', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ serviceToken: data.sourceToken })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Server error: ${response.status}`);
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          document.getElementById('migration-form-container').style.display = 'none';
+          document.getElementById('connection-info').style.display = 'block';
+          const sourceVaultsList = document.getElementById('source-vaults-list');
+          const sourceVaultTableBody = document.getElementById('source-vault-table-body');
+          sourceVaultsList.style.display = 'block';
+          sourceVaultTableBody.innerHTML = '';
+
+          if (result.vaults && result.vaults.length > 0) {
+            allVaults = result.vaults;
+            renderVaults(allVaults);
+
+            // Toggle all vault checkboxes when "select all" is clicked
+            document.getElementById('select-all-vaults').addEventListener('change', (event) => {
+              const isChecked = event.target.checked;
+              const vaultCheckboxes = document.querySelectorAll('.vault-checkbox');
+              vaultCheckboxes.forEach(checkbox => {
+                if (checkbox.closest('tr').style.display !== 'none') {
+                  checkbox.checked = isChecked;
+                  const vaultId = checkbox.dataset.vaultId;
+                  if (isChecked) {
+                    selectedVaults.add(vaultId);
+                  } else {
+                    selectedVaults.delete(vaultId);
+                  }
+                }
+              });
+            });
+
+            // Filter vaults based on search input
+            document.getElementById('vault-search').addEventListener('input', (event) => {
+              const searchTerm = event.target.value.trim().toLowerCase();
+              const filteredVaults = allVaults.filter(vault =>
+                vault.name.toLowerCase().includes(searchTerm)
+              );
+              renderVaults(filteredVaults);
+            });
+          } else {
+            sourceVaultTableBody.innerHTML = '<tr><td colspan="4">No vaults found in the source tenant.</td></tr>';
+          }
+        }
+      } catch (error) {
+        document.querySelector('.error').textContent = `Failed to list vaults: ${error.message}`;
+      }
+    });
+
+    // Show the token input form again for editing
+    function editTokens() {
+      document.getElementById('migration-form-container').style.display = 'block';
+      document.getElementById('connection-info').style.display = 'none';
+      document.getElementById('source-vaults-list').style.display = 'none';
+    }
+
+    // Render the vault list in the table
+    function renderVaults(vaults) {
+      const sourceVaultTableBody = document.getElementById('source-vault-table-body');
+      sourceVaultTableBody.innerHTML = '';
+
+      if (vaults.length > 0) {
+        vaults.forEach(vault => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td><input type="checkbox" class="vault-checkbox" data-vault-id="${vault.id}" data-vault-name="${vault.name}" ${selectedVaults.has(vault.id) ? 'checked' : ''}></td>
+            <td>${vault.name}</td>
+            <td>${vault.id}</td>
+            <td><span id="migration-status-${vault.id}"></span></td>
+          `;
+          sourceVaultTableBody.appendChild(row);
+        });
+        document.querySelectorAll('.vault-checkbox').forEach(checkbox => {
+          checkbox.addEventListener('change', (e) => {
+            const vaultId = e.target.dataset.vaultId;
+            if (e.target.checked) {
+              selectedVaults.add(vaultId);
+            } else {
+              selectedVaults.delete(vaultId);
+            }
+          });
+        });
+      } else {
+        sourceVaultTableBody.innerHTML = '<tr><td colspan="4">No vaults match your search.</td></tr>';
+      }
+
+      document.getElementById('select-all-vaults').checked = false;
+    }
+
+    // Send a request to cancel the ongoing migration
+    async function cancelMigration() {
+      if (!isMigrationRunning) return;
+
+      try {
+        const response = await fetch('/migration/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await response.json();
+        if (result.success) {
+          document.querySelector('.error').textContent = 'Migration cancelled by user.';
+        } else {
+          document.querySelector('.error').textContent = 'Failed to cancel migration: ' + result.message;
+        }
+      } catch (error) {
+        document.querySelector('.error').textContent = 'Error cancelling migration: ' + error.message;
+      }
+    }
+
+    // Migrate only the selected vaults
+    async function migrateSelectedVaults() {
+      const checkboxes = document.querySelectorAll('.vault-checkbox:checked');
+      const selectedVaults = Array.from(checkboxes).map(cb => ({
+        vaultId: cb.dataset.vaultId,
+        vaultName: cb.dataset.vaultName
+      }));
+
+      if (selectedVaults.length === 0) {
+        document.querySelector('.error').textContent = 'Please select at least one vault to migrate.';
+        return;
+      }
+
+      const progressContainer = document.getElementById('migrate-progress');
+      const progressBar = document.getElementById('migrate-progress-bar');
+      const loadingMessage = document.getElementById('migrate-loading-message');
+
+      progressContainer.style.display = 'block';
+      loadingMessage.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressBar.textContent = '0%';
+      isMigrationRunning = true;
+
+      try {
+        const sourceToken = sessionStorage.getItem('sourceToken');
+        const destToken = sessionStorage.getItem('destToken');
+        const response = await fetch('/migration/migrate-all-vaults', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vaults: selectedVaults, sourceToken, destToken })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          result.results.forEach(outcome => {
+            const statusElement = document.getElementById(`migration-status-${outcome.vaultId}`);
+            if (outcome.success) {
+              progressBar.style.width = `${Math.round(outcome.progress)}%`;
+              progressBar.textContent = `${Math.round(outcome.progress)}%`;
+              statusElement.textContent = 'Migration successful!';
+              statusElement.style.color = '#2ECC71';
+            } else {
+              statusElement.textContent = `Failed: ${outcome.message}`;
+              statusElement.style.color = '#E74C3C';
+            }
+          });
+        } else {
+          result.results.forEach(outcome => {
+            const statusElement = document.getElementById(`migration-status-${outcome.vaultId}`);
+            statusElement.textContent = `Failed: ${outcome.message}`;
+            statusElement.style.color = '#E74C3C';
+            progressBar.style.width = `${Math.round(outcome.progress)}%`;
+            progressBar.textContent = `${Math.round(outcome.progress)}%`;
+          });
+          throw new Error(result.message);
+        }
+      } catch (error) {
+        document.querySelector('.error').textContent = `Failed to migrate selected vaults: ${error.message}`;
+      } finally {
+        progressContainer.style.display = 'none';
+        loadingMessage.style.display = 'none';
+        isMigrationRunning = false;
+      }
+    }
+
+    // Migrate all available vaults
+    async function migrateAllVaults() {
+      const sourceVaultTableBody = document.getElementById('source-vault-table-body');
+      const rows = sourceVaultTableBody.getElementsByTagName('tr');
+
+      const progressContainer = document.getElementById('migrate-progress');
+      const progressBar = document.getElementById('migrate-progress-bar');
+      const loadingMessage = document.getElementById('migrate-loading-message');
+
+      progressContainer.style.display = 'block';
+      loadingMessage.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressBar.textContent = '0%';
+      isMigrationRunning = true;
+
+      try {
+        const sourceToken = sessionStorage.getItem('sourceToken');
+        const destToken = sessionStorage.getItem('destToken');
+        const response = await fetch('/migration/migrate-all-vaults', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sourceToken, destToken })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          result.results.forEach(outcome => {
+            const statusElement = document.getElementById(`migration-status-${outcome.vaultId}`);
+            if (outcome.success) {
+              progressBar.style.width = `${Math.round(outcome.progress)}%`;
+              progressBar.textContent = `${Math.round(outcome.progress)}%`;
+              statusElement.textContent = 'Migration successful!';
+              statusElement.style.color = '#2ECC71';
+            } else {
+              statusElement.textContent = `Failed: ${outcome.message}`;
+              statusElement.style.color = '#E74C3C';
+            }
+          });
+        } else {
+          result.results.forEach(outcome => {
+            const statusElement = document.getElementById(`migration-status-${outcome.vaultId}`);
+            statusElement.textContent = `Failed: ${outcome.message}`;
+            statusElement.style.color = '#E74C3C';
+            progressBar.style.width = `${Math.round(outcome.progress)}%`;
+            progressBar.textContent = `${Math.round(outcome.progress)}%`;
+          });
+          throw new Error(result.message);
+        }
+      } catch (error) {
+        document.querySelector('.error').textContent = `Failed to migrate all vaults: ${error.message}`;
+      } finally {
+        progressContainer.style.display = 'none';
+        loadingMessage.style.display = 'none';
+        isMigrationRunning = false;
+      }
+    }
+  </script>
+</body>
+</html>
