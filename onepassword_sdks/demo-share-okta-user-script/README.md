@@ -80,5 +80,5 @@ If you encounter errors:
 ## Limitations
 
 - The script currently only supports basic user creation
-- Group assignments and additional Okta profile fields are not included
-- Custom password policies are not supported (uses a fixed 40-character random password)
+- This script does not implement Okta Group assignments nor does it create additional Okta profile fields
+- The script pre-defines a password recipe when generating a password for a newly-created user using a fixed 40-character random password. The 1Password SDK can support arbitrary password recipes as documented [here](https://developer.1password.com/docs/sdks/manage-items#generate-a-password)
