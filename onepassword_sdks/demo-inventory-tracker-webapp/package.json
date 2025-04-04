@@ -9,5 +9,6 @@
   "scripts": {
     "dev": "op run --env-file=.env -- nodemon app.js",
     "prod": "nodemon app.js"
-  }
+  },
+  "type": "module"
 }

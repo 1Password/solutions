@@ -1,6 +1,6 @@
-const sdk = require("@1password/sdk");
-const express = require("express");
-const bodyParser = require("body-parser");
+import sdk from "@1password/sdk";
+import express from "express";
+import bodyParser from "body-parser";
 
 const app = express();
 app.set("view engine", "ejs");
@@ -17,9 +17,11 @@ const opClientConfig = {
   integrationVersion: "v1.0.0",
 };
 
+const client = await sdk.createClient(opClientConfig);
+
 const createItem = async (vaultID, data) => {
   console.log("Creating item with");
-  const client = await sdk.createClient(opClientConfig);
+
   const item = await client.items.create({
     title: data.deviceName,
     category: sdk.ItemCategory.Login,
@@ -90,7 +92,6 @@ const generatePassword = async () => {
 
 const updateItem = async (updatedItemData, itemID) => {
   console.log(`Updating item with ID: ${itemID}`);
-  const client = await sdk.createClient(opClientConfig);
   const oldItem = await getOneItem(itemID);
 
   const newItem = {
@@ -118,7 +119,6 @@ const updateItem = async (updatedItemData, itemID) => {
 };
 
 const getAllItems = async () => {
-  const client = await sdk.createClient(opClientConfig);
   const itemList = await client.items.listAll(vaultId);
 
   const itemPromises = itemList.elements.map(async (item) => {
@@ -130,14 +130,12 @@ const getAllItems = async () => {
 };
 
 const getOneItem = async (itemId) => {
-  const client = await sdk.createClient(opClientConfig);
   const foundItem = await client.items.get(vaultId, itemId);
   return foundItem;
 };
 
 const deleteItem = async (itemId) => {
   console.log(`Attempting to delete item with ID: ${itemId}`);
-  const client = await sdk.createClient(opClientConfig);
   await client.items.delete(vaultId, itemId);
 };
 
@@ -172,7 +170,6 @@ app.get("/items", async (req, res) => {
 
 app.get("/items/:item", async (req, res) => {
   try {
-    const client = await sdk.createClient(opClientConfig);
     const item = await client.items.get(vaultId, req.params.item);
     res.render("item", { item, currentPage: "item", title: "Item Details" });
   } catch (error) {
