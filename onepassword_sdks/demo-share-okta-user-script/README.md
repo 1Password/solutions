@@ -13,7 +13,7 @@ This script streamlines the user onboarding process by:
 
 ## Requirements
 
-- Python 3.6+
+- Python 3.9+
 - 1Password Service Account token
 - Okta API token with user management permissions
 - Python packages:
