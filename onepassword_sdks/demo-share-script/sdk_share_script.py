@@ -14,7 +14,7 @@ import os
 import sys
 import argparse
 import pyperclip
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Optional, List
 from onepassword import *
 
@@ -104,7 +104,6 @@ async def create_share_link(
     policy = await client.items.shares.get_account_policy(
         vault_id=item.vault_id, item_id=item.id
     )
-    gotten_item = await client.items.get(vault_id=item.vault_id, item_id=item.id)
     recipients = None
     if emails:
         recipients = [
@@ -117,7 +116,7 @@ async def create_share_link(
 
     try:
         share_result = await client.items.shares.create(
-            item=gotten_item,
+            item=item,
             policy=policy,
             params=ItemShareParams(
                 one_time_only=view_once,
@@ -181,7 +180,7 @@ async def main():
     client = await Client.authenticate(
         auth=token,
         integration_name="1Password SDK Share Script",
-        integration_version="0.1.0",
+        integration_version="1.0",
     )
 
     # Get the vault ID from the name

@@ -120,7 +120,7 @@ async def save_item(client, username, password, personal_email, org_url):
                 id="username",
                 title="Username",
                 value=username,
-                fieldType=ItemFieldType.EMAIL,
+                fieldType=ItemFieldType.TEXT,
             ),
             ItemField(
                 id="password",
@@ -154,22 +154,20 @@ async def create_share_link(
     policy = await client.items.shares.get_account_policy(
         vault_id=item.vault_id, item_id=item.id
     )
-    gotten_item = await client.items.get(vault_id=item.vault_id, item_id=item.id)
     recipients = None
     recipients = [
         ValidRecipientEmail(
-            type=ValidRecipientTypes.EMAIL,
             parameters=ValidRecipientEmailInner(email=email),
         )
     ]
 
     try:
         share_result = await client.items.shares.create(
-            item=gotten_item,
+            item=item,
             policy=policy,
             params=ItemShareParams(
                 one_time_only=False,
-                expire_after="FourteenDays",
+                expire_after=ItemShareDuration.FOURTEENDAYS,
                 recipients=recipients,
             ),
         )
@@ -192,8 +190,8 @@ async def main():
     # Connects to 1Password. Fill in your own integration name and version.
     client = await Client.authenticate(
         auth=token,
-        integration_name="My 1Password Integration",
-        integration_version="v1.0.0",
+        integration_name="Create Okta User Script",
+        integration_version="v1.0",
     )
 
     # Get user input

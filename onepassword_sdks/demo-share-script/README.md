@@ -15,7 +15,9 @@ This script automates the process of:
 
 - Python 3.9+
 - 1Password Service Account token
-- 1Password Python SDK (`onepassword`)
+- Python packages:
+  - `onepassword`
+  - `pyperclip`
 
 ## Installation
 
