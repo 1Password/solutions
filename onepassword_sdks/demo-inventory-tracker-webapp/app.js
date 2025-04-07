@@ -74,7 +74,6 @@ const createItem = async (vaultID, data) => {
         title: "Device Details",
       },
     ],
-    tags: [],
   });
   return item;
 };
