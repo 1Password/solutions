@@ -1,7 +1,9 @@
 # 1Password SDK Examples
 
+Securely automate your workflows with SDKs from 1Password. 
+
 # Introduction
-Securely automate your workflows with SDKs from 1Password. Here you will find example scripts and apps levergaing 1Password's SDKs addressing a variety of use-cases. 
+Here you will find example scripts and apps leveraging 1Password's SDKs addressing a variety of use-cases. 
 
 These examples are not intended to be used for production purposes. They are intended to demonstrate the capabilities of the SDK, highlight specific use-cases, and provide basic guidance for how to accomplish certain tasks with the SDKs. 
 

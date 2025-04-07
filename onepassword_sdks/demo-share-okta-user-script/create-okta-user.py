@@ -154,7 +154,6 @@ async def create_share_link(
     policy = await client.items.shares.get_account_policy(
         vault_id=item.vault_id, item_id=item.id
     )
-    recipients = None
     recipients = [
         ValidRecipientEmail(
             parameters=ValidRecipientEmailInner(email=email),
