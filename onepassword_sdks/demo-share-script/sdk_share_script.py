@@ -63,15 +63,21 @@ async def create_note_with_readme(
         for filename in os.listdir(folder_path):
             file_path = os.path.join(folder_path, filename)
             if os.path.isfile(file_path) and filename != "README.md":
-                # Attach the file to the note
-                file_create_params = FileCreateParams(
-                    name=filename,
-                    content=open(file_path, "rb").read(),
-                    sectionId="scriptsSection",
-                    fieldId=filename,
-                )
-                filesToAttach.append(file_create_params)
-                print(f"File {filename} attached successfully")
+                try:
+                    with open(file_path, "rb") as f:
+                        file_content = f.read()
+                    # Attach the file to the note
+                    file_create_params = FileCreateParams(
+                        name=filename,
+                        content=file_content,
+                        sectionId="scriptsSection",
+                        fieldId=filename,
+                    )
+                    filesToAttach.append(file_create_params)
+                    print(f"File {filename} attached successfully")
+                except IOError as e:
+                    print(f"Error attaching file {filename}: {e}")
+                    continue
 
         item_create_params = ItemCreateParams(
             vault_id=vault_id,
