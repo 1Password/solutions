@@ -1,5 +1,64 @@
-# JS SDK Example: Vault Migration between 1Password tenants.
+# 1Password Vault Migration App
 
-## Building locally:
-1. Create two 1Password Service Account tokens, one from the source tenant with Read access for the vaults needing to be migrated one token for the destination tenant with create vaults access.
-2. Visit the webapp in your browser on port 3001 (e.g., `localhost:3001`)
+Hey there! This is a web app that lets you move vaults from one 1Password account to another. It uses the 1Password JS SDK and the 1Password CLI to handle actions not yet supported by the SDK at this time.
+
+## Overview
+
+This app makes moving vaults between 1Password accounts super easy by:
+
+- Giving you a simple web page to connect to your source and destination 1Password accounts using service account tokens.
+- Showing you all the vaults from the source account so you can pick which ones to move.
+- Moving the vaults you select (or all of them) to the destination account.
+- Using a mix of the SDK and CLI to handle certain tasks.
+
+## Requirements
+
+- Docker (you’ll need this to build and run the app)
+- 1Password CLI (`op`) installed and accessible on your system
+- 1Password service account tokens for your source and destination accounts
+  - The source token needs read access to see vaults and their items.
+  - The destination token needs create vault permissions to make new vaults and add items.
+
+## Installation
+
+1. First, install Docker on your computer. You can follow the [official Docker guide](https://docs.docker.com/get-docker/) to get it set up.
+2. Clone or download this project to your computer.
+3. Go to the project folder and build the Docker image with the Dockerfile: type `docker build -t vault-migration-app .` in your terminal.
+4. Start the app with Docker Compose: type `docker compose up -d` in your terminal.
+
+## Usage
+
+1. Open your browser and go to `https://localhost:3001`.
+2. On the welcome page, click "Vault Migration" in the sidebar to get to the migration tool.
+3. Put in the 1Password service account tokens for your source and destination accounts in the "Migration Setup" form, then click "Connect".
+4. You’ll see a table with all the vaults from the source account. You can:
+   - Check the boxes for the vaults you want to move and click "Migrate Selected Vaults".
+   - Click "Migrate All Vaults" to move everything.
+5. Verify your data is in the destonation accounts once the vaults migration completes.
+
+## Special Handling with CLI
+
+- **Vault Creation**: The app uses the 1Password CLI (`op vault create`) to make new vaults in the destination account since the SDK doesn’t handle this part as well.
+
+## Security Features
+
+- Runs on HTTPS with a self-signed certificate (good for local testing).
+- Keeps service account tokens in `sessionStorage` on the browser side, so they’re not stored on the server.
+- Has retry logic that waits longer each time if the API says "too many requests" or there’s a conflict.
+- Uses `p-limit` to make sure we don’t send too many requests at once and overwhelm the 1Password API.
+
+## Troubleshooting
+
+If something goes wrong:
+
+- Make sure Docker is installed and running on your computer.
+- Check that the 1Password CLI (`op`) is installed and works in your terminal.
+- Double-check your 1Password service account tokens for both source and destination accounts—they need to be valid, with read access for the source token and create vaults for the destination token.
+- Make sure the Docker container is running and you can reach it at `https://localhost:3001`. You can see the logs with `docker logs <container-name>` to figure out what’s up.
+- If your browser complains about SSL, just accept the self-signed certificate for `localhost`.
+
+## Limitations
+
+- The app uses a self-signed certificate for HTTPS, which works for local testing but needs a real certificate for production.
+- You can’t change the vault names—it just adds "(Migrated)" to the name in the destination account.
+- The app has fixed limits for how many vaults (2) and items (1) it processes at a time, which might need tweaking for big migrations.
