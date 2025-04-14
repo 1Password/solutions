@@ -203,23 +203,23 @@ loadPLimit().then(() => {
             const newField = {
               id: field.id || "unnamed",
               title: field.title || field.label || "unnamed",
-              fieldType: field.fieldType === "Text" ? sdk.ItemFieldType.Text :
-                        field.fieldType === "Concealed" ? sdk.ItemFieldType.Concealed :
-                        field.fieldType === "Totp" ? sdk.ItemFieldType.Totp :
-                        field.fieldType === "Address" ? sdk.ItemFieldType.Address :
-                        field.fieldType === "SshKey" ? sdk.ItemFieldType.SshKey :
-                        field.fieldType === "Date" ? sdk.ItemFieldType.Date :
-                        field.fieldType === "MonthYear" ? sdk.ItemFieldType.MonthYear :
-                        field.fieldType === "Email" ? sdk.ItemFieldType.Email :
-                        field.fieldType === "Phone" ? sdk.ItemFieldType.Phone :
-                        field.fieldType === "Url" ? sdk.ItemFieldType.Url :
-                        field.fieldType === "Menu" ? sdk.ItemFieldType.Menu :
+              fieldType: field.fieldType === sdk.ItemFieldType.Text ? sdk.ItemFieldType.Text :
+                        field.fieldType === sdk.ItemFieldType.Concealed ? sdk.ItemFieldType.Concealed :
+                        field.fieldType === sdk.ItemFieldType.Totp ? sdk.ItemFieldType.Totp :
+                        field.fieldType === sdk.ItemFieldType.Address ? sdk.ItemFieldType.Address :
+                        field.fieldType === sdk.ItemFieldType.SshKey ? sdk.ItemFieldType.SshKey :
+                        field.fieldType === sdk.ItemFieldType.Date ? sdk.ItemFieldType.Date :
+                        field.fieldType === sdk.ItemFieldType.MonthYear ? sdk.ItemFieldType.MonthYear :
+                        field.fieldType === sdk.ItemFieldType.Email ? sdk.ItemFieldType.Email :
+                        field.fieldType === sdk.ItemFieldType.Phone ? sdk.ItemFieldType.Phone :
+                        field.fieldType === sdk.ItemFieldType.Url ? sdk.ItemFieldType.Url :
+                        field.fieldType === sdk.ItemFieldType.Menu ? sdk.ItemFieldType.Menu :
                         sdk.ItemFieldType.Text,
               value: field.value || "",
               sectionId: field.sectionId
             };
 
-            if (field.fieldType === "Address" && field.details && field.details.content) {
+            if (field.fieldType === sdk.ItemFieldType.Address && field.details && field.details.content) {
               newField.details = {
                 type: "Address",
                 content: {
@@ -231,9 +231,9 @@ loadPLimit().then(() => {
                 }
               };
               newField.value = "";
-            } else if (field.fieldType === "SshKey" && field.details && field.details.content) {
+            } else if (field.fieldType === sdk.ItemFieldType.SshKey && field.details && field.details.content) {
               newField.value = field.details.content.privateKey || field.value || "";
-            } else if (field.fieldType === "Totp") {
+            } else if (field.fieldType === sdk.ItemFieldType.Totp) {
               const totpValue = field.value || field.details?.content?.totp || "";
               const isValidTotpUri = totpValue.startsWith("otpauth://totp/");
               const isPotentialTotpSeed = /^[A-Z2-7]{16,32}$/i.test(totpValue);
@@ -243,7 +243,7 @@ loadPLimit().then(() => {
                 newField.fieldType = sdk.ItemFieldType.Text;
                 newField.value = totpValue;
               }
-            } else if (field.fieldType === "Date" || field.fieldType === "MonthYear") {
+            } else if (field.fieldType === sdk.ItemFieldType.Date || field.fieldType === sdk.ItemFieldType.MonthYear) {
               newField.value = field.value || "";
             }
 
@@ -252,7 +252,7 @@ loadPLimit().then(() => {
             }
             return newField;
           });
-        } else if (item.category === "SecureNote") {
+        } else if (item.category === sdk.ItemCategory.SecureNote) {
           newItem.notes = item.notes || "Migrated Secure Note";
         }
 
