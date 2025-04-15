@@ -28,7 +28,10 @@ This app helps you to move vaults between 1Password accounts by:
 docker build -t vault-migration-app .`
 ```
 
-4. Start the app with Docker Compose: type `docker compose up -d` in your terminal.
+4. To run the app, run the following in your terminal:
+```
+docker compose up -d` in your terminal.
+```
 
 ## Usage
 
