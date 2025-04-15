@@ -3,17 +3,17 @@
 Securely automate your workflows with SDKs from 1Password. 
 
 # Introduction
-Here you will find example scripts and apps leveraging 1Password's SDKs addressing a variety of use-cases. 
+This repository contains example scripts and apps that leverage 1Password SDKs to address a variety of use cases. 
 
-These examples are not intended to be used for production purposes. They are intended to demonstrate the capabilities of the SDK, highlight specific use-cases, and provide basic guidance for how to accomplish certain tasks with the SDKs. 
+These examples are not intended to be used for production purposes. They are intended to demonstrate the capabilities of the SDKs, highlight specific use cases, and provide basic guidance for how to accomplish certain tasks with the SDKs.
 
 # Get started
-* Learn more about 1Password's SDKs [here](https://developer.1password.com/docs/sdks)
-* Follow the Getting Started documentation [here](https://developer.1password.com/docs/sdks/setup-tutorial)
+* [Learn more about 1Password SDKs.](https://developer.1password.com/docs/sdks)
+* [Follow the getting started tutorial.](https://developer.1password.com/docs/sdks/setup-tutorial)
 
 # Examples
 
-## [Use 1Password as a backend for web app](./demo-inventory-tracker-webapp/)  
+## [Use 1Password as a backend for a web app](./demo-inventory-tracker-webapp/) 
 By: Scott Lougheed  
 #### Description
 This web application allows you to create and manage "IT Resources" such as computers. 
@@ -54,7 +54,7 @@ This web application facilitates the movement of vaults and their contents betwe
 * Use 1Password SDKs to back a web front-end. 
 
 #### Potential real world use-cases
-* Consolidating 1Password information across multiple accounts during mergers, acquisitions or other organizational transitions.
+* Consolidating 1Password information across multiple accounts during mergers, acquisitions, or other organizational transitions.
 
 
 ## [Share files and markdown securely with Secure Item Sharing Links](./demo-share-script/)  
