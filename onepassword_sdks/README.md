@@ -17,10 +17,10 @@ These examples are not intended to be used for production purposes. They are int
 
 # Examples
 
-## [Use 1Password as a backend for web app](./demo-inventory-tracker-webapp/)  
+## [Use 1Password as a backend for a web app](./demo-inventory-tracker-webapp/)  
 By: Scott Lougheed  
 #### Description
-This web application allows you to create and manage "IT Resources," such as computers.
+This web application allows you to create and manage "IT Resources," such as computers. 
 * Create new "Devices", including their name, model, serial number, and Admin user credentials. 
     * Each device is represented by an item in 1Password. 
 * Display a list of all current devices. 
@@ -81,7 +81,7 @@ Finally, the script produces a Secure Item Sharing Link so you can securely shar
 * Use the SDK to build bespoke command-line utilities. 
 * Use the SDK to attach files to 1Password items. 
 
-#### Potential real world use-cases
+#### Potential real world use cases
 * Programmatically write or read cert or key files stored as attachments in 1Password for machine-to-machine authentication.
 * Share text and files securely with anyone, whether they use 1Password or not. 
 * Create custom sharing utilities.
@@ -105,5 +105,5 @@ This Python script is an example of how you can streamline and secure employee o
 * Share 1Password items securely with anyone, whether they use 1Password or not.
 
 
-#### Potential real world use-cases
+#### Potential real world use cases
 * Onboarding new employees, particularly when Okta is required to access email inboxes or where inboxes may not be provisioned quickly enough. 
