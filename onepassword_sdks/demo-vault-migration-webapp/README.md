@@ -37,7 +37,7 @@ docker compose up -d` in your terminal.
 
 1. Open your browser and go to `https://localhost:3001`.
 2. On the welcome page, click **Vault Migration** in the sidebar to get to the migration tool.
-3. Put in the 1Password service account tokens for your source and destination accounts in the "Migration Setup" form, then click "Connect".
+3. Enter the 1Password service account tokens for your source and destination accounts in the Migration Setup form, then select **Connect**.
 4. You’ll see a table with all the vaults from the source account. You can:
    - Check the boxes for the vaults you want to move and click "Migrate Selected Vaults".
    - Click "Migrate All Vaults" to move everything.
