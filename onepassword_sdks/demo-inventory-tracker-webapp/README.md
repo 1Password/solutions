@@ -1,10 +1,10 @@
 # JS SDK Example: Computer Inventory Tracker
 
 ## Prerequisites
-* Docker installed and running ([Docker Documentation](https://docs.docker.com/get-started/get-docker/))
-* 1Password CLI installed and linked to a 1Password account ([Get Started with 1Password CLI](https://developer.1password.com/docs/cli/get-started))
-* A 1Password Service Account with Read/Write access to at least one vault ([Get Started with Service Accounts](https://developer.1password.com/docs/service-accounts))
-* Learn about [Secret References](https://developer.1password.com/docs/cli/secret-reference-syntax/)
+* [Docker Engine](https://docs.docker.com/get-started/get-docker/)
+* [1Password CLI](https://developer.1password.com/docs/cli/get-started)
+* A [1Password Service Account](https://my.1password.com/developer-tools/infrastructure-secrets/serviceaccount/) with read and write permissions in at least one vault.
+* Learn about [secret references](https://developer.1password.com/docs/cli/secret-reference-syntax/)
 
 ## Deploy the Web App
 1. Create a [1Password Service Account](https://developer.1password.com/docs/service-accounts) and add the [secret reference](https://developer.1password.com/docs/cli/secret-reference-syntax/) to that token to the .env.template file and remove the .template suffix. 
