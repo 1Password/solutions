@@ -98,6 +98,8 @@ This Python script is an example of how you can streamline and secure employee o
 #### Highlights
 * Use 1Password SDKs to interact with additional third party services. 
 * Use 1Password SDKs to generate secure passwords for external services and store the information in 1Password.
+* Share 1Password items securely with anyone, whether they use 1Password or not.
+
 
 #### Potential real world use-cases
 * Onboarding new employees, particularly when Okta is required to access email inboxes or where inboxes may not be provisioned quickly enough. 
