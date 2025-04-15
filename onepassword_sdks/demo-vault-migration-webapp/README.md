@@ -15,8 +15,8 @@ This app helps you to move vaults between 1Password accounts by:
 
 - [Docker](https://docs.docker.com/get-started/get-docker/)
 - 1Password CLI (`op`) installed and accessible on your system
-- 1Password service account tokens for your source and destination accounts
-  - The source token needs read access to see vaults and their items.
+- [1Password Service Account](https://developer.1password.com/docs/service-accounts/get-started#create-a-service-account) that can access your source and destination accounts:
+  - The source token needs read access, so it can see vaults and items in the source account.
   - The destination token needs create vault permissions to make new vaults and add items.
 
 ## Installation
