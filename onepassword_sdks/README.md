@@ -11,6 +11,10 @@ These examples are not intended to be used for production purposes. They are int
 * Learn more about 1Password's SDKs [here](https://developer.1password.com/docs/sdks)
 * Follow the Getting Started documentation [here](https://developer.1password.com/docs/sdks/setup-tutorial)
 
+# Security Note
+* Most of these demo applications and scripts require the use of Service Account tokens and other secrets. Store all secrets securely, like in 1Password.
+* These example will make changes to data in 1Password. Do not use these examples with production or other real world data. 
+
 # Examples
 
 ## [Use 1Password as a backend for web app](./demo-inventory-tracker-webapp/)  
