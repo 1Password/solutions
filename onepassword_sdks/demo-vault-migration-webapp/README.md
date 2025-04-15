@@ -1,10 +1,10 @@
 # 1Password Vault Migration App
 
-Hey there! This is a web app that lets you move vaults from one 1Password account to another. It uses the 1Password JS SDK and the 1Password CLI to handle actions not yet supported by the SDK at this time.
+This web app allows you to move vaults from one 1Password account to another. It uses the 1Password JS SDK, as well as 1Password CLI to handle actions not yet supported by the SDK at this time.
 
 ## Overview
 
-This app makes moving vaults between 1Password accounts super easy by:
+This app helps you to move vaults between 1Password accounts by:
 
 - Giving you a simple web page to connect to your source and destination 1Password accounts using service account tokens.
 - Showing you all the vaults from the source account so you can pick which ones to move.
@@ -13,7 +13,7 @@ This app makes moving vaults between 1Password accounts super easy by:
 
 ## Requirements
 
-- Docker (you’ll need this to build and run the app)
+- [Docker](https://docs.docker.com/get-started/get-docker/)
 - 1Password CLI (`op`) installed and accessible on your system
 - 1Password service account tokens for your source and destination accounts
   - The source token needs read access to see vaults and their items.
