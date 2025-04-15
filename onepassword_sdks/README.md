@@ -54,7 +54,7 @@ This web application facilitates the movement of vaults and their contents betwe
 * Use 1Password SDKs to back a web front-end. 
 
 #### Potential real world use cases
-* Consolidating 1Password information across multiple accounts during mergers, acquisitions or other organizational transitions.
+* Consolidating 1Password information across multiple accounts during mergers, acquisitions, or other organizational transitions.
 
 
 ## [Share files and markdown securely with Secure Item Sharing Links](./demo-share-script/)  
