@@ -95,7 +95,7 @@ This Python script is an example of how you can streamline and secure employee o
 * Get a Secure Item Sharing Link for the new user's Okta credentials in 1Password. This link can be shared with the new employee, like by sending it to their personal email address.  
 
 #### Featuring
-* Python SDK
+* 1Password Python SDK
 * Secure Item Sharing Links
 * Okta API
 
