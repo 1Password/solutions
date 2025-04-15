@@ -5,11 +5,11 @@ Securely automate your workflows with SDKs from 1Password.
 # Introduction
 This repository contains example scripts and apps that leverage 1Password SDKs to address a variety of use cases.
 
-These examples are not intended to be used for production purposes. They are intended to demonstrate the capabilities of the SDK, highlight specific use-cases, and provide basic guidance for how to accomplish certain tasks with the SDKs. 
+These examples are not intended to be used for production purposes. They are intended to demonstrate the capabilities of the SDKs, highlight specific use cases, and provide basic guidance for how to accomplish certain tasks with the SDKs. 
 
 # Get started
-* Learn more about 1Password's SDKs [here](https://developer.1password.com/docs/sdks)
-* Follow the Getting Started documentation [here](https://developer.1password.com/docs/sdks/setup-tutorial)
+* [Learn more about 1Password SDKs.](https://developer.1password.com/docs/sdks)
+* [Follow the getting started tutorial.](https://developer.1password.com/docs/sdks/setup-tutorial)
 
 # Security Note
 * Most of these demo applications and scripts require the use of Service Account tokens and other secrets. Store all secrets securely, like in 1Password.
