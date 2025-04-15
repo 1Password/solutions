@@ -21,7 +21,7 @@ This app helps you to move vaults between 1Password accounts by:
 
 ## Installation
 
-1. First, install Docker on your computer. You can follow the [official Docker guide](https://docs.docker.com/get-docker/) to get it set up.
+1. [Install Docker on your computer](https://docs.docker.com/get-started/get-docker/)
 2. Clone or download this project to your computer.
 3. Go to the project folder and build the Docker image with the Dockerfile: type `docker build -t vault-migration-app .` in your terminal.
 4. Start the app with Docker Compose: type `docker compose up -d` in your terminal.
