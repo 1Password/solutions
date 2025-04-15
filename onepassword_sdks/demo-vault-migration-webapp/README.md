@@ -17,7 +17,7 @@ This app helps you to move vaults between 1Password accounts by:
 - [1Password CLI](https://developer.1password.com/docs/cli/get-started)
 - [1Password Service Account](https://developer.1password.com/docs/service-accounts/get-started#create-a-service-account) that can access your source and destination accounts:
   - The source token needs read access, so it can see vaults and items in the source account.
-  - The destination token needs create vault permissions to make new vaults and add items.
+  - The destination token needs read, write, and create vault permissions, so it can make new vaults and add items in the destination vault.
 
 ## Installation
 
