@@ -17,7 +17,7 @@ This app helps you to move vaults between 1Password accounts by:
 - [1Password CLI](https://developer.1password.com/docs/cli/get-started)
 - [1Password Service Account](https://developer.1password.com/docs/service-accounts/get-started#create-a-service-account) that can access your source and destination accounts:
   - The source token needs read access, so it can see vaults and items in the source account.
-  - The destination token needs read, write, and create vault permissions, so it can make new vaults and add items in the destination vault.
+  - The destination token needs create vault permissions, so it can make new vaults and add items in the destination vault.
 
 ## Installation
 
@@ -30,7 +30,7 @@ docker build -t vault-migration-app .`
 
 4. To run the app, run the following in your terminal:
 ```
-docker compose up -d` in your terminal.
+docker compose up -d`
 ```
 
 ## Usage
@@ -45,7 +45,7 @@ docker compose up -d` in your terminal.
 
 ## Special Handling with CLI
 
-- **Vault Creation**: The app uses the 1Password CLI (`op vault create`) to make new vaults in the destination account since the SDK doesn’t handle this part as well.
+- **Vault Creation**: The app uses 1Password CLI (`op vault create`) to make new vaults in the destination account, since vault creation isn't yet supported by the SDK.
 
 ## Security Features
 
@@ -59,7 +59,6 @@ docker compose up -d` in your terminal.
 If something goes wrong:
 
 - Make sure Docker is installed and running on your computer.
-- Check that the 1Password CLI (`op`) is installed and works in your terminal.
 - Double-check your 1Password service account tokens for both source and destination accounts—they need to be valid, with read access for the source token and create vaults for the destination token.
 - Make sure the Docker container is running and you can reach it at `https://localhost:3001`. You can see the logs with `docker logs <container-name>` to figure out what’s up.
 - If your browser complains about SSL, just accept the self-signed certificate for `localhost`.
@@ -67,5 +66,5 @@ If something goes wrong:
 ## Limitations
 
 - The app uses a self-signed certificate for HTTPS, which works for local testing but needs a real certificate for production.
-- You can’t change the vault names—it just adds "(Migrated)" to the name in the destination account.
+- You can’t change the vault names — the script just adds "(Migrated)" to the name in the destination account.
 - The app has fixed limits for how many vaults (2) and items (1) it processes at a time, which might need tweaking for big migrations.

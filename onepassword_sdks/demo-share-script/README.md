@@ -92,6 +92,6 @@ If you encounter errors:
 
 ## Security Considerations
 
-- Service Account tokens have powerful access; store them securely
+- Service Account tokens have powerful access; store them securely.
 - Use the shortest practical expiration time for share links.
 - Use view-once links for sensitive information.

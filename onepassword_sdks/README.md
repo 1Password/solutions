@@ -74,7 +74,7 @@ Finally, the script produces a Secure Item Sharing Link so you can securely shar
 #### Featuring
 * 1Password Python SDK
 * 1Password Service Accounts
-* File attachments to 1Password items. 
+* File attachments to 1Password items
 * Item sharing links
 
 #### Highlights
