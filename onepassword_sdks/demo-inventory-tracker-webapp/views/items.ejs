@@ -1,0 +1,22 @@
+<%- include("includes/header") %>
+<% if (items && items.length > 0) { %> <% items.forEach((item, index) => {
+%>
+  <div class="container item">
+    <h2>Device Summary</h2>
+    <h3><a href="/items/<%= item.id %>""><%= item.title %></a></h3>
+    <div class="field">
+      <span class="field-title"> Device Name: </span>
+      <span class="field-value"> <%= item.fields.find(field => field.id === "deviceName").value %> </span>
+      <span class="field-title"> Model: </span>
+      <span class="field-value"> <%= item.fields.find(field => field.id === "deviceModel").value %> </span>
+      <span class="field-title"> Serial Number: </span>
+      <span class="field-value"> <%= item.fields.find(field => field.id === "deviceSerial").value %> </span>
+    </div>
+  </div>
+  <% }); %> <% } else { %>
+  <div class="container">
+    <h1>No Devices Found</h1>
+  </div>
+<% } %>
+</body>
+</html>

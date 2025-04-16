@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "@1password/sdk": "^0.1.7",
+    "body-parser": "^1.20.2",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "nodemon": "^3.1.4"
+  },
+  "scripts": {
+    "dev": "op run --env-file=.env -- nodemon app.js",
+    "prod": "nodemon app.js"
+  },
+  "type": "module"
+}

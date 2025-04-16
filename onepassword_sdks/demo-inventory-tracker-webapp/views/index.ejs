@@ -1,0 +1,48 @@
+<%- include("includes/header") %>
+<div class="container">
+  <h1>Device Information Form</h1>
+  <form action="/submit" method="post">
+    <label for="deviceName">Device Name:</label>
+    <input type="text" id="deviceName" name="deviceName" value="<%= item ? item.fields.find(field => field.id === "deviceName").value : "" %>" required />
+
+    <label for="deviceModel">Model Number:</label>
+    <input type="text" id="deviceModel" name="deviceModel" value="<%= item ? item.fields.find(field => field.id === "deviceModel").value : ""%>" required />
+
+    <label for="deviceSerial">Serial Number:</label>
+    <input type="text" id="deviceSerial" name="deviceSerial" value="<%= item ? item.fields.find(field => field.id === "deviceSerial").value : ""%>" required />
+
+    <label for="adminUsername">Admin Username:</label>
+    <input type="text" id="adminUsername" name="adminUsername" value="<%= item ? item.fields.find(field => field.id === "adminUsername").value : ""%>" required data-1p-ignore/>
+    <label for="password">Admin Password:</label>
+    <div class="admin-password-container">
+      <input
+        type="password"
+        id="password"
+        name="password"
+        <%= item ? "" : "required" %>
+        data-1p-ignore
+      />
+      <button type="button" class="button" id="generatePasswordBtn">Generate</button>
+    </div>
+    <input type="hidden" name="itemId" value="<%= item ? item.id : undefined %>">
+    <input type="submit" value="<%= item ? "Update" : "Create" %>" />
+  </form>
+</div>
+
+<script>
+  document.getElementById('generatePasswordBtn').addEventListener('click', async () => {
+    try {
+      const response = await fetch('/generate-password')
+      if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+      const data = await response.json()
+      document.getElementById("password").value = data.generatedPassword;
+    } catch (error) {
+      console.error('Error generating password:', error);
+      alert("Failed to generate password");
+    }
+  });
+</script>
+</body>
+</html>
