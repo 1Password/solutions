@@ -20,7 +20,7 @@ These examples are not intended to be used for production purposes. They are int
 ## [Use 1Password as a backend for a web app](./demo-inventory-tracker-webapp/)  
 By: Scott Lougheed  
 #### Description
-This web application allows you to create and manage "IT Resources," such as computers. 
+This web application allows you to create and manage "IT Resources", such as computers. 
 * Create new "Devices", including their name, model, serial number, and Admin user credentials. 
     * Each device is represented by an item in 1Password. 
 * Display a list of all current devices. 
