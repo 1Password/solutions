@@ -8,7 +8,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static("public"));
 
-const vaultId = process.env.OP_VAULT;
+const vaultId = process.env.OP_VAULT_ID;
 const port = 3000;
 
 const opClientConfig = {
