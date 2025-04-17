@@ -13,7 +13,7 @@ const port = 3000;
 
 const opClientConfig = {
   auth: process.env.OP_SERVICE_ACCOUNT_TOKEN,
-  integrationName: "Basic JS Example",
+  integrationName: "Inventory Tracker",
   integrationVersion: "v1.0.0",
 };
 
