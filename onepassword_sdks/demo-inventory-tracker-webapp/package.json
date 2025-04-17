@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@1password/sdk": "^0.1.7",
+    "@1password/sdk": "^0.2.1",
     "body-parser": "^1.20.2",
     "ejs": "^3.1.10",
     "express": "^4.19.2",
