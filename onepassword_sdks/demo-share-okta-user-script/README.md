@@ -18,7 +18,7 @@ This script streamlines the user onboarding process by:
 - Okta API token with user management permissions
 - Python packages:
   - `okta-sdk-python`
-  - `onepassword`
+  - `onepassword-sdk`
   - `pyperclip`
   - `python-dotenv`
 
@@ -28,7 +28,7 @@ This script streamlines the user onboarding process by:
 2. Install the required dependencies:
 
 ```bash
-pip install okta-sdk-python onepassword pyperclip python-dotenv
+pip install okta-sdk-python onepassword-sdk pyperclip python-dotenv
 ```
 
 3. Create a `.env` file in the same directory as the script with the following variables:
@@ -45,7 +45,7 @@ OP_VAULT_ID=your-1password-vault-id
 Run the script using Python:
 
 ```bash
-python create-okta-user.py
+op run --env-file=.env -- python create-okta-user.py
 ```
 
 The script will:
