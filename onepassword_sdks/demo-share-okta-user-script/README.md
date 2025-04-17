@@ -45,7 +45,7 @@ OP_VAULT_ID=your-1password-vault-id
 Run the script using Python:
 
 ```bash
-python okta_user_creation.py
+python create-okta-user.py
 ```
 
 The script will:
