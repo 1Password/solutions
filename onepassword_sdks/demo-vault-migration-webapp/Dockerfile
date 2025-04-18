@@ -50,6 +50,14 @@ RUN npm install
 # Copy all remaining application files to the container
 COPY . .
 
+# Set permissions: 755 for directories, 644 for files
+RUN chown -R node:node /webapp && \
+    find /webapp -type d -exec chmod 755 {} \; && \
+    find /webapp -type f -exec chmod 644 {} \;
+
+# Switch to non-root user
+USER node
+
 # Expose port 3001 for the application to listen on
 EXPOSE 3001
 

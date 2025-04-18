@@ -16,7 +16,7 @@ This script automates the process of:
 - Python 3.9+
 - A [1Password Service Account](https://developer.1password.com/docs/service-accounts/get-started/) with read, write, and share permissions in the vault where you want to create the item.
 - Python packages:
-  - `onepassword`
+  - `onepassword-sdk`
   - `pyperclip`
 
 ## Installation
@@ -25,7 +25,7 @@ This script automates the process of:
 2. Install the required dependencies:
 
 ```bash
-pip install onepassword
+pip install onepassword-sdk
 ```
 
 3. Make sure you have a 1Password Service Account token set in your environment:
@@ -37,7 +37,7 @@ export OP_SERVICE_ACCOUNT_TOKEN="your-token-here"
 ## Usage
 
 ```bash
-python3 op_share.py <folder_path> --vault <vault_name> [options]
+python3 sdk_share_script.py <folder_path> --vault <vault_name> [options]
 ```
 
 ### Required Arguments
@@ -59,19 +59,19 @@ python3 op_share.py <folder_path> --vault <vault_name> [options]
 Create a note with the README content and attach all other files from the folder:
 
 ```bash
-python3 op_share.py ./my_project --vault "Company Vault"
+python3 sdk_share_script.py ./my_project --vault "Company Vault"
 ```
 
 ### Custom Title and Expiration
 
 ```bash
-python3 op_share.py ./deploy_scripts --vault "Dev Team" --title "Deployment Instructions" --expire-after 7
+python3 sdk_share_script.py ./deploy_scripts --vault "Dev Team" --title "Deployment Instructions" --expire-after 7
 ```
 
 ### Share With Specific Recipients
 
 ```bash
-python3 op_share.py ./onboarding --vault "HR" --emails john@example.com sarah@example.com --view-once
+python3 sdk_share_script.py ./onboarding --vault "HR" --emails john@example.com sarah@example.com --view-once
 ```
 
 ## How It Works
