@@ -6,8 +6,6 @@ services:
     image: demo-vault-backup-webapp:v1.0.0
     ports:
       - "3002:3002"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - NODE_ENV=development
     command: npm start
