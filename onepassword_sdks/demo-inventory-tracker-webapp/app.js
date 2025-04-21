@@ -8,12 +8,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static("public"));
 
-const vaultId = process.env.OP_VAULT;
+const vaultId = process.env.OP_VAULT_ID;
 const port = 3000;
 
 const opClientConfig = {
   auth: process.env.OP_SERVICE_ACCOUNT_TOKEN,
-  integrationName: "Basic JS Example",
+  integrationName: "Inventory Tracker",
   integrationVersion: "v1.0.0",
 };
 
