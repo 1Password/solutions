@@ -1,14 +1,21 @@
 {
+  "name": "it-tracker",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "dev": "op run --env-file=.env -- nodemon app.js",
+    "prod": "node app.js"
+  },
+  "keywords": [],
+  "author": "1Password",
+  "license": "ISC",
+  "description": "Tool to track device inventory and admin credentials in 1Password.",
+  "type": "module",
   "dependencies": {
-    "@1password/sdk": "^0.1.7",
+    "@1password/sdk": "^0.2.1",
     "body-parser": "^1.20.2",
     "ejs": "^3.1.10",
     "express": "^4.19.2",
     "nodemon": "^3.1.4"
-  },
-  "scripts": {
-    "dev": "op run --env-file=.env -- nodemon app.js",
-    "prod": "nodemon app.js"
-  },
-  "type": "module"
+  }
 }

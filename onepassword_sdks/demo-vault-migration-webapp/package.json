@@ -7,9 +7,9 @@
     "start": "node webapp.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "1Password",
   "license": "ISC",
-  "description": "",
+  "description": "Tool to assist with migrating vaults from 1Password account to another.",
   "dependencies": {
     "@1password/sdk": "^0.2.1",
     "body-parser": "^2.2.0",

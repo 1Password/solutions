@@ -467,7 +467,7 @@ loadPLimit().then(() => {
       try {
         this.client = await sdk.createClient({
           auth: this.token,
-          integrationName: "1Password Dashboard",
+          integrationName: "1Password Vault Migration Tool",
           integrationVersion: "1.0.0",
         });
       } catch (error) {

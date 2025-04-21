@@ -5,6 +5,6 @@ services:
     environment:
       NODE_ENV: production
       OP_SERVICE_ACCOUNT_TOKEN:
-      OP_VAULT:
+      OP_VAULT_ID:
     ports:
       - 3000:3000

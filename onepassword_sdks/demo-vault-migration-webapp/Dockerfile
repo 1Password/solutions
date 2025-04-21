@@ -1,5 +1,5 @@
 # Use Node.js 18 as the base image for the container
-FROM node:18
+FROM node:lts-bookworm-slim
 
 # Set the working directory to /app inside the container
 WORKDIR /webapp
@@ -9,13 +9,8 @@ RUN apt-get update && \
     apt-get install -y \
     curl \
     gnupg \
-    python3 \
-    python3-pip \
     ca-certificates \
-    lsb-release \
-    docker.io && \
-    curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && \
-    chmod +x /usr/local/bin/docker-compose && \
+    lsb-release &&\
     curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
     gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/$(dpkg --print-architecture) stable main" | \
@@ -32,15 +27,6 @@ RUN apt-get update && \
 # Check the installed version of 1Password CLI to ensure it’s working
 RUN op --version
 
-# Verify Python 3 is installed correctly
-RUN python3 --version
-
-# Confirm Docker CLI is installed and functional
-RUN docker --version
-
-# Verify Docker Compose installation
-RUN docker-compose --version
-
 # Copy package.json and package-lock.json (if present) to the working directory
 COPY package*.json ./
 
@@ -49,6 +35,14 @@ RUN npm install
 
 # Copy all remaining application files to the container
 COPY . .
+
+# Set permissions: 755 for directories, 644 for files
+RUN chown -R node:node /webapp && \
+    find /webapp -type d -exec chmod 755 {} \; && \
+    find /webapp -type f -exec chmod 644 {} \;
+
+# Switch to non-root user
+USER node
 
 # Expose port 3001 for the application to listen on
 EXPOSE 3001
