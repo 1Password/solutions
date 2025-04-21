@@ -4,7 +4,7 @@
   "main": "app.js",
   "scripts": {
     "dev": "op run --env-file=.env -- nodemon app.js",
-    "prod": "nodemon app.js"
+    "prod": "node app.js"
   },
   "keywords": [],
   "author": "1Password",
