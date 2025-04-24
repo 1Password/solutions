@@ -8,6 +8,7 @@ import itertools
 import time
 from datetime import datetime
 import os
+from typing import List, Dict, Optional
 from tqdm import tqdm
 
 # Script to update website fields for all items in a 1Password vault.
@@ -20,7 +21,7 @@ RED = "\033[91m"
 RESET = "\033[0m"
 
 # Displays a table in a styled ASCII box with column separators.
-def show_table_in_box(data):
+def show_table_in_box(data: List[Dict[str, str]]) -> None:
     # Define column headers.
     headers = ["ItemID", "ItemTitle", "OldWebsite", "NewWebsite"]
 
@@ -59,7 +60,7 @@ def show_table_in_box(data):
     print(f"{CYAN}{bottom_border}{RESET}")
 
 # Executes a 1Password CLI command and returns the output.
-def run_op_command(args):
+def run_op_command(args: List[str]) -> Optional[str]:
     try:
         result = subprocess.run(["op"] + args, capture_output=True, text=True, check=True)
         return result.stdout
@@ -202,7 +203,7 @@ while not confirmed:
     changes_lock = threading.Lock()
 
     # Update each item’s website field using multi-threading (3 threads).
-    def update_item(item, new_url, changes, lock):
+    def update_item(item: Dict[str, str], new_url: str, changes: List[Dict[str, str]], lock: threading.Lock) -> None:
         # Retrieve item details in plain text.
         item_details = run_op_command(["item", "get", item["id"]])
         if not item_details:
@@ -294,7 +295,7 @@ while not confirmed:
             completed_items = 0
 
             # Revert changes using multi-threading (3 threads).
-            def revert_item(change):
+            def revert_item(change: Dict[str, str]) -> None:
                 if change["OldWebsite"]:
                     run_op_command(["item", "edit", change["ItemID"], f"website={change['OldWebsite']}"])
                 else:
