@@ -4,7 +4,7 @@ import csv
 import re
 import os
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Optional, Any
 from concurrent.futures import ThreadPoolExecutor
 
 # Try to import tqdm for a nice progress bar, but it’s optional
@@ -14,7 +14,7 @@ try:
 except ImportError:
     TQDM_AVAILABLE = False
 
-def run_op_command(args: List[str]) -> Dict:
+def run_op_command(args: List[str]) -> Dict[str, Any]:
     # Runs a 1Password CLI command and returns JSON output
     # Assumes we're already logged in, so no fuss with tokens
     cmd = ["op"] + args
@@ -33,7 +33,7 @@ def run_op_command(args: List[str]) -> Dict:
         print(f"  ⚠️  JSON didn’t parse right: {e}")
         raise
 
-def parse_user_list_output() -> List[Dict]:
+def parse_user_list_output() -> List[Dict[str, str]]:
     # Grabs the user list from 1Password’s non-JSON output and parses it
     # The output is tabular, so we split it into fields
     try:
@@ -62,7 +62,7 @@ def parse_user_list_output() -> List[Dict]:
         print(f"  ⚠️  Couldn’t fetch user list: {e.stderr}")
         raise
 
-def fetch_user_details(user: Dict) -> Dict:
+def fetch_user_details(user: Dict[str, str]) -> Optional[Dict[str, Any]]:
     # Fetches detailed info for a single user, used in threads
     try:
         details = run_op_command(["user", "get", user["id"], "--format=json"])
@@ -77,7 +77,7 @@ def fetch_user_details(user: Dict) -> Dict:
         print(f"  ⚠️  Couldn’t grab details for user {user['id']}. Skipping.")
         return None
 
-def get_active_users() -> List[Dict]:
+def get_active_users() -> List[Dict[str, Any]]:
     # Gets all active users, fetching details in parallel with 3 threads
     users = parse_user_list_output()
     active_users = [u for u in users if u["state"] == "ACTIVE"]
@@ -105,7 +105,7 @@ def get_active_users() -> List[Dict]:
     # Filter out None results (failed fetches)
     return [r for r in results if r is not None]
 
-def parse_date(date_str: str) -> datetime:
+def parse_date(date_str: str) -> Optional[datetime]:
     # Tries to parse dates in ISO 8601 or MM/dd/yyyy formats
     iso8601_pattern = r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$'
     us_date_pattern = r'^\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}$'
@@ -120,7 +120,7 @@ def parse_date(date_str: str) -> datetime:
     except ValueError:
         return None
 
-def print_boxed_summary(days: int, total_users: int, active_users: int, error: str = None):
+def print_boxed_summary(days: int, total_users: int, active_users: int, error: Optional[str] = None) -> None:
     # Prints a fancy boxed summary of the initial scan
     header = "Checking User Activity..."
     days_line = f"Days Threshold: {days}"
@@ -146,7 +146,7 @@ def print_boxed_summary(days: int, total_users: int, active_users: int, error: s
     print(f"│ {active_line.ljust(max_length)} │")
     print(bottom_border)
 
-def print_idle_users_table(idle_users: List[Dict]):
+def print_idle_users_table(idle_users: List[Dict[str, Any]]) -> None:
     # Prints a formatted table of idle users
     if not idle_users:
         print("\n🎉 Nobody’s been idle too long. Everyone’s active!")
@@ -181,7 +181,7 @@ def print_idle_users_table(idle_users: List[Dict]):
         print(f"│ {email} │ {days} │ {login} │")
     print(bottom_border)
 
-def main():
+def main() -> None:
     # Main logic: find idle users and report them
     print("\n🚀 Let’s find those idle 1Password users...")
     
