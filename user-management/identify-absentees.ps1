@@ -1,5 +1,5 @@
-# Quick little script to track down 1Password users who haven’t logged in for a while.
-# Spits out UUID, Name, Email, and Last_Login_Date to the console and a user_list.csv file.
+# This script identifies 1Password users who haven’t logged in for a while.
+# Produces reports with users' UUID, Name, Email, and Last_Login_Date to the console and a user_list.csv file.
 
 # Handy spinner function for visual feedback (not used right now, but keeping it around)
 function Show-Spinner {
