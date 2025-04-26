@@ -1,3 +1,5 @@
+#Requires -Version 5.1
+
 # Set up some colors to make the output pretty
 $CYAN = "`e[96m"
 $YELLOW = "`e[93m"
@@ -66,7 +68,7 @@ function Show-Table {
         $name = if ($item.Name) { $item.Name.ToString() } else { "" }
         $email = if ($item.Email) { $item.Email.ToString() } else { "" }
         $status = if ($item.Status) { $item.Status.ToString() } else { "" }
-        $message = if ($item.Message) { $item.Message.ToString() } else { "" }
+        $message = if ($item.Message) { [string]$item.Message } else { "" }
 
         $wrappedMessage = Wrap-Text -Text $message -MaxWidth $MaxMessageLength
         $messageLines = $wrappedMessage.Count
@@ -107,12 +109,14 @@ function Show-Table {
     for ($i = 0; $i -lt $wrappedData.Count; $i++) {
         $item = $wrappedData[$i]
         $rowLines = $maxLines[$i]
+        # Ensure $item.Message is an array of strings
+        $item.Message = @($item.Message | ForEach-Object { [string]$_ })
 
         for ($j = 0; $j -lt $rowLines; $j++) {
             $nameText = if ($j -eq 0) { $item.Name } else { "" }
             $emailText = if ($j -eq 0) { $item.Email } else { "" }
             $statusText = if ($j -eq 0) { $item.Status } else { "" }
-            $messageText = if ($j -lt $item.Message.Count) { $item.Message[$j] } else { "" }
+            $messageText = if ($j -lt $item.Message.Count) { [string]$item.Message[$j] } else { "" }
 
             $nameText = [string]$nameText
             $emailText = [string]$emailText
@@ -200,7 +204,7 @@ function Show-EmailList {
         $midBorder = "├" + ("─" * $maxLengths.Email) + "┤"
         $rowBorder = "├" + ("─" * $maxLengths.Email) + "┤"
         $bottomBorder = "└" + ("─" * $maxLengths.Email) + "┘"
-        $headerRow = "│ " + $headers[0].PadRight($maxLengths.Email - 2) + " │"
+        $headerRow = "│ " + [string]$headerText.PadRight($maxLengths.Email - 2) + " │"
 
         Write-Host "`n$YELLOW$topBorder$RESET"
         Write-Host "$YELLOW$headerRow$RESET"
@@ -424,13 +428,21 @@ $authCheck = Invoke-OpCommand @("user", "list")
 if (-not $authCheck[0]) {
     # If authentication fails, prompt the user to sign in
     Write-Host "$YELLOW🔐 Looks like we need to authenticate with 1Password CLI.$RESET"
-    Write-Host "Please enter your 1Password account shorthand (e.g., 'myaccount' for 'myaccount.1password.com'): "
-    $accountShorthand = Read-Host -Prompt "$YELLOW➡️ Account shorthand: "
-    Write-Host ""
-
-    if (-not $accountShorthand) {
-        Write-Host "$RED😕 Account shorthand cannot be empty. Exiting.$RESET`n"
-        exit 1
+    $accountShorthand = $null
+    while (-not $accountShorthand) {
+        Write-Host "Please enter your 1Password account shorthand (e.g., 'myaccount' for 'myaccount.1password.com'): "
+        $accountShorthand = Read-Host -Prompt "$YELLOW➡️ Account shorthand: "
+        Write-Host ""
+        if (-not $accountShorthand) {
+            Write-Host "$RED😕 Account shorthand cannot be empty. Please try again.$RESET"
+            continue
+        }
+        # Basic validation: ensure the shorthand contains only letters, numbers, and hyphens
+        if ($accountShorthand -notmatch '^[a-zA-Z0-9-]+$') {
+            Write-Host "$RED😕 Invalid account shorthand format: $accountShorthand. Use letters, numbers, and hyphens only.$RESET"
+            $accountShorthand = $null
+            continue
+        }
     }
 
     # Run op signin to get the session token
@@ -490,7 +502,7 @@ while (-not $inputMethod) {
             default { $null }
         }
         if (-not $inputMethod) {
-            Write-Host "$RED😕 Please enter 1, 2, 3, or 4.$RESET"
+            Write-Host "$RED😕 Invalid entry: $choice. Please enter 1, 2, 3, or 4.$RESET"
             continue
         }
     }
@@ -506,7 +518,7 @@ while (-not $inputMethod) {
             default { $null }
         }
         if (-not $inputMethod) {
-            Write-Host "$RED😕 Please enter 1, 2, or 3.$RESET"
+            Write-Host "$RED😕 Invalid entry: $choice. Please enter 1, 2, or 3.$RESET"
             continue
         }
     }
@@ -552,7 +564,8 @@ while (-not $action) {
         default { $null }
     }
     if (-not $action) {
-        Write-Host "$RED😕 Please enter 1, 2, 3, 4, or 5.$RESET"
+        Write-Host "$RED😕 Invalid entry: $choice. Please enter 1, 2, 3, 4, or 5.$RESET"
+        continue
     }
 }
 
@@ -578,8 +591,9 @@ if ($inputMethod -eq "csv") {
         }
         $csvPath = if ($inputPath) { $inputPath } else { $defaultCsv }
         if (-not (Test-Path $csvPath)) {
-            Write-Host "$RED😕 File '$csvPath' not found. Please try again.$RESET"
+            Write-Host "$RED😕 Invalid file path: $csvPath does not exist. Please enter a valid file path or type 'quit' to exit.$RESET"
             $csvPath = $null
+            continue
         }
     }
 
@@ -651,11 +665,15 @@ if ($inputMethod -eq "csv") {
         # Show the table with Names and UUID/Email
         Show-EmailList -Emails $csvIdentifiers -Action $action -Names $csvNames
         Write-Host "`n"
-        $confirm = Read-Host -Prompt "$YELLOW➡️ Type 'YES' to continue, or anything else to exit: "
-        Write-Host ""
-        if ($confirm -ne "YES") {
-            Write-Host "$CYAN👋 Exiting script to prevent accidental $action.$RESET`n"
-            exit 0
+        $confirm = $null
+        while (-not $confirm) {
+            $confirm = Read-Host -Prompt "$YELLOW➡️ Type 'YES' to continue, or anything else to exit: "
+            Write-Host ""
+            if ($confirm -ne "YES") {
+                Write-Host "$CYAN👋 Exiting script to prevent accidental $action.$RESET`n"
+                exit 0
+            }
+            # No need for invalid input message here since any non-"YES" input exits
         }
     }
 
@@ -827,51 +845,64 @@ else {
                 continue
             }
             if (-not $identifierInput) {
-                Write-Host "$RED😕 UUID or email cannot be empty.$RESET`n"
+                Write-Host "$RED😕 UUID or email cannot be empty. Please enter a valid UUID or email, or type 'list' or 'quit'.$RESET`n"
+                continue
             }
             else {
                 $identifiers = $identifierInput -split "," | ForEach-Object { $_.Trim() }
+                $allValid = $true
                 foreach ($identifier in $identifiers) {
                     if (-not ($identifier -match '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$') -and
                         -not ($identifier -match '^[a-zA-Z0-9]{26}$')) {
-                        Write-Host "$RED😕 Invalid UUID or email format: $identifier$RESET`n"
-                        $identifierInput = $null
+                        Write-Host "$RED😕 Invalid UUID or email format: $identifier. Please enter valid UUID(s) or email(s), or type 'list' or 'quit'.$RESET`n"
+                        $allValid = $false
                         break
                     }
+                }
+                if (-not $allValid) {
+                    $identifierInput = $null
+                    continue
                 }
             }
         }
     }
     else {
-        Write-Host "$YELLOW📋 Enter the user's email (type 'quit' to exit):$RESET`n"
-        $emailInput = Read-Host -Prompt "$YELLOW➡️ Email: "
-        Write-Host ""
-        if ($emailInput -eq "quit") {
-            Write-Host "$CYAN👋 Exiting script.$RESET`n"
-            exit 0
-        }
-        if (-not $emailInput) {
-            Write-Host "$RED😕 Email cannot be empty.$RESET`n"
-            exit 1
-        }
-        if ($emailInput -notmatch '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$') {
-            Write-Host "$RED😕 Invalid email format: $emailInput$RESET`n"
-            exit 1
+        $emailInput = $null
+        while (-not $emailInput) {
+            Write-Host "$YELLOW📋 Enter the user's email (type 'quit' to exit):$RESET`n"
+            $emailInput = Read-Host -Prompt "$YELLOW➡️ Email: "
+            Write-Host ""
+            if ($emailInput -eq "quit") {
+                Write-Host "$CYAN👋 Exiting script.$RESET`n"
+                exit 0
+            }
+            if (-not $emailInput) {
+                Write-Host "$RED😕 Email cannot be empty. Please enter a valid email address or type 'quit' to exit.$RESET`n"
+                continue
+            }
+            if ($emailInput -notmatch '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$') {
+                Write-Host "$RED😕 Invalid email format: $emailInput. Please enter a valid email address or type 'quit' to exit.$RESET`n"
+                $emailInput = $null
+                continue
+            }
         }
         $identifiers = @($emailInput)
     }
 
     if ($action -eq "provision") {
-        Write-Host "$YELLOW📋 Enter the user's name (type 'quit' to exit):$RESET`n"
-        $name = Read-Host -Prompt "$YELLOW➡️ Name: "
-        Write-Host ""
-        if ($name -eq "quit") {
-            Write-Host "$CYAN👋 Exiting script.$RESET`n"
-            exit 0
-        }
-        if (-not $name) {
-            Write-Host "$RED😕 Name cannot be empty.$RESET`n"
-            exit 1
+        $name = $null
+        while (-not $name) {
+            Write-Host "$YELLOW📋 Enter the user's name (type 'quit' to exit):$RESET`n"
+            $name = Read-Host -Prompt "$YELLOW➡️ Name: "
+            Write-Host ""
+            if ($name -eq "quit") {
+                Write-Host "$CYAN👋 Exiting script.$RESET`n"
+                exit 0
+            }
+            if (-not $name) {
+                Write-Host "$RED😕 Name cannot be empty. Please enter a valid name or type 'quit' to exit.$RESET`n"
+                continue
+            }
         }
     }
 
@@ -1009,11 +1040,15 @@ else {
         Write-Host "$RED$BLINK⚠️ WARNING: $msg$RESET`n"
         Show-EmailList -Emails $identifiers -Action $action
         Write-Host "`n"
-        $confirm = Read-Host -Prompt "$YELLOW➡️ Type 'YES' to continue, or anything else to exit: "
-        Write-Host ""
-        if ($confirm -ne "YES") {
-            Write-Host "$CYAN👋 Exiting script to prevent accidental $action.$RESET`n"
-            exit 0
+        $confirm = $null
+        while (-not $confirm) {
+            $confirm = Read-Host -Prompt "$YELLOW➡️ Type 'YES' to continue, or anything else to exit: "
+            Write-Host ""
+            if ($confirm -ne "YES") {
+                Write-Host "$CYAN👋 Exiting script to prevent accidental $action.$RESET`n"
+                exit 0
+            }
+            # No need for invalid input message here since any non-"YES" input exits
         }
     }
 
