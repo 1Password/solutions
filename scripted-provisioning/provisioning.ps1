@@ -1,6 +1,4 @@
-#Requires -Version 5.1
-
-# Set up some colors to make the output pretty
+# Define some colors to make the console output look nice
 $CYAN = "`e[96m"
 $YELLOW = "`e[93m"
 $RED = "`e[91m"
@@ -8,7 +6,7 @@ $GREEN = "`e[92m"
 $RESET = "`e[0m"
 $BLINK = "`e[5m"
 
-# Breaks text into lines that fit within a given width - handy for table formatting
+# Takes a string and wraps it into lines that fit within a certain width - useful for table formatting
 function Wrap-Text {
     param (
         [string]$Text,
@@ -45,7 +43,7 @@ function Wrap-Text {
     return $lines
 }
 
-# Displays a table with results (Name, Email, Status, Message) in a neat box
+# Renders a table with results (Name, Email, Status, Message) in a clean, boxed format
 function Show-Table {
     param (
         [System.Collections.Generic.List[PSObject]]$Data,
@@ -57,13 +55,13 @@ function Show-Table {
         return
     }
 
-    # Set up the table headers and figure out the max width for each column
+    # Define the table headers and figure out the max width for each column
     $headers = @("Name", "Email", "Status", "Message")
     $maxLengths = @{ Name = $headers[0].Length; Email = $headers[1].Length; Status = $headers[2].Length; Message = $headers[3].Length }
     $maxLines = [System.Collections.Generic.List[int]]::new()
     $wrappedData = [System.Collections.Generic.List[PSObject]]::new()
 
-    # Loop through each item to wrap long messages and calculate column widths
+    # Go through each item, wrap long messages, and calculate the column widths
     foreach ($item in $Data) {
         $name = if ($item.Name) { $item.Name.ToString() } else { "" }
         $email = if ($item.Email) { $item.Email.ToString() } else { "" }
@@ -87,21 +85,21 @@ function Show-Table {
         })
     }
 
-    # Add some padding to the columns and cap their width
+    # Add a bit of padding to the columns and cap their width so they don’t get too wide
     $keys = $maxLengths.Keys | ForEach-Object { $_ }
     foreach ($key in $keys) {
         $maxLengths[$key] = [math]::Max($maxLengths[$key] + 4, 15)
         $maxLengths[$key] = [math]::Min($maxLengths[$key], 40)
     }
 
-    # Build the table borders using Unicode characters
+    # Create the table borders using Unicode characters for a boxed look
     $topBorder = "┌" + ("─" * $maxLengths.Name) + "┬" + ("─" * $maxLengths.Email) + "┬" + ("─" * $maxLengths.Status) + "┬" + ("─" * $maxLengths.Message) + "┐"
     $midBorder = "├" + ("─" * $maxLengths.Name) + "┼" + ("─" * $maxLengths.Email) + "┼" + ("─" * $maxLengths.Status) + "┼" + ("─" * $maxLengths.Message) + "┤"
     $rowBorder = "├" + ("─" * $maxLengths.Name) + "┼" + ("─" * $maxLengths.Email) + "┼" + ("─" * $maxLengths.Status) + "┼" + ("─" * $maxLengths.Message) + "┤"
     $bottomBorder = "└" + ("─" * $maxLengths.Name) + "┴" + ("─" * $maxLengths.Email) + "┴" + ("─" * $maxLengths.Status) + "┴" + ("─" * $maxLengths.Message) + "┘"
     $headerRow = "│ " + $headers[0].PadRight($maxLengths.Name - 2) + " │ " + $headers[1].PadRight($maxLengths.Email - 2) + " │ " + $headers[2].PadRight($maxLengths.Status - 2) + " │ " + $headers[3].PadRight($maxLengths.Message - 2) + " │"
 
-    # Print the table
+    # Output the table to the console
     Write-Host "`n$CYAN$topBorder$RESET"
     Write-Host "$CYAN$headerRow$RESET"
     Write-Host "$CYAN$midBorder$RESET"
@@ -109,7 +107,7 @@ function Show-Table {
     for ($i = 0; $i -lt $wrappedData.Count; $i++) {
         $item = $wrappedData[$i]
         $rowLines = $maxLines[$i]
-        # Ensure $item.Message is an array of strings
+        # Make sure $item.Message is an array of strings to avoid any weird indexing issues
         $item.Message = @($item.Message | ForEach-Object { [string]$_ })
 
         for ($j = 0; $j -lt $rowLines; $j++) {
@@ -133,10 +131,12 @@ function Show-Table {
     }
 
     Write-Host "$CYAN$bottomBorder$RESET"
-    [System.GC]::Collect()  # Encourage garbage collection
+    
+    # Clean up memory
+    [System.GC]::Collect()
 }
 
-# Shows a simple table of users (or emails) for confirmation before proceeding
+# Shows a simpler table of users or emails for confirmation before proceeding with an action
 function Show-EmailList {
     param (
         [string[]]$Emails,
@@ -149,14 +149,14 @@ function Show-EmailList {
         return
     }
 
-    # Set up the table headers (use "Users to [Action]" if Names are provided, otherwise "Emails to [Action]")
+    # Set up headers based on whether we have names (two columns) or just emails (one column)
     $headerText = if ($Names) { "Users to $Action" } else { "Emails to $Action" }
     $headers = if ($Names) { @("Name", "UUID/Email") } else { @($headerText) }
     $maxLengths = if ($Names) { @{ Name = $headers[0].Length; Identifier = $headers[1].Length } } else { @{ Email = $headers[0].Length } }
     $maxLines = [System.Collections.Generic.List[int]]::new()
     $wrappedData = [System.Collections.Generic.List[PSObject]]::new()
 
-    # Calculate max widths for the columns
+    # Calculate the max width needed for each column
     if ($Names) {
         for ($i = 0; $i -lt $Emails.Count; $i++) {
             $name = if ($Names[$i]) { $Names[$i] } else { "" }
@@ -169,14 +169,14 @@ function Show-EmailList {
         $maxLengths.Name = [math]::Max($maxLengths.Name + 4, 15)
         $maxLengths.Identifier = [math]::Max($maxLengths.Identifier + 4, 15)
 
-        # Build the table borders for two columns
+        # Build the table borders for a two-column layout
         $topBorder = "┌" + ("─" * $maxLengths.Name) + "┬" + ("─" * $maxLengths.Identifier) + "┐"
         $midBorder = "├" + ("─" * $maxLengths.Name) + "┼" + ("─" * $maxLengths.Identifier) + "┤"
         $rowBorder = "├" + ("─" * $maxLengths.Name) + "┼" + ("─" * $maxLengths.Identifier) + "┤"
         $bottomBorder = "└" + ("─" * $maxLengths.Name) + "┴" + ("─" * $maxLengths.Identifier) + "┘"
         $headerRow = "│ " + $headers[0].PadRight($maxLengths.Name - 2) + " │ " + $headers[1].PadRight($maxLengths.Identifier - 2) + " │"
 
-        # Print the table
+        # Output the table
         Write-Host "`n$YELLOW$topBorder$RESET"
         Write-Host "$YELLOW$headerRow$RESET"
         Write-Host "$YELLOW$midBorder$RESET"
@@ -192,7 +192,7 @@ function Show-EmailList {
         Write-Host "$YELLOW$bottomBorder$RESET"
     }
     else {
-        # Original single-column table for manual input
+        # Single-column table for manual input, just showing emails
         foreach ($email in $Emails) {
             $maxLengths.Email = [math]::Max($maxLengths.Email, $email.Length)
             $maxLines.Add(1)
@@ -221,16 +221,17 @@ function Show-EmailList {
         Write-Host "$YELLOW$bottomBorder$RESET"
     }
 
+    # Clean up memory
     [System.GC]::Collect()
 }
 
-# Displays a table of users (UUID, Name, Email, State) for the 'list' option
+# Displays a table of users (UUID, Name, Email, State) when listing users
 function Show-UserList {
     param (
         [string]$Action
     )
 
-    # Fetch the user list from 1Password CLI
+    # Fetch the user list from the 1Password CLI
     $opResult = Invoke-OpCommand @("user", "list")
     if (-not $opResult[0]) {
         Write-Host "`n$RED😕 Failed to retrieve user list: $($opResult[1])$RESET"
@@ -249,7 +250,7 @@ function Show-UserList {
         return $null
     }
 
-    # Parse each user entry and filter based on the action
+    # Parse each user entry and filter based on the action we're performing
     $userData = @()
     for ($i = 1; $i -lt $userListLines.Count; $i++) {
         $line = $userListLines[$i].Trim()
@@ -300,7 +301,7 @@ function Show-UserList {
         return $null
     }
 
-    # Set up the table for display
+    # Set up the table for displaying the user list
     $headers = @("UUID", "Name", "Email", "State")
     $maxLengths = @{ UUID = $headers[0].Length; Name = $headers[1].Length; Email = $headers[2].Length; State = $headers[3].Length }
     $maxLines = [System.Collections.Generic.List[int]]::new()
@@ -352,7 +353,7 @@ function Show-UserList {
     return $userData
 }
 
-# Runs commands using the 1Password CLI and handles the output
+# Executes commands via the 1Password CLI and processes the output
 function Invoke-OpCommand {
     param (
         [string[]]$Arguments
@@ -406,27 +407,28 @@ function Invoke-OpCommand {
     }
     finally {
         if ($process) { $process.Dispose() }
+       
+        # Clean up memory
         [System.GC]::Collect()
     }
 }
 
-# Kick off the script with a welcome message
+# Start the script with a friendly welcome message
 Write-Host "`n$CYAN🚀 Welcome to the 1Password User Management Script! 🎉$RESET"
 Write-Host "This script provisions, suspends, reactivates, or deletes users from a CSV file or manually."
 Write-Host "CSV must have 'Name' and 'Email' columns (case-insensitive) if used.`n"
 
-# Check if the 1Password CLI is installed
+# Make sure the 1Password CLI is installed before proceeding
 if (-not (Get-Command op -ErrorAction SilentlyContinue)) {
     Write-Host "$RED😕 Error: 1Password CLI (op) not found. Please install it.$RESET"
     Write-Host "Download from: https://developer.1password.com/docs/cli/get-started/`n"
     exit 1
 }
 
-# Ensure we're authenticated with 1Password CLI before proceeding
-# Try a simple command to see if we're already authenticated
+# Check if we're authenticated with the 1Password CLI
 $authCheck = Invoke-OpCommand @("user", "list")
 if (-not $authCheck[0]) {
-    # If authentication fails, prompt the user to sign in
+    # If we're not authenticated, prompt for the account shorthand to sign in
     Write-Host "$YELLOW🔐 Looks like we need to authenticate with 1Password CLI.$RESET"
     $accountShorthand = $null
     while (-not $accountShorthand) {
@@ -437,7 +439,7 @@ if (-not $authCheck[0]) {
             Write-Host "$RED😕 Account shorthand cannot be empty. Please try again.$RESET"
             continue
         }
-        # Basic validation: ensure the shorthand contains only letters, numbers, and hyphens
+        # Validate that the shorthand only uses letters, numbers, and hyphens
         if ($accountShorthand -notmatch '^[a-zA-Z0-9-]+$') {
             Write-Host "$RED😕 Invalid account shorthand format: $accountShorthand. Use letters, numbers, and hyphens only.$RESET"
             $accountShorthand = $null
@@ -445,7 +447,7 @@ if (-not $authCheck[0]) {
         }
     }
 
-    # Run op signin to get the session token
+    # Sign in to 1Password CLI and grab the session token
     $processInfo = [System.Diagnostics.ProcessStartInfo]::new()
     $processInfo.FileName = "op"
     $processInfo.Arguments = "signin --account $accountShorthand --raw"
@@ -466,7 +468,7 @@ if (-not $authCheck[0]) {
             exit 1
         }
 
-        # Set the session token as an environment variable
+        # Set the session token as an environment variable for future commands
         $envVarName = "OP_SESSION_$accountShorthand"
         [System.Environment]::SetEnvironmentVariable($envVarName, $sessionToken, [System.EnvironmentVariableTarget]::Process)
         Write-Host "$GREEN✅ Successfully authenticated with 1Password CLI.$RESET`n"
@@ -483,7 +485,7 @@ else {
     Write-Host "$GREEN✅ Already authenticated with 1Password CLI.$RESET`n"
 }
 
-# Ask the user how they want to manage users (CSV, manual, export, or quit)
+# Ask the user how they’d like to manage users (CSV, manual, export, or quit)
 $inputMethod = $null
 $validMethods = @("csv", "manual", "export", "quit")
 $firstPrompt = $true
@@ -523,7 +525,7 @@ while (-not $inputMethod) {
         }
     }
 
-    # If they chose to export, show the user list and save it to a CSV
+    # If they chose to export, show the user list and save it to a CSV file
     if ($inputMethod -eq "export") {
         $userList = Show-UserList -Action "delete"
         if (-not $userList) {
@@ -547,7 +549,7 @@ if ($inputMethod -eq "quit") {
     exit 0
 }
 
-# Ask what action to perform (provision, suspend, reactivate, delete, or quit)
+# Ask what action the user wants to perform (provision, suspend, reactivate, delete, or quit)
 $validActions = @("provision", "suspend", "reactivate", "delete", "quit")
 $action = $null
 while (-not $action) {
@@ -574,7 +576,7 @@ if ($action -eq "quit") {
     exit 0
 }
 
-# We'll store the results of our actions here
+# Set up a list to store the results of our actions
 $results = [System.Collections.Generic.List[PSObject]]::new()
 
 # Handle CSV input: read users from a file and process them
@@ -597,7 +599,7 @@ if ($inputMethod -eq "csv") {
         }
     }
 
-    # Assume the CSV always has a header row
+    # We're assuming the CSV always has a header row
     $skipFirst = 1
 
     try {
@@ -607,9 +609,9 @@ if ($inputMethod -eq "csv") {
             exit 1
         }
 
-        # Check for required fields based on the action
+        # Check that the CSV has the required fields based on the action
         if ($action -eq "provision") {
-            # For provisioning, we only need Name and Email
+            # For provisioning, we need Name and Email columns
             $nameCol = $csvData[0].PSObject.Properties.Name | Where-Object { $_ -match "^Name$" }
             $emailCol = $csvData[0].PSObject.Properties.Name | Where-Object { $_ -match "^Email$" }
             if (-not $nameCol -or -not $emailCol) {
@@ -618,7 +620,7 @@ if ($inputMethod -eq "csv") {
             }
         }
         else {
-            # For suspend, delete, reactivate, we need either UUID or Email
+            # For suspend, delete, reactivate, we need either a UUID or Email column
             $uuidCol = $csvData[0].PSObject.Properties.Name | Where-Object { $_ -match "^UUID$" }
             $emailCol = $csvData[0].PSObject.Properties.Name | Where-Object { $_ -match "^Email$" }
             if (-not $uuidCol -and -not $emailCol) {
@@ -632,18 +634,18 @@ if ($inputMethod -eq "csv") {
         exit 1
     }
 
-    # Collect identifiers and names for confirmation table (if needed)
+    # Gather identifiers and names for the confirmation table if needed
     $csvIdentifiers = @()
     $csvNames = @()
     foreach ($row in $csvData) {
         if ($action -eq "provision") {
-            # For provisioning, we only need Name and Email
+            # For provisioning, grab Name and Email
             $name = if ($row.$nameCol) { $row.$nameCol -replace '"', "'" } else { "" }
             $email = if ($row.$emailCol) { $row.$emailCol } else { "" }
             $identifier = $email
         }
         else {
-            # For suspend, delete, reactivate, prefer UUID if present, otherwise use Email
+            # For suspend, delete, reactivate, use UUID if present, otherwise fall back to Email
             $uuid = if ($row.PSObject.Properties.Name -contains "UUID") { $row.UUID } else { "" }
             $email = if ($row.PSObject.Properties.Name -contains "Email") { $row.Email } else { "" }
             $identifier = if ($uuid) { $uuid } else { $email }
@@ -653,7 +655,7 @@ if ($inputMethod -eq "csv") {
         $csvNames += $name
     }
 
-    # Warn the user before doing anything destructive and show the confirmation table
+    # Give a warning before doing anything destructive and show a confirmation table
     if ($action -in @("suspend", "reactivate", "delete")) {
         Write-Host "`n"
         $msg = switch ($action) {
@@ -662,7 +664,7 @@ if ($inputMethod -eq "csv") {
             "delete" { "Deleting users and their Private vaults is permanent!" }
         }
         Write-Host "$RED$BLINK⚠️ WARNING: $msg$RESET`n"
-        # Show the table with Names and UUID/Email
+        # Display the table with Names and UUID/Email
         Show-EmailList -Emails $csvIdentifiers -Action $action -Names $csvNames
         Write-Host "`n"
         $confirm = $null
@@ -677,7 +679,7 @@ if ($inputMethod -eq "csv") {
         }
     }
 
-    # Process the users in the CSV file with multi-threading
+    # Process the users in the CSV file using multi-threading
     Write-Host "`n$CYAN🔧 Processing $($csvData.Count) users for $action...$RESET`n"
     $jobs = [System.Collections.ArrayList]::new()
     $maxThreads = 3
@@ -693,9 +695,9 @@ if ($inputMethod -eq "csv") {
         $percent = ($current / $total) * 100
         Write-Progress -Activity "Processing Users" -Status "$action user $current of $total" -PercentComplete $percent
 
-        # Extract only the fields we care about based on the action
+        # Pull out only the fields we need based on the action
         if ($action -eq "provision") {
-            # For provisioning, we only need Name and Email
+            # For provisioning, we just need Name and Email
             $name = if ($row.$nameCol) { $row.$nameCol -replace '"', "'" } else { "" }
             $email = if ($row.$emailCol) { $row.$emailCol } else { "" }
             $identifier = $email  # Not used for provisioning, but needed for consistency
@@ -1029,7 +1031,7 @@ else {
         })
     }
 
-    # Confirm destructive actions before proceeding
+    # Confirm before proceeding with destructive actions
     if ($action -in @("suspend", "reactivate", "delete")) {
         Write-Host "`n"
         $msg = switch ($action) {
@@ -1167,7 +1169,7 @@ else {
     }
 }
 
-# Save the results to a CSV file and display them
+# Save the results to a CSV file and display them in a table
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $outputCsv = "${action}_${timestamp}.csv"
 $results | Select-Object Name, Email, Status, FullMessage | Export-Csv -Path $outputCsv -NoTypeInformation
@@ -1176,4 +1178,6 @@ $fullOutputPath = (Get-Item $outputCsv).FullName
 Show-Table -Data $results
 Write-Host "`n$CYAN📊 $action completed! Results saved to $fullOutputPath$RESET`n"
 Write-Host "$GREEN🎈 All done! Check the CSV for details.$RESET`n"
+
+# Clean up memory
 [System.GC]::Collect()
