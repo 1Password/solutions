@@ -9,7 +9,7 @@ from datetime import datetime
 from queue import Queue
 from typing import List, Dict, Optional, Any, Tuple
 
-# ANSI color codes for pretty output
+# ANSI color codes for colorful terminal output
 CYAN: str = "\033[96m"
 YELLOW: str = "\033[93m"
 RED: str = "\033[91m"
@@ -18,16 +18,18 @@ RESET: str = "\033[0m"
 BLINK: str = "\033[5m"
 
 def wrap_text(text: str, max_width: int) -> List[str]:
-    """Breaks text into lines that fit within a given width."""
+    # Break text into lines that fit within a set width
     if not text:
         return [""]
-    
+
     lines: List[str] = []
     current_line: str = ""
     words: List[str] = text.split()
-    
+
+    # Process each word, wrapping if it exceeds max width
     for word in words:
         if len(word) > max_width:
+            # Handle words longer than max width by splitting them
             while len(word) > max_width:
                 if current_line:
                     lines.append(current_line)
@@ -44,7 +46,7 @@ def wrap_text(text: str, max_width: int) -> List[str]:
                 if current_line:
                     lines.append(current_line)
                 current_line = word
-    
+
     if current_line:
         lines.append(current_line)
     if not lines:
@@ -52,7 +54,7 @@ def wrap_text(text: str, max_width: int) -> List[str]:
     return lines
 
 def show_table(data: List[Dict[str, Any]], max_message_length: int = 30) -> None:
-    """Displays a table with results (Name, Email, Status, Message) in a neat box."""
+    # Print a neat table with Name, Email, Status, and Message
     if not data:
         print(f"\n{YELLOW}😕 No data to display.{RESET}")
         return
@@ -62,6 +64,7 @@ def show_table(data: List[Dict[str, Any]], max_message_length: int = 30) -> None
     max_lines: List[int] = []
     wrapped_data: List[Dict[str, Any]] = []
 
+    # Calculate max width for each column and wrap messages
     for item in data:
         name: str = str(item.get("Name", ""))
         email: str = str(item.get("Email", ""))
@@ -84,6 +87,7 @@ def show_table(data: List[Dict[str, Any]], max_message_length: int = 30) -> None
             "Message": wrapped_message
         })
 
+    # Set column widths with some padding, cap at reasonable limits
     for key in max_lengths:
         max_lengths[key] = max(max_lengths[key] + 4, 15)
         if key == "Email":
@@ -91,6 +95,7 @@ def show_table(data: List[Dict[str, Any]], max_message_length: int = 30) -> None
         else:
             max_lengths[key] = min(max_lengths[key], 40)
 
+    # Build table borders and header row
     top_border: str = "┌" + "─" * max_lengths["Name"] + "┬" + "─" * max_lengths["Email"] + "┬" + "─" * max_lengths["Status"] + "┬" + "─" * max_lengths["Message"] + "┐"
     mid_border: str = "├" + "─" * max_lengths["Name"] + "┼" + "─" * max_lengths["Email"] + "┼" + "─" * max_lengths["Status"] + "┼" + "─" * max_lengths["Message"] + "┤"
     row_border: str = mid_border
@@ -101,6 +106,7 @@ def show_table(data: List[Dict[str, Any]], max_message_length: int = 30) -> None
     print(f"{CYAN}{header_row}{RESET}")
     print(f"{CYAN}{mid_border}{RESET}")
 
+    # Print each row, handling multi-line messages
     for i, item in enumerate(wrapped_data):
         for j in range(max_lines[i]):
             name_text: str = item["Name"] if j == 0 else ""
@@ -116,7 +122,7 @@ def show_table(data: List[Dict[str, Any]], max_message_length: int = 30) -> None
     print(f"{CYAN}{bottom_border}{RESET}")
 
 def show_email_list(emails: List[str], action: str, names: Optional[List[str]] = None) -> None:
-    """Shows a simple table of users (or emails) for confirmation."""
+    # Show a confirmation table of emails or users before an action
     if not emails:
         print(f"\n{YELLOW}😕 No users/emails to display.{RESET}")
         return
@@ -126,6 +132,7 @@ def show_email_list(emails: List[str], action: str, names: Optional[List[str]] =
     max_lines: List[int] = []
     wrapped_data: List[Dict[str, str]] = []
 
+    # Prepare data with names and identifiers (or just emails)
     if names:
         for i, email in enumerate(emails):
             name: str = names[i] if i < len(names) else ""
@@ -137,6 +144,7 @@ def show_email_list(emails: List[str], action: str, names: Optional[List[str]] =
         max_lengths["Name"] = max(max_lengths["Name"] + 4, 15)
         max_lengths["Identifier"] = max(max_lengths["Identifier"] + 4, 15)
 
+        # Build table structure with two columns
         top_border: str = "┌" + "─" * max_lengths["Name"] + "┬" + "─" * max_lengths["Identifier"] + "┐"
         mid_border: str = "├" + "─" * max_lengths["Name"] + "┼" + "─" * max_lengths["Identifier"] + "┤"
         row_border: str = mid_border
@@ -180,7 +188,7 @@ def show_email_list(emails: List[str], action: str, names: Optional[List[str]] =
         print(f"{YELLOW}{bottom_border}{RESET}")
 
 def show_user_list(action: str) -> Optional[List[Dict[str, str]]]:
-    """Displays a table of users (UUID, Name, Email, State) for the 'list' option."""
+    # Display a table of users (UUID, Name, Email, State) filtered by action
     op_result: Tuple[bool, str] = invoke_op_command(["user", "list"])
     if not op_result[0]:
         print(f"\n{RED}😕 Failed to retrieve user list: {op_result[1]}{RESET}")
@@ -197,6 +205,7 @@ def show_user_list(action: str) -> Optional[List[Dict[str, str]]]:
         return None
 
     user_data: List[Dict[str, str]] = []
+    # Parse each line of 1Password CLI output
     for line in user_list_lines[1:]:
         line = line.strip()
         if not line or len(line) < 26:
@@ -204,6 +213,7 @@ def show_user_list(action: str) -> Optional[List[Dict[str, str]]]:
 
         uuid: str = line[:26].strip()
         remaining: str = line[26:].strip()
+        # Extract user state using regex
         state_match = re.search(r'\s+(SUSPENDED|TRANSFER_SUSPENDED|ACTIVE|PENDING|RECOVERY_STARTED|TRANSFER_STARTED)\s+', remaining)
         if not state_match:
             continue
@@ -213,6 +223,7 @@ def show_user_list(action: str) -> Optional[List[Dict[str, str]]]:
         state_length: int = len(state_match.group(0))
         before_state: str = remaining[:state_start].strip()
         after_state: str = remaining[state_start + state_length:].strip()
+        # Find email in the text before state
         email_match = re.search(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', before_state)
         if not email_match:
             continue
@@ -221,6 +232,7 @@ def show_user_list(action: str) -> Optional[List[Dict[str, str]]]:
         email_start: int = email_match.start()
         name: str = before_state[:email_start].strip() or "Unknown"
 
+        # Filter users based on action (e.g., only active users for suspend)
         include_user: bool = False
         if action == "suspend":
             include_user = state in ["ACTIVE", "PENDING", "RECOVERY_STARTED", "TRANSFER_STARTED"]
@@ -246,6 +258,7 @@ def show_user_list(action: str) -> Optional[List[Dict[str, str]]]:
     max_lines: List[int] = []
     wrapped_data: List[Dict[str, str]] = []
 
+    # Calculate column widths
     for user in user_data:
         max_lengths["UUID"] = max(max_lengths["UUID"], len(user["UUID"]))
         max_lengths["Name"] = max(max_lengths["Name"], len(user["Name"]))
@@ -257,6 +270,7 @@ def show_user_list(action: str) -> Optional[List[Dict[str, str]]]:
     for key in max_lengths:
         max_lengths[key] = max(max_lengths[key] + 4, 15)
 
+    # Construct table borders and header
     top_border: str = "┌" + "─" * max_lengths["UUID"] + "┬" + "─" * max_lengths["Name"] + "┬" + "─" * max_lengths["Email"] + "┬" + "─" * max_lengths["State"] + "┐"
     mid_border: str = "├" + "─" * max_lengths["UUID"] + "┼" + "─" * max_lengths["Name"] + "┼" + "─" * max_lengths["Email"] + "┼" + "─" * max_lengths["State"] + "┤"
     row_border: str = mid_border
@@ -267,6 +281,7 @@ def show_user_list(action: str) -> Optional[List[Dict[str, str]]]:
     print(f"{CYAN}{header_row}{RESET}")
     print(f"{CYAN}{mid_border}{RESET}")
 
+    # Print each user row
     for i, user in enumerate(wrapped_data):
         row: str = f"│ {user['UUID'].ljust(max_lengths['UUID'] - 2)} │ {user['Name'].ljust(max_lengths['Name'] - 2)} │ {user['Email'].ljust(max_lengths['Email'] - 2)} │ {user['State'].ljust(max_lengths['State'] - 2)} │"
         print(row)
@@ -277,8 +292,9 @@ def show_user_list(action: str) -> Optional[List[Dict[str, str]]]:
     return user_data
 
 def invoke_op_command(arguments: List[str]) -> Tuple[bool, str]:
-    """Runs commands using the 1Password CLI and handles the output."""
+    # Run a 1Password CLI command and handle its output
     try:
+        # Execute the command and capture output
         process = subprocess.run(
             ["op"] + arguments,
             capture_output=True,
@@ -289,9 +305,11 @@ def invoke_op_command(arguments: List[str]) -> Tuple[bool, str]:
         stderr: str = process.stderr
         exit_code: int = process.returncode
 
+        # Check for errors in exit code or stderr
         if exit_code != 0 or (stderr and "[ERROR]" in stderr):
             return False, stderr
 
+        # Map action to success message or use stdout
         result_message: str = {
             "provision": "Provisioned successfully",
             "suspend": "Suspended successfully",
@@ -302,6 +320,7 @@ def invoke_op_command(arguments: List[str]) -> Tuple[bool, str]:
         return True, result_message
     except subprocess.SubprocessError as e:
         error_message: str = str(e)
+        # Handle specific 1Password CLI errors
         if "TRANSFER_PENDING" in error_message or "TRANSFER_STARTED" in error_message:
             if arguments[1] == "provision":
                 return True, "Provisioned successfully (transfer in progress)"
@@ -317,16 +336,18 @@ def invoke_op_command(arguments: List[str]) -> Tuple[bool, str]:
         return False, error_message
 
 def process_user(name: str, identifier: str, action: str, result_queue: Queue) -> None:
-    """Processes a single user for the specified action."""
+    # Process a single user for the given action (provision, suspend, etc.)
     status: str = "Success"
     message: str = ""
     full_message: str = ""
 
+    # Validate identifier
     if not identifier:
         status = "Failed"
         message = "Missing email address" if action == "provision" else "Missing UUID or email address"
         full_message = message
     else:
+        # Set up 1Password CLI command arguments
         op_args: List[str] = {
             "provision": ["user", "provision", "--name", name, "--email", identifier],
             "suspend": ["user", "suspend", identifier, "--deauthorize-devices-after", "5m"],
@@ -339,6 +360,7 @@ def process_user(name: str, identifier: str, action: str, result_queue: Queue) -
             "reactivate": "Reactivated successfully",
             "delete": "Deleted successfully"
         }[action]
+        # Run the command and check result
         op_result: Tuple[bool, str] = invoke_op_command(op_args)
         if not op_result[0]:
             status = "Failed"
@@ -349,6 +371,7 @@ def process_user(name: str, identifier: str, action: str, result_queue: Queue) -
             message = op_result[1]
             full_message = message
 
+    # Store result in queue for main thread
     result_queue.put({
         "Name": name,
         "Email": identifier,
@@ -357,6 +380,7 @@ def process_user(name: str, identifier: str, action: str, result_queue: Queue) -
     })
 
 def main() -> None:
+    # Manage 1Password users via CSV or manual input
     print(f"\n{CYAN}🚀 Welcome to the 1Password User Management Script! 🎉{RESET}")
     print("This script provisions, suspends, reactivates, or deletes users from a CSV file or manually.")
     print("CSV must have 'Name' and 'Email' columns (case-insensitive) if used.\n")
@@ -369,7 +393,7 @@ def main() -> None:
         print("Download from: https://developer.1password.com/docs/cli/get-started/\n")
         sys.exit(1)
 
-    # Check authentication
+    # Verify 1Password CLI authentication
     auth_check: Tuple[bool, str] = invoke_op_command(["user", "list"])
     if not auth_check[0]:
         print(f"{YELLOW}🔐 Looks like we need to authenticate with 1Password CLI.{RESET}")
@@ -395,7 +419,7 @@ def main() -> None:
     else:
         print(f"{GREEN}✅ Already authenticated with 1Password CLI.{RESET}\n")
 
-    # Get input method
+    # Get input method (CSV, manual, export, or quit)
     input_method: Optional[str] = None
     valid_methods: List[str] = ["csv", "manual", "export", "quit"]
     first_prompt: bool = True
@@ -421,6 +445,7 @@ def main() -> None:
                 continue
 
         if input_method == "export":
+            # Export user list to CSV
             user_list: Optional[List[Dict[str, str]]] = show_user_list("delete")
             if user_list:
                 timestamp: str = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -441,7 +466,7 @@ def main() -> None:
         print(f"{CYAN}👋 Exiting script.{RESET}\n")
         return
 
-    # Get action
+    # Get action (provision, suspend, reactivate, delete, or quit)
     valid_actions: List[str] = ["provision", "suspend", "reactivate", "delete", "quit"]
     action: Optional[str] = None
     while not action:
@@ -461,6 +486,7 @@ def main() -> None:
     if input_method == "csv":
         default_csv: str = "people.csv"
         csv_path: Optional[str] = None
+        # Prompt for CSV file path
         while not csv_path:
             print(f"\n{YELLOW}📄 Enter the path to your CSV file (default: {default_csv}, type 'quit' to exit):{RESET}\n")
             input_path: str = input(f"{YELLOW}➡️ Path: {RESET}")
@@ -475,6 +501,7 @@ def main() -> None:
                 continue
 
         try:
+            # Read and validate CSV data
             csv_data: List[Dict[str, str]] = []
             with open(csv_path, newline='') as csvfile:
                 reader = csv.DictReader(csvfile)
@@ -487,6 +514,7 @@ def main() -> None:
                 print(f"\n{RED}😕 CSV file contains no data. Please use a valid CSV file.{RESET}")
                 return
 
+            # Check required columns
             if action == "provision":
                 if not any(col.lower() == "name" for col in reader.fieldnames) or not any(col.lower() == "email" for col in reader.fieldnames):
                     print(f"\n{RED}😕 CSV must have 'Name' and 'Email' columns for provisioning. Please use a valid CSV file.{RESET}")
@@ -501,6 +529,7 @@ def main() -> None:
 
         csv_identifiers: List[str] = []
         csv_names: List[str] = []
+        # Extract identifiers and names from CSV
         for row in csv_data:
             if action == "provision":
                 name = str(row.get("Name", "")).replace('"', "'")
@@ -514,6 +543,7 @@ def main() -> None:
             csv_identifiers.append(identifier)
             csv_names.append(name)
 
+        # Confirm destructive actions
         if action in ["suspend", "reactivate", "delete"]:
             print("\n")
             msg: str = {
@@ -533,8 +563,9 @@ def main() -> None:
         print(f"\n{CYAN}🔧 Processing {len(csv_data)} users for {action}...{RESET}\n")
         result_queue: Queue = Queue()
         threads: List[threading.Thread] = []
-        max_threads: int = 3
+        max_threads: int = 3  # Limit to 3 threads to avoid overwhelming the system
 
+        # Process users(branch: main) users in parallel
         for i, row in enumerate(csv_data):
             while len([t for t in threads if t.is_alive()]) >= max_threads:
                 time.sleep(0.1)
@@ -552,9 +583,11 @@ def main() -> None:
             thread.start()
             threads.append(thread)
 
+        # Wait for all threads to finish
         for thread in threads:
             thread.join()
 
+        # Collect results from queue
         while not result_queue.empty():
             results.append(result_queue.get())
 
@@ -564,6 +597,7 @@ def main() -> None:
 
         if action in ["suspend", "reactivate", "delete"]:
             identifier_input: Optional[str] = None
+            # Prompt for UUID or email, with option to list users
             while not identifier_input:
                 print(f"{YELLOW}📋 Enter the user(s) UUID or email (separate multiple entries with commas, type 'list' to see filtered users, or 'quit' to exit):{RESET}\n")
                 identifier_input = input(f"{YELLOW}➡️ UUID(s) or Email(s): {RESET}")
@@ -589,6 +623,7 @@ def main() -> None:
                         break
         else:
             email_input: Optional[str] = None
+            # Prompt for email for provisioning
             while not email_input:
                 print(f"{YELLOW}📋 Enter the user's email (type 'quit' to exit):{RESET}\n")
                 email_input = input(f"{YELLOW}➡️ Email: {RESET}")
@@ -607,6 +642,7 @@ def main() -> None:
 
         if action == "provision":
             name: Optional[str] = None
+            # Prompt for name for provisioning
             while not name:
                 print(f"{YELLOW}📋 Enter the user's name (type 'quit' to exit):{RESET}\n")
                 name = input(f"{YELLOW}➡️ Name: {RESET}")
@@ -625,15 +661,18 @@ def main() -> None:
             result_queue = Queue()
             threads = []
 
+            # Fetch user info for each identifier
             for identifier in identifiers:
                 while len([t for t in threads if t.is_alive()]) >= 3:
                     time.sleep(0.1)
 
                 def get_user_info(identifier: str, queue: Queue) -> None:
+                    # Get user details from 1Password CLI
                     op_result: Tuple[bool, str] = invoke_op_command(["user", "get", identifier])
                     name: str = "Unknown"
                     email: str = identifier
                     if op_result[0]:
+                        # Parse name and email from CLI output
                         name_match = re.search(r"Name:\s*([^\n]+)", op_result[1])
                         email_match = re.search(r"Email:\s*([^\n]+)", op_result[1])
                         if name_match:
@@ -652,12 +691,15 @@ def main() -> None:
                 thread.start()
                 threads.append(thread)
 
+            # Wait for user info threads to finish
             for thread in threads:
                 thread.join()
 
+            # Collect user details from queue
             while not result_queue.empty():
                 user_details.append(result_queue.get())
 
+            # Handle users that don't exist
             failed_users: List[Dict[str, Any]] = [u for u in user_details if not u["Exists"]]
             if failed_users:
                 for failed_user in failed_users:
@@ -683,6 +725,7 @@ def main() -> None:
             identifiers = [u["Email"] for u in user_details]
             name = user_details[0]["Name"] if user_details else name
 
+        # Confirm destructive actions for manual input
         if action in ["suspend", "reactivate", "delete"]:
             print("\n")
             msg = {
@@ -703,6 +746,7 @@ def main() -> None:
         result_queue = Queue()
         threads = []
 
+        # Process each user in a separate thread
         for identifier in identifiers:
             while len([t for t in threads if t.is_alive()]) >= 3:
                 time.sleep(0.1)
@@ -711,12 +755,15 @@ def main() -> None:
             thread.start()
             threads.append(thread)
 
+        # Wait for all processing threads to finish
         for thread in threads:
             thread.join()
 
+        # Collect results from queue
         while not result_queue.empty():
             results.append(result_queue.get())
 
+    # Save results to a CSV file
     timestamp: str = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_csv: str = f"{action}_{timestamp}.csv"
     with open(output_csv, 'w', newline='') as csvfile:
@@ -725,6 +772,7 @@ def main() -> None:
         writer.writerows(results)
     full_output_path: str = os.path.abspath(output_csv)
 
+    # Display results and wrap up
     show_table(results)
     print(f"\n{CYAN}📊 {action} completed! Results saved to {full_output_path}{RESET}\n")
     print(f"{GREEN}🎈 All done! Check the CSV for details.{RESET}\n")
