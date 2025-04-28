@@ -25,14 +25,16 @@ For more details on how to select items, see [op item list](https://developer.1p
 
 ### Modify the website value of multiple items
 
-If you need to make the same change to the website field of many items, scripts that provide this functionality in both Python and Powershell are available:
-* Python: [bulk-update-url-field-by-vault.py](bulk-update-url-field-by-vault.py)
-* Powershell [bulk-update-url-field-by-vault.ps1](bulk-update-url-field-by-vault.ps1).
-
 **Requirements**: The Python script requires the `tqdm` package for progress bar functionality. Install it by running:
   ```
   pip install -r requirements.txt
   ```
+  
+If you need to make the same change to the website field of many items, scripts that provide this functionality in both Python and Powershell are available:
+
+* Python: [bulk-update-url-field-by-vault.py](bulk-update-url-field-by-vault.py)
+* Powershell [bulk-update-url-field-by-vault.ps1](bulk-update-url-field-by-vault.ps1).
+
 
 ### Modify the username of multiple items
 
