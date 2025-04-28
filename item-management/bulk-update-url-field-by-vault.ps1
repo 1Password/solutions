@@ -13,35 +13,39 @@ function Show-TableInBox {
     $itemTitleHeader = "ItemTitle"
     $oldWebsiteHeader = "OldWebsite"
     $newWebsiteHeader = "NewWebsite"
+    $errorHeader = "Error"
 
     # Calculate maximum length for each column.
-    $itemIdMaxLength = [math]::Max(($Data | ForEach-Object { $_.ItemID.Length } | Measure-Object -Maximum).Maximum, $itemIdHeader.Length)
-    $itemTitleMaxLength = [math]::Max(($Data | ForEach-Object { $_.ItemTitle.Length } | Measure-Object -Maximum).Maximum, $itemTitleHeader.Length)
-    $oldWebsiteMaxLength = [math]::Max(($Data | ForEach-Object { $_.OldWebsite.Length } | Measure-Object -Maximum).Maximum, $oldWebsiteHeader.Length)
-    $newWebsiteMaxLength = [math]::Max(($Data | ForEach-Object { $_.NewWebsite.Length } | Measure-Object -Maximum).Maximum, $newWebsiteHeader.Length)
+    $itemIdMaxLength = [math]::Max(($Data | ForEach-Object { ($_.ItemID ?? "").Length } | Measure-Object -Maximum).Maximum, $itemIdHeader.Length)
+    $itemTitleMaxLength = [math]::Max(($Data | ForEach-Object { ($_.ItemTitle ?? "").Length } | Measure-Object -Maximum).Maximum, $itemTitleHeader.Length)
+    $oldWebsiteMaxLength = [math]::Max(($Data | ForEach-Object { ($_.OldWebsite ?? "").Length } | Measure-Object -Maximum).Maximum, $oldWebsiteHeader.Length)
+    $newWebsiteMaxLength = [math]::Max(($Data | ForEach-Object { ($_.NewWebsite ?? "").Length } | Measure-Object -Maximum).Maximum, $newWebsiteHeader.Length)
+    $errorMaxLength = [math]::Max(($Data | ForEach-Object { ($_.Error ?? "").Length } | Measure-Object -Maximum).Maximum, $errorHeader.Length)
 
     # Add padding for readability.
     $itemIdMaxLength += 2
     $itemTitleMaxLength += 2
     $oldWebsiteMaxLength += 2
     $newWebsiteMaxLength += 2
+    $errorMaxLength += 2
 
     # Build the box borders.
-    $topBorder = "┌" + ("─" * $itemIdMaxLength) + "┬" + ("─" * $itemTitleMaxLength) + "┬" + ("─" * $oldWebsiteMaxLength) + "┬" + ("─" * $newWebsiteMaxLength) + "┐"
-    $headerRow = "│ " + $itemIdHeader.PadRight($itemIdMaxLength - 2) + " │ " + $itemTitleHeader.PadRight($itemTitleMaxLength - 2) + " │ " + $oldWebsiteHeader.PadRight($oldWebsiteMaxLength - 2) + " │ " + $newWebsiteHeader.PadRight($newWebsiteMaxLength - 2) + " │"
-    $midBorder = "├" + ("─" * $itemIdMaxLength) + "┼" + ("─" * $itemTitleMaxLength) + "┼" + ("─" * $oldWebsiteMaxLength) + "┼" + ("─" * $newWebsiteMaxLength) + "┤"
-    $bottomBorder = "└" + ("─" * $itemIdMaxLength) + "┴" + ("─" * $itemTitleMaxLength) + "┴" + ("─" * $oldWebsiteMaxLength) + "┴" + ("─" * $newWebsiteMaxLength) + "┘"
+    $topBorder = "┌" + ("─" * $itemIdMaxLength) + "┬" + ("─" * $itemTitleMaxLength) + "┬" + ("─" * $oldWebsiteMaxLength) + "┬" + ("─" * $newWebsiteMaxLength) + "┬" + ("─" * $errorMaxLength) + "┐"
+    $headerRow = "│ " + $itemIdHeader.PadRight($itemIdMaxLength - 2) + " │ " + $itemTitleHeader.PadRight($itemTitleMaxLength - 2) + " │ " + $oldWebsiteHeader.PadRight($oldWebsiteMaxLength - 2) + " │ " + $newWebsiteHeader.PadRight($newWebsiteMaxLength - 2) + " │ " + $errorHeader.PadRight($errorMaxLength - 2) + " │"
+    $midBorder = "├" + ("─" * $itemIdMaxLength) + "┼" + ("─" * $itemTitleMaxLength) + "┼" + ("─" * $oldWebsiteMaxLength) + "┼" + ("─" * $newWebsiteMaxLength) + "┼" + ("─" * $errorMaxLength) + "┤"
+    $bottomBorder = "└" + ("─" * $itemIdMaxLength) + "┴" + ("─" * $itemTitleMaxLength) + "┴" + ("─" * $oldWebsiteMaxLength) + "┴" + ("─" * $newWebsiteMaxLength) + "┴" + ("─" * $errorMaxLength) + "┘"
 
     # Output the box.
     Write-Host $topBorder -ForegroundColor Cyan
     Write-Host $headerRow -ForegroundColor Cyan
     Write-Host $midBorder -ForegroundColor Cyan
     foreach ($item in $Data) {
-        $itemId = $item.ItemID.PadRight($itemIdMaxLength - 2)
-        $itemTitle = $item.ItemTitle.PadRight($itemTitleMaxLength - 2)
-        $oldWebsite = $item.OldWebsite.PadRight($oldWebsiteMaxLength - 2)
-        $newWebsite = $item.NewWebsite.PadRight($newWebsiteMaxLength - 2)
-        Write-Host "│ $itemId │ $itemTitle │ $oldWebsite │ $newWebsite │" -ForegroundColor White
+        $itemId = ($item.ItemID ?? "").PadRight($itemIdMaxLength - 2)
+        $itemTitle = ($item.ItemTitle ?? "").PadRight($itemTitleMaxLength - 2)
+        $oldWebsite = ($item.OldWebsite ?? "").PadRight($oldWebsiteMaxLength - 2)
+        $newWebsite = ($item.NewWebsite ?? "").PadRight($newWebsiteMaxLength - 2)
+        $error = ($item.Error ?? "").PadRight($errorMaxLength - 2)
+        Write-Host "│ $itemId │ $itemTitle │ $oldWebsite │ $newWebsite │ $error │" -ForegroundColor White
     }
     Write-Host $bottomBorder -ForegroundColor Cyan
 }
@@ -88,7 +92,7 @@ while (-not $vault) {
 $vaultConfirmed = $false
 while (-not $vaultConfirmed) {
     Write-Host ""
-    Write-Host "You picked the vault '$($vault.name)' (ID: $($vault.id)). Sound good? (y/n, Enter for y)"
+    Write-Host "You picked the vault '$($vault.name)' (ID: $($vault.id)). Confirm? (Y/n)"
     Write-Host -NoNewline "➡️ Enter your choice: " -ForegroundColor Yellow
     $confirmVault = Read-Host
 
@@ -134,7 +138,7 @@ while (-not $vaultConfirmed) {
             }
         }
     } else {
-        Write-Host "`n😕 Please enter 'y', 'n', or press Enter for 'y'!" -ForegroundColor Red
+        Write-Host "`n😕 Please enter 'y' or 'n'!" -ForegroundColor Red
     }
 }
 
@@ -157,7 +161,7 @@ while (-not $confirmed) {
     $urlConfirmed = $false
     while (-not $urlConfirmed) {
         Write-Host ""
-        Write-Host "You entered '$newURL'. Is that right? (y/n, Enter for y)"
+        Write-Host "You entered '$newURL'. Confirm? (Y/n)"
         Write-Host -NoNewline "➡️ Enter your choice: " -ForegroundColor Yellow
         $confirmURL = Read-Host
         if (-not $confirmURL) { $confirmURL = 'y' }
@@ -175,7 +179,7 @@ while (-not $confirmed) {
                 }
             }
         } else {
-            Write-Host "`n😕 Please enter 'y', 'n', or press Enter for 'y'!" -ForegroundColor Red
+            Write-Host "`n😕 Please enter 'y' or 'n'!" -ForegroundColor Red
         }
     }
 
@@ -200,36 +204,57 @@ while (-not $confirmed) {
         $item = $_
         $changesBag = $using:changes
         $newURL = $using:newURL
+        $errorMessage = ""
 
         # Retrieve item details in plain text.
-        $itemDetails = op item get $item.id | Out-String
+        try {
+            $itemDetails = op item get $item.id 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 0) {
+                throw $itemDetails
+            }
 
-        # Parse the URLs section to extract the primary URL.
-        $currentWebsite = ""
-        $inUrlsSection = $false
-        foreach ($line in ($itemDetails -split "`n")) {
-            if ($line -match "^URLs:") {
-                $inUrlsSection = $true
-                continue
+            # Parse the URLs section to extract the primary URL.
+            $currentWebsite = ""
+            $inUrlsSection = $false
+            foreach ($line in ($itemDetails -split "`n")) {
+                if ($line -match "^URLs:") {
+                    $inUrlsSection = $true
+                    continue
+                }
+                if ($inUrlsSection -and $line -match "^:.*\(primary\)") {
+                    $currentWebsite = ($line -replace "^:\s*" -replace "\s*\(primary\)$").Trim()
+                    break
+                }
+                if ($inUrlsSection -and $line -notmatch "^\s*:") {
+                    break
+                }
             }
-            if ($inUrlsSection -and $line -match "^:.*\(primary\)") {
-                $currentWebsite = ($line -replace "^:\s*" -replace "\s*\(primary\)$").Trim()
-                break
+
+            # Update the item’s website field.
+            try {
+                op item edit $item.id website=$newURL 2>&1 | Out-Null
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Failed to update website: $LASTEXITCODE"
+                }
+            } catch {
+                $errorMessage = $_
+                Write-Host "😕 Error updating item $($item.id) ($($item.title)): $_" -ForegroundColor Red
             }
-            if ($inUrlsSection -and $line -notmatch "^\s*:") {
-                break
-            }
+
+            # Add delay to avoid rate limiting.
+            Start-Sleep -Milliseconds 500
+        } catch {
+            $errorMessage = "Failed to retrieve item details: $_"
+            Write-Host "😕 Error retrieving item $($item.id) ($($item.title)): $_" -ForegroundColor Red
         }
-
-        # Update the item’s website field.
-        op item edit $item.id website=$newURL | Out-Null
 
         # Add the change to the thread-safe collection.
         $changesBag.Add([PSCustomObject]@{
             ItemID = $item.id
             ItemTitle = $item.title
             OldWebsite = $currentWebsite
-            NewWebsite = $newURL
+            NewWebsite = if ($errorMessage) { "" } else { $newURL }
+            Error = $errorMessage
         })
     } -ThrottleLimit 3
 
@@ -270,7 +295,7 @@ while (-not $confirmed) {
             Write-Host "Here’s what we changed (saved to $fullCsvPath):" -ForegroundColor Cyan
             Write-Host ""
         }
-        Write-Host "Review the output or CSV. Happy with the changes? (y/n/revert, Enter for y)"
+        Write-Host "Review the output or CSV. Confirm changes? (Y/n/revert)"
         Write-Host ""
         Write-Host -NoNewline "➡️ Enter your choice: " -ForegroundColor Yellow
         $confirmChanges = Read-Host
@@ -286,11 +311,15 @@ while (-not $confirmed) {
             # Revert changes using multi-threading (3 threads).
             $changesArray | ForEach-Object -Parallel {
                 $change = $_
-                if ($change.OldWebsite) {
+                if ($change.OldWebsite -and $change.NewWebsite) {
                     op item edit $change.ItemID website=$($change.OldWebsite) | Out-Null
+                } elseif (-not $change.NewWebsite) {
+                    Write-Host "😕 Skipping revert for item $($change.ItemID): Update failed" -ForegroundColor Yellow
                 } else {
                     op item edit $change.ItemID website="" | Out-Null
                 }
+                # Add delay to avoid rate limiting.
+                Start-Sleep -Milliseconds 500
             } -ThrottleLimit 3
 
             # Display progress and spinner for revert.
@@ -317,7 +346,7 @@ while (-not $confirmed) {
             Write-Host "😕 Not satisfied? Let's try a different URL!" -ForegroundColor Yellow
             break
         } else {
-            Write-Host "`n😕 Please enter 'y', 'n', 'revert', or press Enter for 'y'!" -ForegroundColor Red
+            Write-Host "`n😕 Please enter 'y', 'n', or 'revert'!" -ForegroundColor Red
         }
     }
 }
