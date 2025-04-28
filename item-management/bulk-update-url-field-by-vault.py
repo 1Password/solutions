@@ -161,7 +161,7 @@ vault_confirmed = False
 while not vault_confirmed:
     print("")
     print(
-        f"You picked the vault '{vault['name']}' (ID: {vault['id']}). Sound good? (y/n, Enter for y)"
+        f"You picked the vault '{vault['name']}' (ID: {vault['id']}). Confirm? (Y/n)"
     )
     confirm_vault = input(f"{YELLOW}➡️ Enter your choice: {RESET}").strip()
 
@@ -219,7 +219,7 @@ while not vault_confirmed:
                     )
                     show_list_prompt = False
     else:
-        print(f"\n{RED}😕 Please enter 'y', 'n', or press Enter for 'y'!{RESET}")
+        print(f"\n{RED}😕 Please enter 'y' or 'n'!{RESET}")
 
 # Prompt for and update the website URL until confirmed.
 confirmed = False
@@ -239,7 +239,7 @@ while not confirmed:
     url_confirmed = False
     while not url_confirmed:
         print("")
-        print(f"You entered '{new_url}'. Is that right? (y/n, Enter for y)")
+        print(f"You entered '{new_url}'. Confirm? (Y/n)")
         confirm_url = input(f"{YELLOW}➡️ Enter your choice: {RESET}").strip()
         if not confirm_url:
             confirm_url = "y"
@@ -256,7 +256,7 @@ while not confirmed:
                 if not new_url:
                     print(f"\n{RED}😕 Please provide a URL to continue!{RESET}")
         else:
-            print(f"\n{RED}😕 Please enter 'y', 'n', or press Enter for 'y'!{RESET}")
+            print(f"\n{RED}😕 Please enter 'y' or 'n'!{RESET}")
 
     # Retrieve items from the selected vault.
     items_json = run_op_command(
@@ -365,9 +365,7 @@ while not confirmed:
             print("")
             print(f"{CYAN}Here’s what we changed (saved to {full_csv_path}):{RESET}")
             print("")
-        print(
-            "Review the output or CSV. Happy with the changes? (y/n/revert, Enter for y)"
-        )
+        print("Review the output or CSV. Confirm changes? (Y/n/revert)")
         print("")
         confirm_changes = input(f"{YELLOW}➡️ Enter your choice: {RESET}").strip()
 
@@ -426,7 +424,7 @@ while not confirmed:
             break
         else:
             print(
-                f"\n{RED}😕 Please enter 'y', 'n', 'revert', or press Enter for 'y'!{RESET}"
+                f"\n{RED}😕 Please enter 'y', 'n', or 'revert'!{RESET}"
             )
 
 # Confirm successful completion.
