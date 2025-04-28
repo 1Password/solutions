@@ -16,7 +16,7 @@ The script and example input file in [create-items-from-input](create-items-from
 
 * You can select items based on several criteria, including the the vault they are stored in, one or more tags, or the value of a field, such as website or username.
 * Examples of performing bulk actions on every item in a vault:
-  * [bulk-update-url-field-by-vault.sh](bulk-update-url-field-by-vault.sh)
+  * [bulk-update-url-field-by-vault.py](bulk-update-url-field-by-vault.py) or [bulk-update-url-field-by-vault.ps1](bulk-update-url-field-by-vault.ps1)
   * [modify-field-type-by-vault.sh](modify-field-type-by-vault.sh)
 * Examples of performing bulk actions on all items with a specific tag:
   * [bulk-update-username-by-tag.sh](./bulk-update-username-by-tag.sh)
@@ -25,7 +25,16 @@ For more details on how to select items, see [op item list](https://developer.1p
 
 ### Modify the website value of multiple items
 
-If you have a large number of items that require identical changes to the value of the website field, the [bulk-update-url-field-by-vault.sh](bulk-update-url-field-by-vault.sh) is a starting point for such a script.
+**Requirements**: The Python script requires the `tqdm` package for progress bar functionality. Install it by running:
+  ```
+  pip install -r requirements.txt
+  ```
+  
+If you need to make the same change to the website field of many items, scripts that provide this functionality in both Python and Powershell are available:
+
+* Python: [bulk-update-url-field-by-vault.py](bulk-update-url-field-by-vault.py)
+* Powershell [bulk-update-url-field-by-vault.ps1](bulk-update-url-field-by-vault.ps1).
+
 
 ### Modify the username of multiple items
 
