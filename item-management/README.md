@@ -29,6 +29,11 @@ If you need to make the same change to the website field of many items, scripts 
 * Python: [bulk-update-url-field-by-vault.py](bulk-update-url-field-by-vault.py)
 * Powershell [bulk-update-url-field-by-vault.ps1](bulk-update-url-field-by-vault.ps1).
 
+**Requirements**: The Python script requires the `tqdm` package for progress bar functionality. Install it by running:
+  ```
+  pip install -r requirements.txt
+  ```
+
 ### Modify the username of multiple items
 
 If you have a large number of items requiring identical changes to the username field [bulk-update-username-by-tag.sh](bulk-update-username-by-tag.sh) is one possible approach.
