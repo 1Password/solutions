@@ -1,9 +1,0 @@
-db.prod.domain.com dbUser userData
-app.prod.domain.com admin cpanel
-service.prod.domain.com administrator devDB
-data.prod.domain.com/login devadmin customerLogin
-api.prod.domain.com admindev imageCache
-backend.prod.domain.com authAdmin backend
-https://prod.domain.com:5150 admin-test Processor
-http://connect.prod.localhost:2112 slinkyMonkey authPortal
-prod.domain.com/auth/login testuser tempDB
