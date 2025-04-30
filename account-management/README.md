@@ -33,11 +33,16 @@ When run by a member of the Owners group, this script provides the vault name, t
 
 When run by a non-Owner, it will provide these details for all vaults the user running the script has access to.
 
-### [`remove-export-all-groups-and-vaults.sh`](remove-export-all-groups-and-vault.sh)
+### [`remove-permissions-groups-and-vaults.py`](remove-export-all-groups-and-vault.sh)
 
-When run by a member of the Owners group, this script will remove the `export items` permission for every vault that every group has access to without exception.
+**Requirements**: The Python script requires the `tqdm` package for progress bar functionality. Install it by running:
+  ```
+  pip install -r requirements.txt
+  ```
 
-When run by a non-Owner, this script will remove the `export` permission on vaults that the person running the script also has the `manage vault` permissions for.
+When run by a member of the Owners group, this script will remove permissions for every vault that any group you select has access to.
+
+When run by a non-Owner, this script will remove your selected permissions on vaults that the person running the script also has the `manage vault` permissions for.
 
 ### [`vault-permission-change.sh`](vault-permission-change.sh)
 
