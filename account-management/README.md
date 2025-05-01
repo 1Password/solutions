@@ -34,10 +34,15 @@ When run by a member of the Owners group, this script will remove permissions fo
 
 When run by a non-Owner, this script will remove your selected permissions on vaults that the person running the script also has the `manage vault` permissions for.
 
-
 #### Requirements 
 The Python script requires the `tqdm` package for progress bar functionality. Install it by running:
   ```
   pip install -r requirements.txt
   ```
 
+
+### [`vault-details.sh`](vault-details.sh)
+
+When run by a member of the Owners group, this script provides the vault name, the number of items in the vault, the last time the vault contents were updated, and list which users and groups have access to that vault along with their permissions.
+
+When run by a non-Owner, it will provide these details for all vaults the user running the script has access to.
