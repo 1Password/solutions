@@ -8,9 +8,6 @@ For more information about managing items with the 1Password command line tool, 
 
 ## Use-cases
 
-### Bulk item creation from input file
-
-The script and example input file in [create-items-from-input](create-items-from-input) show how you can create items based on an input file list. This specific example generates a password at item creation time. Passwords could also be passed in from the input file, if desired.
 
 ### Bulk selectors
 
@@ -19,7 +16,6 @@ The script and example input file in [create-items-from-input](create-items-from
   * [bulk-update-url-field-by-vault.py](bulk-update-url-field-by-vault.py) or [bulk-update-url-field-by-vault.ps1](bulk-update-url-field-by-vault.ps1)
   * [modify-field-type-by-vault.sh](modify-field-type-by-vault.sh)
 * Examples of performing bulk actions on all items with a specific tag:
-  * [bulk-update-username-by-tag.sh](./bulk-update-username-by-tag.sh)
 
 For more details on how to select items, see [op item list](https://developer.1password.com/docs/cli/reference/management-commands/item#item-list).
 
@@ -34,11 +30,6 @@ If you need to make the same change to the website field of many items, scripts 
 
 * Python: [bulk-update-url-field-by-vault.py](bulk-update-url-field-by-vault.py)
 * Powershell [bulk-update-url-field-by-vault.ps1](bulk-update-url-field-by-vault.ps1).
-
-
-### Modify the username of multiple items
-
-If you have a large number of items requiring identical changes to the username field [bulk-update-username-by-tag.sh](bulk-update-username-by-tag.sh) is one possible approach.
 
 ### Change field type while retaining value
 
