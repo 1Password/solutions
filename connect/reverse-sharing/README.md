@@ -1,6 +1,6 @@
 # Basic 1Password Connect Item Creator Webapp
 
-A very simple web application built with Flask and deployable via Docker. It provides a basic web form to create new Login items in a specified 1Password vault using the 1Password Connect REST API. **Note:** This version does not include any user authentication.
+A very simple web application built with Flask and deployable via Docker. It provides a basic web form to create new Login items in a specified 1Password vault using the 1Password Connect REST API. **Note:** This version is a proof of concept that can be deployed locally. For production use, look at our [connect documentation](https://developer.1password.com/docs/connect/get-started/).
 
 ## Features
 
@@ -13,7 +13,7 @@ A very simple web application built with Flask and deployable via Docker. It pro
 ## 1Password Setup
 
 1. Create a vault in 1Password exclusively for this application.
-2. In 1Password admin console, go to Developer -> Connect servers and create a new connect server with Read, Write permissions to that vault.
+2. In 1Password admin console, go to Developer -> Connect servers and create a new connect server with Read, Write permissions to that vault. Save the 1password-credentials.json file and place in this directory.
 3. Create an access token with only write permissions to that vault.
 4. Copy the token and save it securely. You will need it to create items in the vault.
 
@@ -70,6 +70,10 @@ This application requires essential 1Password Connect details provided as enviro
    - `-p 5000:5000`: Map port 5000 on your host to port 5000 in the container.
    - `-e VARIABLE="VALUE"`: Set the required environment variables.
    - `--name my-basic-op-app`: Assign a name to the container.
+
+4. **Access the Application:** Open your web browser and navigate to `http://localhost:5000`. Enter the bearer token with write access to the target vault (the API token for your 1Password Connect server) in the form.
+5. **Create Item:** Fill in the Title (required), Username, Password, and Notes fields for the new 1Password Login item.
+6. **Submit:** Click "Create Item". You will see a success or error message displayed on the page.
 
 ## Usage
 
