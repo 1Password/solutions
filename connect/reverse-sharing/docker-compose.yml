@@ -43,7 +43,6 @@ services:
         mode: 0400
     volumes:
       - data:/home/opuser/.op/data
-    env_file: connect-api.env
     user: "999:999"
 
   sync:
@@ -61,7 +60,6 @@ services:
         mode: 0400
     volumes:
       - data:/home/opuser/.op/data
-    env_file: connect-sync.env
     user: "999:999"
 
 volumes:
