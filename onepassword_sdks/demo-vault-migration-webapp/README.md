@@ -60,6 +60,7 @@ If something goes wrong:
 
 ## Limitations
 
+- The SDK, similar to the CLI and vault data export, cannot access or report on the passkey field. To transfer passkeys between 1Password accounts, use the 1Password app on your desktop or mobile device.
 - The app uses a self-signed certificate for HTTPS, which works for local testing but needs a real certificate for production.
 - You can’t change the vault names — the script just adds "(Migrated)" to the name in the destination account.
 - The app has fixed limits for how many vaults (2) and items (1) it processes at a time, which might need tweaking for big migrations.

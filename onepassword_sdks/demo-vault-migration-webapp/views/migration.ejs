@@ -12,7 +12,7 @@
     .connection-info p { margin: 0; font-size: 1.1em; color: #2ECC71; background-color: transparent; display: inline; }
     .connection-info button { padding: 5px 10px; background-color: #9B59B6; color: #ECF0F1; border: none; border-radius: 5px; cursor: pointer; transition: background 0.3s; margin-left: 10px; vertical-align: middle; }
     .connection-info button:hover { background-color: #8E44AD; }
-    .migrate-btn, .migrate-all-btn { 
+    .migrate-btn, .migrate-all-btn, .download-log-btn { 
       padding: 10px 20px; 
       background-color: #9B59B6; 
       color: #ECF0F1; 
@@ -23,13 +23,27 @@
       margin-right: 10px; 
       font-size: 1em; 
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); 
+      margin-bottom: 15px;
     }
-    .migrate-btn:hover, .migrate-all-btn:hover { 
+    .migrate-btn:hover, .migrate-all-btn:hover, .download-log-btn:hover { 
       background-color: #8E44AD; 
       transform: translateY(-2px); 
     }
-    .migrate-btn:active, .migrate-all-btn:active { 
+    .migrate-btn:active, .migrate-all-btn:active, .download-log-btn:active { 
       transform: translateY(0); 
+    }
+    .vault-log-btn {
+      padding: 5px 10px;
+      background-color: #3498DB;
+      color: #ECF0F1;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+      font-size: 0.9em;
+    }
+    .vault-log-btn:hover {
+      background-color: #2980B9;
     }
     .cancel-btn { 
       padding: 5px 10px; 
@@ -172,6 +186,7 @@
                   <th><input type="checkbox" id="select-all-vaults"></th>
                   <th>Name</th>
                   <th>ID</th>
+                  <th>Item Count</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -205,6 +220,7 @@
                 <tr>
                   <th>Name</th>
                   <th>ID</th>
+                  <th>Item Count</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -217,12 +233,15 @@
         <div id="migrated" class="tab-content" style="display: none;">
           <h3>Migrated Vaults</h3>
           <div class="vault-table-container">
+            <button onclick="downloadLog()" class="download-log-btn">Download All Logs</button>
             <table class="vault-table">
               <thead>
                 <tr>
                   <th>Name</th>
                   <th>ID</th>
+                  <th>Item Count</th>
                   <th>Status</th>
+                  <th>Vault Log</th>
                 </tr>
               </thead>
               <tbody id="migrated-vault-table-body"></tbody>
@@ -341,8 +360,8 @@
               renderVaultsAll(filteredVaults);
             });
           } else {
-            sourceVaultTableBody.innerHTML = '<tr><td colspan="4">No vaults found in the source tenant.</td></tr>';
-            sourceVaultTableBodyAll.innerHTML = '<tr><td colspan="3">No vaults found in the source tenant.</td></tr>';
+            sourceVaultTableBody.innerHTML = '<tr><td colspan="5">No vaults found in the source tenant.</td></tr>';
+            sourceVaultTableBodyAll.innerHTML = '<tr><td colspan="4">No vaults found in the source tenant.</td></tr>';
           }
         }
       } catch (error) {
@@ -376,6 +395,11 @@
       document.getElementById('source-vaults-list').style.display = 'none';
     }
 
+    // Download accumulated migration log
+    function downloadLog() {
+      window.location.href = '/migration/download-log';
+    }
+
     // Render vaults in the "Migrate Selected" tab
     function renderVaults(vaults) {
       const sourceVaultTableBody = document.getElementById('source-vault-table-body');
@@ -391,6 +415,7 @@
             <td><input type="checkbox" class="vault-checkbox" data-vault-id="${vault.id}" data-vault-name="${vault.name}" ${selectedVaults.has(vault.id) ? 'checked' : ''} ${isMigrated ? 'disabled' : ''}></td>
             <td>${vault.name}</td>
             <td>${vault.id}</td>
+            <td>${vault.itemCount}</td>
             <td><span id="migration-status-${vault.id}" style="color: ${isMigrated ? '#2ECC71' : ''};">${isMigrated ? 'Migrated' : ''}</span></td>
           `;
           sourceVaultTableBody.appendChild(row);
@@ -406,7 +431,7 @@
           });
         });
       } else {
-        sourceVaultTableBody.innerHTML = '<tr><td colspan="4">No vaults match your search.</td></tr>';
+        sourceVaultTableBody.innerHTML = '<tr><td colspan="5">No vaults match your search.</td></tr>';
       }
 
       document.getElementById('select-all-vaults').checked = false;
@@ -426,12 +451,13 @@
           row.innerHTML = `
             <td>${vault.name}</td>
             <td>${vault.id}</td>
+            <td>${vault.itemCount}</td>
             <td><span id="migration-status-${vault.id}" style="color: ${isMigrated ? '#2ECC71' : ''};">${isMigrated ? 'Migrated' : ''}</span></td>
           `;
           sourceVaultTableBodyAll.appendChild(row);
         });
       } else {
-        sourceVaultTableBodyAll.innerHTML = '<tr><td colspan="3">No vaults match your search.</td></tr>';
+        sourceVaultTableBodyAll.innerHTML = '<tr><td colspan="4">No vaults match your search.</td></tr>';
       }
     }
 
@@ -447,12 +473,14 @@
           row.innerHTML = `
             <td>${vault.name}</td>
             <td>${vault.id}</td>
+            <td>${vault.itemCount}</td>
             <td><span id="migration-status-${vault.id}" style="color: #2ECC71;">Migration successful!</span></td>
+            <td><button class="vault-log-btn" onclick="window.location.href='/migration/download-vault-log/${vault.id}'">Download Vault Log</button></td>
           `;
           migratedVaultTableBody.appendChild(row);
         });
       } else {
-        migratedVaultTableBody.innerHTML = '<tr><td colspan="3">No vaults have been migrated yet.</td></tr>';
+        migratedVaultTableBody.innerHTML = '<tr><td colspan="5">No vaults have been migrated yet.</td></tr>';
       }
     }
 
@@ -559,81 +587,81 @@
     }
 
     // Migrate all vaults
-  async function migrateAllVaults() {
-    const sourceVaultTableBodyAll = document.getElementById('source-vault-table-body-all');
-    const rows = sourceVaultTableBodyAll.getElementsByTagName('tr');
-    const totalVaults = rows.length;
+    async function migrateAllVaults() {
+      const sourceVaultTableBodyAll = document.getElementById('source-vault-table-body-all');
+      const rows = sourceVaultTableBodyAll.getElementsByTagName('tr');
+      const totalVaults = rows.length;
 
-    // Check if there are any non-migrated vaults in the visible list
-    let hasNonMigratedVaults = false;
-    for (let i = 0; i < rows.length; i++) {
-      const statusElement = rows[i].querySelector(`span[id^="migration-status-"]`);
-      if (statusElement && statusElement.textContent !== 'Migrated') {
-        hasNonMigratedVaults = true;
-        break;
-      }
-    }
-
-    if (totalVaults === 0 || !hasNonMigratedVaults) {
-      document.querySelector('.error').textContent = 'No non-migrated vaults available to migrate.';
-      return;
-    }
-
-    const progressContainer = document.getElementById('migrate-progress-all');
-    const progressBar = document.getElementById('migrate-progress-bar-all');
-    const loadingMessage = document.getElementById('migrate-loading-message-all');
-
-    progressContainer.style.display = 'block';
-    loadingMessage.style.display = 'block';
-    progressBar.style.width = '0%';
-    progressBar.textContent = '0%';
-    isMigrationRunning = true;
-
-    const sourceToken = sessionStorage.getItem('sourceToken');
-    const destToken = sessionStorage.getItem('destToken');
-    const url = `/migration/migrate-all-vaults?sourceToken=${encodeURIComponent(sourceToken)}&destToken=${encodeURIComponent(destToken)}`;
-    const source = new EventSource(url);
-
-    source.onopen = () => {};
-
-    source.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.progress) {
-        progressBar.style.width = `${Math.round(data.progress)}%`;
-        progressBar.textContent = `${Math.round(data.progress)}%`;
-        const statusElement = document.getElementById(`migration-status-${data.outcome.vaultId}`);
-        if (data.outcome.success) {
-          statusElement.textContent = 'Migration successful!';
-          statusElement.style.color = '#2ECC71';
-          migratedVaults.add(data.outcome.vaultId);
-          showItemErrors(data.outcome.vaultId, data.outcome.results);
-        } else {
-          statusElement.textContent = `Failed: ${data.outcome.message}`;
-          statusElement.style.color = '#E74C3C';
+      // Check if there are any non-migrated vaults in the visible list
+      let hasNonMigratedVaults = false;
+      for (let i = 0; i < rows.length; i++) {
+        const statusElement = rows[i].querySelector(`span[id^="migration-status-"]`);
+        if (statusElement && statusElement.textContent !== 'Migrated') {
+          hasNonMigratedVaults = true;
+          break;
         }
       }
-      if (data.finished) {
-        if (!data.success) {
-          document.querySelector('.error').textContent = data.message;
+
+      if (totalVaults === 0 || !hasNonMigratedVaults) {
+        document.querySelector('.error').textContent = 'No non-migrated vaults available to migrate.';
+        return;
+      }
+
+      const progressContainer = document.getElementById('migrate-progress-all');
+      const progressBar = document.getElementById('migrate-progress-bar-all');
+      const loadingMessage = document.getElementById('migrate-loading-message-all');
+
+      progressContainer.style.display = 'block';
+      loadingMessage.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressBar.textContent = '0%';
+      isMigrationRunning = true;
+
+      const sourceToken = sessionStorage.getItem('sourceToken');
+      const destToken = sessionStorage.getItem('destToken');
+      const url = `/migration/migrate-all-vaults?sourceToken=${encodeURIComponent(sourceToken)}&destToken=${encodeURIComponent(destToken)}`;
+      const source = new EventSource(url);
+
+      source.onopen = () => {};
+
+      source.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.progress) {
+          progressBar.style.width = `${Math.round(data.progress)}%`;
+          progressBar.textContent = `${Math.round(data.progress)}%`;
+          const statusElement = document.getElementById(`migration-status-${data.outcome.vaultId}`);
+          if (data.outcome.success) {
+            statusElement.textContent = 'Migration successful!';
+            statusElement.style.color = '#2ECC71';
+            migratedVaults.add(data.outcome.vaultId);
+            showItemErrors(data.outcome.vaultId, data.outcome.results);
+          } else {
+            statusElement.textContent = `Failed: ${data.outcome.message}`;
+            statusElement.style.color = '#E74C3C';
+          }
         }
-        renderVaults(allVaults);
-        renderVaultsAll(allVaults);
-        renderMigratedVaults();
+        if (data.finished) {
+          if (!data.success) {
+            document.querySelector('.error').textContent = data.message;
+          }
+          renderVaults(allVaults);
+          renderVaultsAll(allVaults);
+          renderMigratedVaults();
+          progressContainer.style.display = 'none';
+          loadingMessage.style.display = 'none';
+          isMigrationRunning = false;
+          source.close();
+        }
+      };
+
+      source.onerror = () => {
+        document.querySelector('.error').textContent = 'Error during migration. Check server logs for details.';
         progressContainer.style.display = 'none';
         loadingMessage.style.display = 'none';
         isMigrationRunning = false;
         source.close();
-      }
-    };
-
-    source.onerror = () => {
-      document.querySelector('.error').textContent = 'Error during migration. Check server logs for details.';
-      progressContainer.style.display = 'none';
-      loadingMessage.style.display = 'none';
-      isMigrationRunning = false;
-      source.close();
-    };
-  }
-</script>
+      };
+    }
+  </script>
 </body>
 </html>
