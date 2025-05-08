@@ -12,9 +12,9 @@ A very simple web application built with Flask and deployable via Docker. It pro
 
 ## 1Password Setup
 
-1. Create a vault in 1Password exclusively for this application.
-2. In 1Password admin console, go to Developer -> Connect servers and create a new connect server with Read, Write permissions to that vault. Save the 1password-credentials.json file and place in this directory.
-3. Create an access token with only write permissions to that vault.
+1. Create a vault in 1Password exclusively for this application and note the UUID.
+2. In 1Password admin console, go to Developer -> Connect servers and create a new connect server with `Read, Write` permissions to that vault. Save the 1password-credentials.json file and place in this directory.
+3. Create an access token with only `write` permissions to that vault.
 4. Copy the token and save it securely. You will need it to create items in the vault.
 
 ## Prerequisites
@@ -22,6 +22,9 @@ A very simple web application built with Flask and deployable via Docker. It pro
 Before you begin, ensure you have the following installed and configured:
 
 1. **Docker Engine:** [Install Docker](https://docs.docker.com/engine/install/)
+2. **Environment Variables:** Set up the following environment variables in a `.env` file in this directory:
+   - `OP_VAULT_UUID`: The UUID of the target 1Password vault.
+   - `FLASK_SECRET_KEY`: (Recommended) A secret key for Flask, needed for features like flashing messages. While not strictly required for _this specific basic version's core function_, it's good practice to include it. Generate a random string (e.g., using `openssl rand -hex 32`).
 
 ## Project Structure
 
@@ -34,64 +37,22 @@ Ensure you have the following files in your project directory:
 ├── requirements.txt # Python dependencies
 ├── README.md # This file
 ├── 1password-credentials.json # Credentials file for 1Password Connect
+├── .env file # Environment variables for Docker Compose
 └── templates/
     └── index.html # HTML form template for creating items
     └── login.html # HTML form template for entering bearer token
 ```
 
-## Configuration
-
-This application requires essential 1Password Connect details provided as environment variables when running the Docker container.
-
-- `OP_VAULT_UUID`: The UUID of the target 1Password vault.
-- `FLASK_SECRET_KEY`: (Recommended) A secret key for Flask, needed for features like flashing messages. While not strictly required for _this specific basic version's core function_, it's good practice to include it. Generate a random string (e.g., using `openssl rand -hex 32`).
-
 ## Running the Application
 
 1. **Navigate:** Open a terminal or command prompt and navigate to the project directory containing the `Dockerfile` and application files.
-2. **Build the Docker Image:**
+2. **Build and run the Docker Image, tailing the logs:**
 
    ```bash
-   docker build -t op-connect-webapp-basic .
+   docker compose up -d --build && docker compose logs -f webapp
    ```
 
-3. **Run the Docker Container:** Replace the placeholder values with your actual configuration details.
-
-   ```bash
-   docker run -d \
-     -p 5000:5000 \
-     -e OP_VAULT_UUID="YOUR_TARGET_VAULT_UUID" \
-     -e FLASK_SECRET_KEY="generate-a-strong-random-secret" \
-     --name my-basic-op-app \
-     op-connect-webapp-basic
-   ```
-
-   - `-d`: Run in detached mode (background).
-   - `-p 5000:5000`: Map port 5000 on your host to port 5000 in the container.
-   - `-e VARIABLE="VALUE"`: Set the required environment variables.
-   - `--name my-basic-op-app`: Assign a name to the container.
-
-4. **Access the Application:** Open your web browser and navigate to `http://localhost:5000`. Enter the bearer token with write access to the target vault (the API token for your 1Password Connect server) in the form.
-5. **Create Item:** Fill in the Title (required), Username, Password, and Notes fields for the new 1Password Login item.
-6. **Submit:** Click "Create Item". You will see a success or error message displayed on the page.
-
-## Usage
-
-1. **Access:** Open your web browser and navigate to `http://localhost:5000` (or the IP address of your Docker host if running remotely).
-2. **Enter the bearer token:** In the form, enter the connect token with write access to the target vault (the API token for your 1Password Connect server).
-3. **Create Item:** Fill in the Title (required), Username, Password, and Notes fields for the new 1Password Login item.
-4. **Submit:** Click "Create Item". You will see a success or error message displayed on the page.
-
-## Stopping the Application
-
-1. **Stop the container:**
-
-   ```bash
-   docker stop my-basic-op-app
-   ```
-
-2. **Remove the container:** (Optional, if you don't need it anymore)
-
-   ```bash
-   docker rm my-basic-op-app
-   ```
+3. **Access the Application:** Open your web browser and navigate to `http://localhost:5000`. Enter the bearer token with write access to the target vault (the API token for your 1Password Connect server) in the form.
+4. **Create Item:** Fill in the Title (required), Username, Password, and Notes fields for the new 1Password Login item.
+5. **Submit:** Click "Create Item". You will see a success or error message displayed on the page.
+6. **Check 1Password:** Log in to your 1Password account and check the specified vault to see the newly created item.

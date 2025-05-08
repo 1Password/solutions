@@ -10,7 +10,7 @@ services:
     # Map port 5000 on the host machine to port 5000 inside the container
     # This makes the web app accessible via http://localhost:5000
     ports:
-      - "5001:5000"
+      - "5000:5000"
     # Define environment variables needed by the Flask application (app.py)
     # It's highly recommended to use a .env file for secrets
     environment:
