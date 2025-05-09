@@ -9,8 +9,8 @@ const selfsigned = require('selfsigned');
 const app = express();
 
 // In-memory log storage
-let migrationLog = []; // Accumulated log for all vaults
-let vaultLogs = {}; // Individual logs per vault (vaultId -> log entries)
+let migrationLog = [];
+let vaultLogs = {};
 
 // Dynamically import p-limit for concurrency control
 let pLimit;
@@ -28,8 +28,8 @@ async function loadPLimit() {
 
 // Start the app once p-limit is loaded
 loadPLimit().then(() => {
-  const VAULT_CONCURRENCY_LIMIT = 2; // Max vaults to process at once
-  const ITEM_CONCURRENCY_LIMIT = 1; // Max items to process at once per vault
+  const VAULT_CONCURRENCY_LIMIT = 2;
+  const ITEM_CONCURRENCY_LIMIT = 1;
 
   app.set('views', path.join(__dirname, 'views'));
   app.set('view engine', 'ejs');
@@ -116,23 +116,40 @@ loadPLimit().then(() => {
     }
   };
 
-  // Get item count for a vault using 1Password CLI
-  function getVaultItemCount(vaultId, token) {
-    try {
-      const env = { ...process.env, OP_SERVICE_ACCOUNT_TOKEN: token };
-      const command = `op item list --vault "${vaultId}" --format json`;
-      const output = execSync(command, { env, encoding: 'utf8' });
-      const items = JSON.parse(output);
-      return items.length;
-    } catch (error) {
-      console.error(`Error fetching item count for vault ${vaultId}: ${error.message}`);
-      migrationLog.push(`[ERROR] Vault ${vaultId}: Failed to fetch item count - ${error.message}`);
+  async function getVaultItemCount(vaultId, token, vaultName = 'Unknown') {
+  try {
+    const sdkInstance = new OnePasswordSDK(token);
+    await sdkInstance.initializeClient();
+    // Count active items
+    const activeItems = await sdkInstance.client.items.list(vaultId);
+    const activeCount = activeItems.length;
+    // Count archived items
+    const archivedItems = await sdkInstance.client.items.list(vaultId, {
+      type: "ByState",
+      content: { active: false, archived: true }
+    });
+    const archivedCount = archivedItems.length;
+    // Log archived items if any
+    if (archivedCount > 0) {
+      const logMessage = `[INFO] Vault ${vaultId} (${vaultName}): Contains ${archivedCount} archived items`;
+      console.log(logMessage);
+      migrationLog.push(logMessage);
       if (vaultLogs[vaultId]) {
-        vaultLogs[vaultId].push(`[ERROR] Failed to fetch item count: ${error.message}`);
+        vaultLogs[vaultId].push(logMessage);
+      } else {
+        vaultLogs[vaultId] = [logMessage];
       }
-      return 0;
     }
+    return activeCount; // Return only active item count for UI and migration
+  } catch (error) {
+    console.error(`Error fetching item count for vault ${vaultId}: ${error.message}`);
+    migrationLog.push(`[ERROR] Vault ${vaultId} (${vaultName}): Failed to fetch item count - ${error.message}`);
+    if (vaultLogs[vaultId]) {
+      vaultLogs[vaultId].push(`[ERROR] Failed to fetch item count: ${error.message}`);
+    }
+    return 0;
   }
+}
 
   // Migrate a single vault and its items
   async function migrateVault(vaultId, vaultName, sourceToken, destToken, sourceSDK, destSDK, isCancelled) {
@@ -566,230 +583,228 @@ loadPLimit().then(() => {
             success: false,
             message: `Failed to migrate vault "${vault.name}": ${error.message}`
           };
-          console.error(`Failed to migrate vault "${vault.name}": ${error.message}`);
-          migrationLog.push(`[ERROR] Failed to migrate vault "${vault.name}": ${error.message}`);
-          migrationResults.push(outcome);
-          completedVaults++;
-          const progress = (completedVaults / totalVaults) * 100;
-          res.write(`data: ${JSON.stringify({ progress: progress, outcome: outcome })}\n\n`);
+            console.log(`Failed to migrate vault "${vault.name}": ${error.message}`);
+            migrationLog.push(`[ERROR] Failed to migrate vault "${vault.name}": ${error.message}`);
+            migrationResults.push(outcome);
+            completedVaults++;
+            const progress = (completedVaults / totalVaults) * 100;
+            res.write(`data: ${JSON.stringify({ progress: progress, outcome: outcome })}\n\n`);
+          }
+        }
+
+        const failedVaults = migrationResults.filter(result => !result.success);
+if (failedVaults.length > 0) {
+  console.log(`Migration completed with ${failedVaults.length} vault failures out of ${vaultsToMigrate.length} vaults`);
+  migrationLog.push(`[INFO] Migration completed with ${failedVaults.length} vault failures out of ${vaultsToMigrate.length} vaults`);
+  res.write(`data: ${JSON.stringify({ success: false, message: `Migration completed with ${failedVaults.length} vault failures out of ${vaultsToMigrate.length} vaults`, results: migrationResults, finished: true })}\n\n`);
+} else {
+  console.log(`Successfully migrated all ${vaultsToMigrate.length} vaults`);
+  migrationLog.push(`[INFO] Successfully migrated all ${vaultsToMigrate.length} vaults`);
+  res.write(`data: ${JSON.stringify({ success: true, message: `Successfully migrated all ${vaultsToMigrate.length} vaults`, results: migrationResults, finished: true })}\n\n`);
+}
+clearInterval(keepAliveInterval);
+res.end();
+} catch (error) {
+  console.error(`Failed to migrate vaults: ${error.message}`);
+  migrationLog.push(`[ERROR] Failed to migrate vaults: ${error.message}`);
+  res.write(`data: ${JSON.stringify({ success: false, message: `Failed to migrate vaults: ${error.message}`, finished: true })}\n\n`);
+  clearInterval(keepAliveInterval);
+  res.end();
+}
+    });
+
+    // Endpoint to download accumulated migration log
+    app.get('/migration/download-log', (req, res) => {
+      const logContent = migrationLog.join('\n');
+      console.log('Serving accumulated migration log for download');
+      migrationLog.push(`[INFO] Accumulated migration log downloaded`);
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Disposition', 'attachment; filename=migration-log.txt');
+      res.send(logContent);
+    });
+
+    // Endpoint to download individual vault log
+    app.get('/migration/download-vault-log/:vaultId', (req, res) => {
+      const { vaultId } = req.params;
+      if (!vaultLogs[vaultId]) {
+        console.error(`No log found for vault ${vaultId}`);
+        migrationLog.push(`[ERROR] No log found for vault ${vaultId}`);
+        return res.status(404).send('No log found for this vault');
+      }
+      const logContent = vaultLogs[vaultId].join('\n');
+      console.log(`Serving log for vault ${vaultId}`);
+      migrationLog.push(`[INFO] Log for vault ${vaultId} downloaded`);
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Disposition', `attachment; filename=vault-${vaultId}-log.txt`);
+      res.send(logContent);
+    });
+
+    // Custom class to handle 1Password SDK interactions
+    class OnePasswordSDK {
+      constructor(token) {
+        this.token = token;
+        this.client = null;
+      }
+
+      async initializeClient() {
+        if (!this.token) {
+          console.error('Service account token is required');
+          migrationLog.push(`[ERROR] Service account token is required`);
+          throw new Error('Service account token is required.');
+        }
+        try {
+          console.log('Initializing 1Password SDK client');
+          migrationLog.push(`[INFO] Initializing 1Password SDK client`);
+          this.client = await sdk.createClient({
+            auth: this.token,
+            integrationName: "1Password Vault Migration Tool",
+            integrationVersion: "1.0.0",
+          });
+        } catch (error) {
+          console.error(`Failed to initialize client: ${error.message}`);
+          migrationLog.push(`[ERROR] Failed to initialize client: ${error.message}`);
+          throw new Error(`Failed to initialize client: ${error.message}`);
         }
       }
 
-      const failedVaults = migrationResults.filter(result => !result.success);
-      if (failedVaults.length > 0) {
-        console.log(`Migration completed with ${failedVaults.length} vault failures out of ${vaultsToMigrate.length} vaults`);
-        migrationLog.push(`[INFO] Migration completed with ${failedVaults.length} vault failures out of ${vaultsToMigrate.length} vaults`);
-        res.write(`data: ${JSON.stringify({ success: false, message: `Migration completed with ${failedVaults.length} vault failures out of ${vaultsToMigrate.length} vaults`, results: migrationResults, finished: true })}\n\n`);
-      } else {
-        console.log(`Successfully migrated all ${vaultsToMigrate.length} vaults`);
-        migrationLog.push(`[INFO] Successfully migrated all ${vaultsToMigrate.length} vaults`);
-        res.write(`data: ${JSON.stringify({ success: true, message: `Successfully migrated all ${vaultsToMigrate.length} vaults`, results: migrationResults, finished: true })}\n\n`);
-      }
-      clearInterval(keepAliveInterval);
-      res.end();
-    } catch (error) {
-      console.error(`Failed to migrate vaults: ${error.message}`);
-      migrationLog.push(`[ERROR] Failed to migrate vaults: ${error.message}`);
-      res.write(`data: ${JSON.stringify({ success: false, message: `Failed to migrate vaults: ${error.message}`, finished: true })}\n\n`);
-      clearInterval(keepAliveInterval);
-      res.end();
-    }
-  });
-
-  // Endpoint to download accumulated migration log
-  app.get('/migration/download-log', (req, res) => {
-    const logContent = migrationLog.join('\n');
-    console.log('Serving accumulated migration log for download');
-    migrationLog.push(`[INFO] Accumulated migration log downloaded`);
-    res.setHeader('Content-Type', 'text/plain');
-    res.setHeader('Content-Disposition', 'attachment; filename=migration-log.txt');
-    res.send(logContent);
-  });
-
-  // Endpoint to download individual vault log
-  app.get('/migration/download-vault-log/:vaultId', (req, res) => {
-    const { vaultId } = req.params;
-    if (!vaultLogs[vaultId]) {
-      console.error(`No log found for vault ${vaultId}`);
-      migrationLog.push(`[ERROR] No log found for vault ${vaultId}`);
-      return res.status(404).send('No log found for this vault');
-    }
-    const logContent = vaultLogs[vaultId].join('\n');
-    console.log(`Serving log for vault ${vaultId}`);
-    migrationLog.push(`[INFO] Log for vault ${vaultId} downloaded`);
-    res.setHeader('Content-Type', 'text/plain');
-    res.setHeader('Content-Disposition', `attachment; filename=vault-${vaultId}-log.txt`);
-    res.send(logContent);
-  });
-
-  // Custom class to handle 1Password SDK interactions
-  class OnePasswordSDK {
-    constructor(token) {
-      this.token = token;
-      this.client = null;
-    }
-
-    async initializeClient() {
-      if (!this.token) {
-        console.error('Service account token is required');
-        migrationLog.push(`[ERROR] Service account token is required`);
-        throw new Error('Service account token is required.');
-      }
-      try {
-        console.log('Initializing 1Password SDK client');
-        migrationLog.push(`[INFO] Initializing 1Password SDK client`);
-        this.client = await sdk.createClient({
-          auth: this.token,
-          integrationName: "1Password Vault Migration Tool",
-          integrationVersion: "1.0.0",
-        });
-      } catch (error) {
-        console.error(`Failed to initialize client: ${error.message}`);
-        migrationLog.push(`[ERROR] Failed to initialize client: ${error.message}`);
-        throw new Error(`Failed to initialize client: ${error.message}`);
-      }
-    }
-
-    async listVaults() {
-      try {
-        if (!this.client) await this.initializeClient();
-        const vaultIterator = await this.client.vaults.listAll();
-        const vaults = [];
-        for await (const vault of vaultIterator) {
-          vaults.push({ id: vault.id, name: vault.title });
+      async listVaults() {
+        try {
+          if (!this.client) await this.initializeClient();
+          const vaults = await this.client.vaults.list(); // Replace listAll with list
+          const vaultList = vaults.map(vault => ({ id: vault.id, name: vault.title }));
+          console.log(`Listed ${vaultList.length} vaults`);
+          migrationLog.push(`[INFO] Listed ${vaultList.length} vaults`);
+          return vaultList;
+        } catch (error) {
+          console.error(`Failed to list vaults: ${error.message}`);
+          migrationLog.push(`[ERROR] Failed to list vaults: ${error.message}`);
+          throw new Error(`Failed to list vaults: ${error.message}`);
         }
-        console.log(`Listed ${vaults.length} vaults`);
-        migrationLog.push(`[INFO] Listed ${vaults.length} vaults`);
-        return vaults;
-      } catch (error) {
-        console.error(`Failed to list vaults: ${error.message}`);
-        migrationLog.push(`[ERROR] Failed to list vaults: ${error.message}`);
-        throw new Error(`Failed to list vaults: ${error.message}`);
       }
-    }
 
-    async listVaultItems(vaultId) {
-      try {
-        if (!this.client) await this.initializeClient();
-        console.log(`Listing items for vault ${vaultId}`);
-        migrationLog.push(`[INFO] Listing items for vault ${vaultId}`);
-        vaultLogs[vaultId] = vaultLogs[vaultId] || [];
-        vaultLogs[vaultId].push(`[INFO] Listing items`);
-        const itemsIterator = await this.client.items.listAll(vaultId);
-        const itemSummaries = [];
-        for await (const item of itemsIterator) {
-          itemSummaries.push({ id: item.id, title: item.title, category: item.category });
-        }
+      async listVaultItems(vaultId) {
+  try {
+    if (!this.client) await this.initializeClient();
+    console.log(`Listing items for vault ${vaultId}`);
+    migrationLog.push(`[INFO] Listing items for vault ${vaultId}`);
+    vaultLogs[vaultId] = vaultLogs[vaultId] || [];
+    vaultLogs[vaultId].push(`[INFO] Listing items`);
+    const itemOverviews = await this.client.items.list(vaultId); // Use list instead of listAll
+    const itemSummaries = itemOverviews.map(item => ({
+      id: item.id,
+      title: item.title,
+      category: item.category
+    }));
 
-        const limit = pLimit(ITEM_CONCURRENCY_LIMIT);
-        const itemPromises = itemSummaries.map(summary =>
-          limit(async () => {
-            const fullItem = await retryWithBackoff(() => this.client.items.get(vaultId, summary.id));
-            const websites = fullItem.urls || fullItem.websites || fullItem.websiteUrls || [];
-            const itemData = {
-              id: fullItem.id,
-              title: fullItem.title,
-              category: fullItem.category,
-              vaultId: fullItem.vaultId,
-              fields: fullItem.fields || [],
-              sections: fullItem.sections || [],
-              tags: fullItem.tags || [],
-              websites: websites,
-              notes: fullItem.notes || ""
-            };
+    const limit = pLimit(ITEM_CONCURRENCY_LIMIT);
+    const itemPromises = itemSummaries.map(summary =>
+      limit(async () => {
+        const fullItem = await retryWithBackoff(() => this.client.items.get(vaultId, summary.id));
+        const websites = fullItem.urls || fullItem.websites || fullItem.websiteUrls || [];
+        const itemData = {
+          id: fullItem.id,
+          title: fullItem.title,
+          category: fullItem.category,
+          vaultId: fullItem.vaultId,
+          fields: fullItem.fields || [],
+          sections: fullItem.sections || [],
+          tags: fullItem.tags || [],
+          websites: websites,
+          notes: fullItem.notes || ""
+        };
 
-            if (itemData.fields) {
-              itemData.fields = itemData.fields.map(field => {
-                if (field.fieldType === sdk.ItemFieldType.Address && field.details && field.details.content) {
-                  return {
-                    ...field,
-                    details: {
-                      content: {
-                        street: field.details.content.street || "",
-                        city: field.details.content.city || "",
-                        state: field.details.content.state || "",
-                        zip: field.details.content.zip || "",
-                        country: field.details.content.country || ""
-                      }
-                    }
-                  };
-                } else if (field.fieldType === sdk.ItemFieldType.SshKey && field.details && field.details.content) {
-                  return {
-                    ...field,
-                    details: {
-                      content: {
-                        privateKey: field.details.content.privateKey || field.value || "",
-                        publicKey: field.details.content.publicKey || "",
-                        fingerprint: field.details.content.fingerprint || "",
-                        keyType: field.details.content.keyType || ""
-                      }
-                    }
-                  };
-                } else if (field.fieldType === sdk.ItemFieldType.Totp) {
-                  return {
-                    ...field,
-                    value: field.details?.content?.totp || field.value || "",
-                    details: field.details || {}
-                  };
+        if (itemData.fields) {
+          itemData.fields = itemData.fields.map(field => {
+            if (field.fieldType === sdk.ItemFieldType.Address && field.details && field.details.content) {
+              return {
+                ...field,
+                details: {
+                  content: {
+                    street: field.details.content.street || "",
+                    city: field.details.content.city || "",
+                    state: field.details.content.state || "",
+                    zip: field.details.content.zip || "",
+                    country: field.details.content.country || ""
+                  }
                 }
-                return field;
-              });
+              };
+            } else if (field.fieldType === sdk.ItemFieldType.SshKey && field.details && field.details.content) {
+              return {
+                ...field,
+                details: {
+                  content: {
+                    privateKey: field.details.content.privateKey || field.value || "",
+                    publicKey: field.details.content.publicKey || "",
+                    fingerprint: field.details.content.fingerprint || "",
+                    keyType: field.details.content.keyType || ""
+                  }
+                }
+              };
+            } else if (field.fieldType === sdk.ItemFieldType.Totp) {
+              return {
+                ...field,
+                value: field.details?.content?.totp || field.value || "",
+                details: field.details || {}
+              };
             }
+            return field;
+          });
+        }
 
-            if (fullItem.files && fullItem.files.length > 0) {
-              const filePromises = fullItem.files.map(file =>
-                retryWithBackoff(() => this.client.items.files.read(vaultId, fullItem.id, file.attributes))
-                  .then(fileContent => {
-                    return { name: file.attributes.name, content: fileContent, sectionId: file.sectionId, fieldId: file.fieldId };
-                  })
-                  .catch(() => null)
-              );
-              itemData.files = (await Promise.all(filePromises)).filter(f => f !== null);
-            }
+        if (fullItem.files && fullItem.files.length > 0) {
+          const filePromises = fullItem.files.map(file =>
+            retryWithBackoff(() => this.client.items.files.read(vaultId, fullItem.id, file.attributes))
+              .then(fileContent => {
+                return { name: file.attributes.name, content: fileContent, sectionId: file.sectionId, fieldId: file.fieldId };
+              })
+              .catch(() => null)
+          );
+          itemData.files = (await Promise.all(filePromises)).filter(f => f !== null);
+        }
 
-            if (fullItem.category === sdk.ItemCategory.Document && fullItem.document) {
-              const documentContent = await retryWithBackoff(() => this.client.items.files.read(vaultId, fullItem.id, fullItem.document));
-              itemData.document = { name: fullItem.document.name, content: documentContent };
-            }
+        if (fullItem.category === sdk.ItemCategory.Document && fullItem.document) {
+          const documentContent = await retryWithBackoff(() => this.client.items.files.read(vaultId, fullItem.id, fullItem.document));
+          itemData.document = { name: fullItem.document.name, content: documentContent };
+        }
 
-            return itemData;
-          })
-        );
+        return itemData;
+      })
+    );
 
-        const items = await Promise.all(itemPromises);
-        console.log(`Listed ${items.length} items for vault ${vaultId}`);
-        migrationLog.push(`[INFO] Listed ${items.length} items for vault ${vaultId}`);
-        vaultLogs[vaultId].push(`[INFO] Listed ${items.length} items`);
-        return items;
-      } catch (error) {
-        console.error(`Failed to list items for vault ${vaultId}: ${error.message}`);
-        migrationLog.push(`[ERROR] Failed to list items for vault ${vaultId}: ${error.message}`);
-        vaultLogs[vaultId].push(`[ERROR] Failed to list items: ${error.message}`);
-        throw new Error(`Failed to list items for vault ${vaultId}: ${error.message}`);
-      }
-    }
+    const items = await Promise.all(itemPromises);
+    console.log(`Listed ${items.length} items for vault ${vaultId}`);
+    migrationLog.push(`[INFO] Listed ${items.length} items for vault ${vaultId}`);
+    vaultLogs[vaultId].push(`[INFO] Listed ${items.length} items`);
+    return items;
+  } catch (error) {
+    console.error(`Failed to list items for vault ${vaultId}: ${error.message}`);
+    migrationLog.push(`[ERROR] Failed to list items for vault ${vaultId}: ${error.message}`);
+    vaultLogs[vaultId].push(`[ERROR] Failed to list items: ${error.message}`);
+    throw new Error(`Failed to list items for vault ${vaultId}: ${error.message}`);
   }
-
-  // Start the HTTPS server
-  const PORT = 3001;
-  const attrs = [{ name: 'commonName', value: 'localhost' }];
-  const opts = { keySize: 2048, algorithm: 'sha256', days: 365 };
-
-  selfsigned.generate(attrs, opts, (err, pems) => {
-    if (err) {
-      console.error(`Failed to generate self-signed certificate: ${err.message}`);
-      migrationLog.push(`[ERROR] Failed to generate self-signed certificate: ${err.message}`);
-      return;
+}
     }
 
-    const options = {
-      key: pems.private,
-      cert: pems.cert,
-    };
+    // Start the HTTPS server
+    const PORT = 3001;
+    const attrs = [{ name: 'commonName', value: 'localhost' }];
+    const opts = { keySize: 2048, algorithm: 'sha256', days: 365 };
 
-    https.createServer(options, app).listen(PORT, () => {
-      console.log(`Server started on port ${PORT}`);
-      migrationLog.push(`[INFO] Server started on port ${PORT}`);
+    selfsigned.generate(attrs, opts, (err, pems) => {
+      if (err) {
+        console.error(`Failed to generate self-signed certificate: ${err.message}`);
+        migrationLog.push(`[ERROR] Failed to generate self-signed certificate: ${err.message}`);
+        return;
+      }
+
+      const options = {
+        key: pems.private,
+        cert: pems.cert,
+      };
+
+      https.createServer(options, app).listen(PORT, () => {
+        console.log(`Server started on port ${PORT}`);
+        migrationLog.push(`[INFO] Server started on port ${PORT}`);
+      });
     });
   });
-});
