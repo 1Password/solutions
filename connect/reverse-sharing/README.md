@@ -52,7 +52,7 @@ Ensure you have the following files in your project directory:
    docker compose up -d --build && docker compose logs -f webapp
    ```
 
-3. **Access the Application:** Open your web browser and navigate to `http://localhost:5000`. Enter the bearer token with write access to the target vault (the API token for your 1Password Connect server) in the form.
+3. **Access the Application:** Open your web browser and navigate to `http://localhost:5001`. Enter the bearer token with write access to the target vault (the API token for your 1Password Connect server) in the form.
 4. **Create Item:** Fill in the Title (required), Username, Password, and Notes fields for the new 1Password Login item.
 5. **Submit:** Click "Create Item". You will see a success or error message displayed on the page.
 6. **Check 1Password:** Log in to your 1Password account and check the specified vault to see the newly created item.
