@@ -128,6 +128,10 @@ app.post('/backup/backup-vaults', async (req, res) => {
     const vaultsToBackup = vaults.map(v => ({ id: v.vaultId, name: v.vaultName }));
     const backupData = { vaults: [], systemKey: systemKey.toString('hex') };
 
+    const totalVaults = vaultsToBackup.length;
+    let processedVaults = 0;
+    const backupResults = [];
+
     // Back up each vault with concurrency control
     const limit = pLimit(VAULT_CONCURRENCY_LIMIT);
     const vaultPromises = vaultsToBackup.map(vault =>
@@ -135,6 +139,13 @@ app.post('/backup/backup-vaults', async (req, res) => {
         console.log(`Backing up vault "${vault.name}" (ID: ${vault.id})...`);
         backupLog.push(`[INFO] Backing up vault "${vault.name}" (ID: ${vault.id})`);
         const items = await sdkInstance.listVaultItems(vault.id);
+        processedVaults++;
+        const progress = (processedVaults / totalVaults) * 100;
+        backupResults.push({
+          vaultId: vault.id,
+          vaultName: vault.name,
+          progress: progress
+        });
         return { id: vault.id, name: vault.name, items };
       })
     );
@@ -155,7 +166,13 @@ app.post('/backup/backup-vaults', async (req, res) => {
     fs.writeFileSync(backupFilePath, JSON.stringify(encryptedBackup));
 
     backupLog.push('[INFO] Backup file created successfully');
-    res.json({ success: true, systemKey: systemKey.toString('hex'), passcode, filePath: '/backup.1pbackup' });
+    res.json({ 
+      success: true, 
+      systemKey: systemKey.toString('hex'), 
+      passcode, 
+      filePath: '/backup.1pbackup',
+      results: backupResults 
+    });
   } catch (error) {
     console.error('Error backing up vaults:', error.message);
     backupLog.push(`[ERROR] Error backing up vaults: ${error.message}`);
@@ -181,8 +198,20 @@ app.post('/backup/save-keys', async (req, res) => {
       const createVaultCommand = `op vault create "${vaultName}" --format json`;
       const newVaultOutput = execSync(createVaultCommand, { env: { ...process.env, OP_SERVICE_ACCOUNT_TOKEN: serviceToken }, encoding: 'utf8' });
       vaultId = JSON.parse(newVaultOutput).id;
+
+      // Attempt to grant view_items permission to Administrators group only
+      const group = 'Administrators';
+      const grantCommand = `op vault group grant --vault "${vaultId}" --group "${group}" --permissions view_items`;
+      try {
+        execSync(grantCommand, { env: { ...process.env, OP_SERVICE_ACCOUNT_TOKEN: serviceToken }, encoding: 'utf8' });
+        backupLog.push(`[INFO] Granted view_items permission to ${group} for vault "${vaultName}" (ID: ${vaultId})`);
+      } catch (grantError) {
+        console.warn(`Failed to grant view_items permission to ${group} for vault "${vaultName}": ${grantError.message}`);
+        backupLog.push(`[WARN] Failed to grant view_items permission to ${group} for vault "${vaultName}": ${grantError.message}`);
+        // Continue execution instead of throwing an error
+      }
     } catch (error) {
-      backupLog.push(`[ERROR] Service account lacks vault creation permission: ${error.message}`);
+      backupLog.push(`[ERROR] Failed to create vault "${vaultName}": ${error.message}`);
       return res.status(403).json({ success: false, message: 'Service account lacks vault creation permission' });
     }
 

@@ -42,7 +42,7 @@
     .vault-list h3 { color: #3498DB; margin-bottom: 15px; text-align: center; }
     .vault-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
     .vault-table th, .vault-table td { padding: 10px; text-align: left; border-bottom: 1px solid #34495E; }
-    .vault-table th { background-color: #3498DB; color: #ECF0F1; }
+    . vault-table th { background-color: #3498DB; color: #ECF0F1; }
     .vault-table tr:nth-child(even) { background-color: rgba(52, 73, 94, 0.3); }
     .vault-table tr:hover { background-color: rgba(52, 73, 94, 0.5); }
     .vault-table-container { width: 100%; max-width: 900px; margin-left: auto; margin-right: auto; box-sizing: border-box; }
@@ -78,7 +78,6 @@
       .start-backup-btn { width: 100%; min-width: 0; max-width: none; }
     }
   </style>
-</script>
 </head>
 <body>
   <div class="container">
@@ -116,12 +115,6 @@
             <input type="text" id="vault-search" placeholder="Search vaults by name..." />
           </div>
           <button onclick="showPasscodeSection()" class="backup-btn">Backup Selected Vaults</button>
-          <div class="progress-container" id="backup-progress" style="display: none;">
-            <div class="progress-bar" id="backup-progress-bar">0%</div>
-          </div>
-          <div class="loading-message" id="backup-loading-message" style="display: none;">
-            Backing up vaults...
-          </div>
           <table class="vault-table">
             <thead>
               <tr>
@@ -143,7 +136,13 @@
           <input type="password" id="passcode" name="passcode" required>
           <button type="button" id="toggle-passcode-btn" class="toggle-btn" onclick="togglePasscode()">Show Passcode</button>
         </div>
-</div>
+        <div class="progress-container" id="backup-progress" style="display: none;">
+          <div class="progress-bar" id="backup-progress-bar">0%</div>
+        </div>
+        <div class="loading-message" id="backup-loading-message" style="display: none;">
+          Backing up vaults...
+        </div>
+      </div>
       <button onclick="backupSelectedVaults()" class="start-backup-btn" id="start-backup-btn" style="display: none;">Start Backup</button>
       <div class="backup-complete" id="backup-complete" style="display: none;">
         <h3>Backup Complete</h3>
@@ -321,10 +320,14 @@
       const progressBar = document.getElementById('backup-progress-bar');
       const loadingMessage = document.getElementById('backup-loading-message');
 
+      // Ensure progress bar and loading message are visible
       progressContainer.style.display = 'block';
       loadingMessage.style.display = 'block';
       progressBar.style.width = '0%';
       progressBar.textContent = '0%';
+
+      // Hide the start backup button during the process
+      document.getElementById('start-backup-btn').style.display = 'none';
 
       try {
         const response = await fetch('/backup/backup-vaults', {
@@ -333,20 +336,20 @@
           body: JSON.stringify({ serviceToken, vaults: selectedVaults, passcode })
         });
 
+        if (!response.ok) throw new Error((await response.json()).message || 'Server error');
+
         const result = await response.json();
-        if (result.success) {
-          progressBar.style.width = '100%';
-          progressBar.textContent = '100%';
-          selectedVaults.forEach(vault => {
-            const statusElement = document.getElementById(`backup-status-${vault.vaultId}`);
-            statusElement.textContent = 'Backup successful!';
-            statusElement.style.color = '#2ECC71';
+        if (result.success && result.results) {
+          result.results.forEach(outcome => {
+            // Update progress bar
+            progressBar.style.width = `${Math.round(outcome.progress)}%`;
+            progressBar.textContent = `${Math.round(outcome.progress)}%`;
           });
 
           backupKeys = { systemKey: result.systemKey, passcode: result.passcode };
           document.getElementById('passcode-section').style.display = 'none';
-          document.getElementById('start-backup-btn').style.display = 'none';
           document.getElementById('backup-complete').style.display = 'block';
+          document.getElementById('vaults-list').style.display = 'none';
 
           const link = document.createElement('a');
           link.href = result.filePath;
@@ -355,11 +358,13 @@
           link.click();
           document.body.removeChild(link);
         } else {
-          throw new Error(result.message);
+          throw new Error(result.message || 'Backup failed');
         }
       } catch (error) {
         document.querySelector('.error').textContent = `Failed to backup vaults: ${error.message}`;
+        document.getElementById('start-backup-btn').style.display = 'block'; // Show the button again on error
       } finally {
+        // Hide progress bar and loading message after a short delay
         setTimeout(() => {
           progressContainer.style.display = 'none';
           loadingMessage.style.display = 'none';
