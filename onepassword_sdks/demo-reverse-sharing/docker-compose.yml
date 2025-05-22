@@ -1,11 +1,9 @@
-version: "3.8" # Specifies the Docker Compose file version
-
 services:
   webapp:
     build: . # Build the Docker image using the Dockerfile in the current directory
     container_name: op_sdk_webapp_service
     ports:
-      - "5001:5000" # Map port 5000 on the host to port 5000 in the container
+      - "5001:5000" # Map port 5001 on the host to port 5000 in the container
     environment:
       # These variables will be sourced from a .env file in the same directory
       # or from your host machine's environment if the .env file is missing/incomplete.
@@ -14,6 +12,3 @@ services:
       - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
       - FLASK_DEBUG=${FLASK_DEBUG:-false} # Default to false (production) if not set
     restart: unless-stopped # Restart the container unless it was explicitly stopped
-    # Optional: Uncomment to mount local code for development (reflects changes without rebuild)
-    # volumes:
-    #   - .:/app

@@ -5,6 +5,10 @@ from flask import Flask, request, render_template, flash, redirect, url_for, ses
 # Import 1Password SDK components
 from onepassword import *
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 app = Flask(__name__)
 
 # --- Configuration from Environment Variables ---

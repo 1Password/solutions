@@ -119,6 +119,7 @@
           name="title"
           value="{{ title_val or '' }}"
           required
+          data-1p-ignore
         />
       </div>
       <div class="form-group">
@@ -128,12 +129,19 @@
           id="username"
           name="username"
           value="{{ username_val or '' }}"
+          data-1p-ignore
         />
       </div>
       <div class="form-group">
         <label for="password">Password:</label>
-        <input type="password" id="password" name="password" value="" /> {# Do
-        not re-populate password #}
+        <input
+          type="password"
+          id="password"
+          name="password"
+          value=""
+          data-1p-ignore
+        />
+        {# Do not re-populate password #}
       </div>
       <div class="form-group">
         <label for="notes">Notes:</label>
