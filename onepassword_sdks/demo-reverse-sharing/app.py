@@ -8,7 +8,7 @@ from onepassword import *
 
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(".env")
 
 app = Flask(__name__)
 
@@ -20,7 +20,6 @@ if not app.config["SECRET_KEY"]:
     )
     app.config["SECRET_KEY"] = "dev-fallback-secret-key-for-flask"
 
-load_dotenv(".env")
 OP_SERVICE_ACCOUNT_TOKEN = os.environ.get("OP_SERVICE_ACCOUNT_TOKEN")
 OP_VAULT_UUID = os.environ.get("OP_VAULT_UUID")
 
