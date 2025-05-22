@@ -1,0 +1,4 @@
+Flask[async]>=2.0
+requests>=2.20
+gunicorn>=20.0
+onepassword-sdk==0.2.1
