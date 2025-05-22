@@ -16,7 +16,7 @@ Before you begin, ensure you have the following:
 - **Python 3.7+** (Python 3.9 is used in the Dockerfile)
 - **Pip** (Python package installer)
 - **1Password Account** with a Service Account configured.
-  - You'll need the **Service Account Token**.
+  - You'll need the [**Service Account Token**](https://developer.1password.com/docs/service-accounts/get-started/#create-a-service-account).
   - You'll need the **UUID of the vault** where you want to create items.
 - **Docker** and **Docker Compose** (Optional, for containerized deployment)
 
@@ -25,8 +25,8 @@ Before you begin, ensure you have the following:
 1. **Clone the repository (if you haven't already):**
 
    ```bash
-   git clone <your-repository-url>
-   cd demo-reverse-sharing
+   git clone https://github.com/1Password/solutions.git
+   cd solutions/onepassword_sdks/demo-reverse-sharing
    ```
 
 2. **Create and configure the `.env` file:**
@@ -124,15 +124,6 @@ This is often the easiest way for local development with containers.
 4. Click "Create Item".
 5. The application will attempt to create the item in your configured 1Password vault using the SDK.
 6. You will see a success or error message displayed on the page.
-
-## Configuration Details
-
-The application uses the following environment variables (typically set in the `.env` file):
-
-- `OP_SERVICE_ACCOUNT_TOKEN`: Your 1Password Service Account token. **Required.**
-- `OP_VAULT_UUID`: The UUID of the 1Password vault where new items will be created. **Required.**
-- `FLASK_SECRET_KEY`: A secret key used by Flask for session management and security. **Required for production.** If not set, a less secure fallback is used, and a warning is issued.
-- `FLASK_DEBUG`: Set to `true` for development mode (enables debug output and auto-reloader). Defaults to `false` (production mode).
 
 ## Security Notes
 
