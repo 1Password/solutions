@@ -1,6 +1,7 @@
 import os
 import asyncio
 from flask import Flask, request, render_template, flash, redirect, url_for, session
+from dotenv import load_dotenv
 
 # Import 1Password SDK components
 from onepassword import *
@@ -15,6 +16,7 @@ if not app.config["SECRET_KEY"]:
     )
     app.config["SECRET_KEY"] = "dev-fallback-secret-key-for-flask"
 
+load_dotenv(".env")
 OP_SERVICE_ACCOUNT_TOKEN = os.environ.get("OP_SERVICE_ACCOUNT_TOKEN")
 OP_VAULT_UUID = os.environ.get("OP_VAULT_UUID")
 
