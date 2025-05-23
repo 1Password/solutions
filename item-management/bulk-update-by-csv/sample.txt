@@ -1,0 +1,4 @@
+vault,item title,new password
+Personal,My Website Login,aVeryStrongNewPassword123!
+Work,Server SSH Key,anotherSecureP@ssw0rd
+Shared Vault,Database Credentials,"complex_p@$$wOrd_with_commas,and_quotes"
