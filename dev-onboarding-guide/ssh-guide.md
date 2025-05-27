@@ -117,4 +117,19 @@ With the 1Password SSH agent correctly set up, when you use an `ssh` command (e.
 
 ---
 
-If you have any questions or encounter issues, please contact your team lead or designated support person.
+### About the [SSH Setup Checker Script](/ssh-checker.sh)
+
+**What it does:**
+
+This script is a small diagnostic tool designed to help you quickly verify if your local environment is correctly configured to use 1Password as your SSH agent. It performs several checks:
+
+1. **`SSH_AUTH_SOCK` Variable:** Verifies that the `SSH_AUTH_SOCK` environment variable is set and appears to point to the 1Password agent.
+2. **Agent Accessibility & Key Listing:** Attempts to connect to the SSH agent (via `ssh-add -L`) to list loaded SSH keys, looking for indicators that they are managed by 1Password.
+3. **GitHub Connection Test (Optional):** Offers to run a test SSH connection to `git@github.com`. This doesn't check your GitHub permissions but allows you to observe if 1Password prompts for authentication (e.g., biometrics) as expected.
+
+**Why you might want to use it:**
+
+- **Troubleshooting:** If you're having trouble connecting to SSH servers after setting up 1Password for SSH, this script can help pinpoint common configuration issues.
+- **Verification:** After following the setup guide, run this script to confirm everything is working as expected.
+- **Self-Service Check:** Quickly perform a self-service diagnostic before reaching out for support.
+- **Peace of Mind:** Ensure your SSH operations are indeed being securely handled by 1Password.
