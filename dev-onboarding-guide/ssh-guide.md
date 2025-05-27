@@ -2,7 +2,7 @@
 
 ## 1. Introduction
 
-This guide outlines the team's standard process for managing SSH keys securely and efficiently using 1Password. By using 1Password for your SSH keys, you benefit from:
+This guide offers a suggested standard process for using 1Password to manage your team's SSH keys securely and efficiently. By using 1Password for your SSH keys, you benefit from:
 
 - **Enhanced Security:** Private keys are encrypted in your 1Password vault and only loaded into the SSH agent when needed, often protected by biometrics or Windows Hello.
 - **Improved Convenience:** No more repeatedly typing passphrases for SSH operations.
