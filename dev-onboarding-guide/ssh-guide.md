@@ -117,7 +117,7 @@ With the 1Password SSH agent correctly set up, when you use an `ssh` command (e.
 
 ---
 
-### About the [SSH Setup Checker Script](/ssh-checker.sh)
+### About the [SSH Setup Checker Script](ssh-checker.sh)
 
 **What it does:**
 
