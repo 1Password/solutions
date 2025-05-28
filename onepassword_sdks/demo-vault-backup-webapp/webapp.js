@@ -527,7 +527,7 @@ class OnePasswordSDK {
           const itemData = {
             id: fullItem.id,
             title: fullItem.title,
-            category: fullItem.category,
+            category: fullItem.category, // Use enum value directly from SDK
             vaultId: fullItem.vaultId,
             fields: fullItem.fields || [],
             sections: fullItem.sections || [],
@@ -552,7 +552,7 @@ class OnePasswordSDK {
             itemData.files = await Promise.all(filePromises);
           }
           // Include primary document content for Document items
-          if (fullItem.category === 'Document' && fullItem.document) {
+          if (fullItem.category === sdk.ItemCategory.Document && fullItem.document) {
             const documentContent = await this.client.items.files.read(vaultId, fullItem.id, fullItem.document);
             const uint8Content = documentContent instanceof Uint8Array ? documentContent : new Uint8Array(documentContent);
             console.log(`Fetched document "${fullItem.document.name}" for "${fullItem.title}", size: ${uint8Content.length}`);
@@ -584,7 +584,7 @@ class OnePasswordSDK {
 
     let createdItem;
     try {
-      if (item.category === 'Document' && item.document) {
+      if (item.category === sdk.ItemCategory.Document && item.document) {
         // Handle Document items with primary document content
         if (!item.document.content) throw new Error('Document content is missing');
         const docBuffer = Buffer.from(item.document.content, 'base64');
