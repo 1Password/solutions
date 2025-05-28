@@ -60,6 +60,8 @@ If something goes wrong:
 
 ## Limitations
 
-- The app uses a self-signed certificate for HTTPS, which works for local testing but needs a real certificate for production.
-- You can’t change the vault names — the script just adds "(Migrated)" to the name in the destination account.
-- The app has fixed limits for how many vaults (2) and items (1) it processes at a time, which might need tweaking for big migrations.
+- Neither the 1Password SDK, CLI, nor vault data export can access or report on passkey fields. To transfer passkeys between 1Password accounts, use the 1Password desktop or mobile app.
+- The SDK does not natively support retrieving archived items for vault migration.
+- The application uses a self-signed certificate for HTTPS, suitable for local testing but requiring a valid certificate for production deployment.
+- Vault names cannot be modified during migration; the script appends "(Migrated)" to the destination vault names.
+- The application has fixed concurrency limits (2 vaults and 1 item processed simultaneously), which may need adjustment for large-scale migrations.

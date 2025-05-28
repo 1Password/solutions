@@ -1,0 +1,14 @@
+services:
+  webapp:
+    build: . # Build the Docker image using the Dockerfile in the current directory
+    container_name: op_sdk_webapp_service
+    ports:
+      - "5001:5000" # Map port 5001 on the host to port 5000 in the container
+    environment:
+      # These variables will be sourced from a .env file in the same directory
+      # or from your host machine's environment if the .env file is missing/incomplete.
+      - OP_SERVICE_ACCOUNT_TOKEN=${OP_SERVICE_ACCOUNT_TOKEN}
+      - OP_VAULT_UUID=${OP_VAULT_UUID}
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
+      - FLASK_DEBUG=${FLASK_DEBUG:-false} # Default to false (production) if not set
+    restart: unless-stopped # Restart the container unless it was explicitly stopped

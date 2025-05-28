@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Create 1Password Item (SDK)</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+        max-width: 600px;
+        margin: 40px auto;
+        padding: 25px;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        background-color: #f9fafb;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      }
+      h1 {
+        text-align: center;
+        color: #1f2937;
+        margin-bottom: 25px;
+      }
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: #374151;
+        font-size: 0.9rem;
+      }
+      input[type="text"],
+      input[type="password"],
+      textarea {
+        width: calc(100% - 20px);
+        padding: 10px;
+        margin-bottom: 18px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        box-sizing: border-box;
+        font-size: 1rem;
+      }
+      input[type="text"]:focus,
+      input[type="password"]:focus,
+      textarea:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        outline: none;
+      }
+      textarea {
+        height: 100px;
+        resize: vertical;
+      }
+      button {
+        width: 100%;
+        padding: 12px 20px;
+        background-color: #2563eb;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 500;
+        transition: background-color 0.2s ease-in-out;
+      }
+      button:hover {
+        background-color: #1d4ed8;
+      }
+      .message-container {
+        margin-bottom: 20px;
+      } /* Container for flashed messages */
+      .message {
+        padding: 12px;
+        border-radius: 6px;
+        text-align: center;
+        font-size: 0.95rem;
+      }
+      .success {
+        background-color: #d1fae5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+      }
+      .error {
+        background-color: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+      }
+      .info {
+        background-color: #e0f2fe;
+        color: #0c4a6e;
+        border: 1px solid #bae6fd;
+      }
+      .form-group {
+        margin-bottom: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Create New 1Password Login Item (SDK)</h1>
+
+    <div class="message-container">
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
+      <div class="message {{ category }}">{{ message }}</div>
+      {% endfor %} {% endif %} {% endwith %}
+    </div>
+
+    {% if sdk_error %}
+    <div class="message error">
+      <strong>Application Initialization Error:</strong> {{ sdk_error }}<br />
+      Item creation is disabled. Please contact the administrator.
+    </div>
+    {% else %}
+    <form method="post">
+      <div class="form-group">
+        <label for="title">Title:</label>
+        <input
+          type="text"
+          id="title"
+          name="title"
+          value="{{ title_val or '' }}"
+          required
+          data-1p-ignore
+        />
+      </div>
+      <div class="form-group">
+        <label for="username">Username:</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          value="{{ username_val or '' }}"
+          data-1p-ignore
+        />
+      </div>
+      <div class="form-group">
+        <label for="password">Password:</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          value=""
+          data-1p-ignore
+        />
+        {# Do not re-populate password #}
+      </div>
+      <div class="form-group">
+        <label for="notes">Notes:</label>
+        <textarea id="notes" name="notes">{{ notes_val or '' }}</textarea>
+      </div>
+      <div>
+        <button type="submit">Create Item</button>
+      </div>
+    </form>
+    {% endif %}
+  </body>
+</html>

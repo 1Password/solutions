@@ -3,11 +3,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: demo-vault-migration-webapp:v1.0.0
+
+    image: demo-vault-migration-webapp:v1.0.2
     ports:
       - "3001:3001"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - NODE_ENV=development
     command: npm start
+

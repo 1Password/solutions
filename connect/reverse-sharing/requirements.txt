@@ -1,0 +1,3 @@
+Flask>=2.0
+requests>=2.20
+gunicorn>=20.0 # Recommended for running Flask in Docker
