@@ -579,6 +579,7 @@ class OnePasswordSDK {
   }
 
   // Create an item in a vault, handling Documents and additional files
+  // Create an item in a vault, handling Documents and additional files
   async createItem(vaultId, item) {
     if (!this.client) await this.initializeClient();
 
@@ -602,15 +603,14 @@ class OnePasswordSDK {
             contentType: 'application/octet-stream'
           }
         };
-        createdItem = await this.client.items.create(newItem);
-        console.log(`Document "${item.title}" created with ID: ${createdItem.id}`);
-        backupLog.push(`[INFO] Document "${item.title}" created with ID: ${createdItem.id}`);
 
-        // Attach any additional files for Document items (e.g., for "DeleteVaults")
+        // Include additional files in client.items.create
         if (item.files && item.files.length > 0) {
           console.log(`Attaching ${item.files.length} additional files to Document "${item.title}"...`);
           backupLog.push(`[INFO] Attaching ${item.files.length} additional files to Document "${item.title}"`);
-          for (const file of item.files) {
+          newItem.files = [];
+          const fileSectionIds = new Set();
+          for (const [index, file] of item.files.entries()) {
             if (!file.content) {
               console.error(`Skipping file "${file.name}" for "${item.title}": content is missing`);
               backupLog.push(`[ERROR] Skipping file "${file.name}" for "${item.title}": content is missing`);
@@ -620,17 +620,32 @@ class OnePasswordSDK {
             const fileContent = new Uint8Array(fileBuffer.buffer, fileBuffer.byteOffset, fileBuffer.byteLength);
             console.log(`Attaching file "${file.name}", size: ${fileContent.length}`);
             backupLog.push(`[INFO] Attaching file "${file.name}", size: ${fileContent.length}`);
-            await this.client.items.files.attach(createdItem, {
+            const fileSectionId = file.sectionId || "restored-section";
+            const fileFieldId = file.fieldId || `restored-file-${Date.now()}-${index}`;
+            newItem.files.push({
               name: file.name,
               content: fileContent,
-              sectionId: file.sectionId || "restored-section",
-              fieldId: file.fieldId || `restored-file-${Date.now()}`,
+              sectionId: fileSectionId,
+              fieldId: fileFieldId,
               contentType: 'application/octet-stream'
             });
+            fileSectionIds.add(fileSectionId);
             console.log(`File "${file.name}" attached to "${item.title}"`);
             backupLog.push(`[INFO] File "${file.name}" attached to "${item.title}"`);
           }
+
+          // Ensure file sectionIds are in newItem.sections
+          newItem.sections = newItem.sections || [];
+          for (const sectionId of fileSectionIds) {
+            if (!newItem.sections.some(section => section.id === sectionId)) {
+              newItem.sections.push({ id: sectionId, title: sectionId === "restored-section" ? "Restored Section" : sectionId });
+            }
+          }
         }
+
+        createdItem = await this.client.items.create(newItem);
+        console.log(`Document "${item.title}" created with ID: ${createdItem.id}`);
+        backupLog.push(`[INFO] Document "${item.title}" created with ID: ${createdItem.id}`);
       } else {
         // Handle non-Document items (Logins, Secure Notes, etc.)
         const sectionIdsFromFields = new Set();
@@ -657,17 +672,14 @@ class OnePasswordSDK {
           websites: item.websites || [],
           notes: item.notes || ""
         };
-        console.log(`Creating item "${item.title}"...`);
-        backupLog.push(`[INFO] Creating item "${item.title}"`);
-        createdItem = await this.client.items.create(newItem);
-        console.log(`Item "${item.title}" created with ID: ${createdItem.id}`);
-        backupLog.push(`[INFO] Item "${item.title}" created with ID: ${createdItem.id}`);
 
-        // Attach any files for non-Document items
+        // Include files in client.items.create
         if (item.files && item.files.length > 0) {
           console.log(`Attaching ${item.files.length} files to "${item.title}"...`);
           backupLog.push(`[INFO] Attaching ${item.files.length} files to "${item.title}"`);
-          for (const file of item.files) {
+          newItem.files = [];
+          const fileSectionIds = new Set();
+          for (const [index, file] of item.files.entries()) {
             if (!file.content) {
               console.error(`Skipping file "${file.name}" for "${item.title}": content is missing`);
               backupLog.push(`[ERROR] Skipping file "${file.name}" for "${item.title}": content is missing`);
@@ -677,17 +689,33 @@ class OnePasswordSDK {
             const fileContent = new Uint8Array(fileBuffer.buffer, fileBuffer.byteOffset, fileBuffer.byteLength);
             console.log(`Attaching file "${file.name}", size: ${fileContent.length}`);
             backupLog.push(`[INFO] Attaching file "${file.name}", size: ${fileContent.length}`);
-            await this.client.items.files.attach(createdItem, {
+            const fileSectionId = file.sectionId || "restored-section";
+            const fileFieldId = file.fieldId || `restored-file-${Date.now()}-${index}`;
+            newItem.files.push({
               name: file.name,
               content: fileContent,
-              sectionId: file.sectionId || "restored-section",
-              fieldId: file.fieldId || `restored-file-${Date.now()}`,
+              sectionId: fileSectionId,
+              fieldId: fileFieldId,
               contentType: 'application/octet-stream'
             });
+            fileSectionIds.add(fileSectionId);
             console.log(`File "${file.name}" attached to "${item.title}"`);
             backupLog.push(`[INFO] File "${file.name}" attached to "${item.title}"`);
           }
+
+          // Ensure file sectionIds are in newItem.sections
+          for (const sectionId of fileSectionIds) {
+            if (!newItem.sections.some(section => section.id === sectionId)) {
+              newItem.sections.push({ id: sectionId, title: sectionId === "restored-section" ? "Restored Section" : sectionId });
+            }
+          }
         }
+
+        console.log(`Creating item "${item.title}"...`);
+        backupLog.push(`[INFO] Creating item "${item.title}"`);
+        createdItem = await this.client.items.create(newItem);
+        console.log(`Item "${item.title}" created with ID: ${createdItem.id}`);
+        backupLog.push(`[INFO] Item "${item.title}" created with ID: ${createdItem.id}`);
       }
     } catch (error) {
       console.error(`Item creation failed for "${item.title}": ${error.message}`);
