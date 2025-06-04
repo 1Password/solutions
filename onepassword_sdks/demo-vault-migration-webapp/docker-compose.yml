@@ -3,9 +3,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: demo-vault-migration-webapp:v1.0.2
+    image: demo-vault-migration-webapp:v1.0.3
     ports:
       - "3001:3001"
     environment:
       - NODE_ENV=development
     command: npm start
+

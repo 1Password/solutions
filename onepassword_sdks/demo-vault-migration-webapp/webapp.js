@@ -153,295 +153,303 @@ loadPLimit().then(() => {
 
   // Migrate a single vault and its items
   async function migrateVault(vaultId, vaultName, sourceToken, destToken, sourceSDK, destSDK, isCancelled) {
-    const logEntry = { vaultId, vaultName, timestamp: new Date().toISOString(), errors: [], itemResults: [] };
-    // Initialize vault-specific log
-    vaultLogs[vaultId] = vaultLogs[vaultId] || [];
-    console.log(`Starting migration for vault ${vaultId} (${vaultName})`);
-    migrationLog.push(`[INFO] Starting migration for vault ${vaultId} (${vaultName})`);
-    vaultLogs[vaultId].push(`[INFO] Starting migration for vault ${vaultId} (${vaultName})`);
+  const logEntry = { vaultId, vaultName, timestamp: new Date().toISOString(), errors: [], itemResults: [] };
+  // Initialize vault-specific log
+  vaultLogs[vaultId] = vaultLogs[vaultId] || [];
+  console.log(`Starting migration for vault ${vaultId} (${vaultName})`);
+  migrationLog.push(`[INFO] Starting migration for vault ${vaultId} (${vaultName})`);
+  vaultLogs[vaultId].push(`[INFO] Starting migration for vault ${vaultId} (${vaultName})`);
 
-    try {
-      // Get source item count
-      const sourceItemCount = await getVaultItemCount(vaultId, sourceToken);
-      logEntry.sourceItemCount = sourceItemCount;
-      console.log(`Vault ${vaultId} (${vaultName}) source item count: ${sourceItemCount}`);
-      migrationLog.push(`[INFO] Vault ${vaultId} (${vaultName}) source item count: ${sourceItemCount}`);
-      vaultLogs[vaultId].push(`[INFO] Source item count: ${sourceItemCount}`);
+  try {
+    // Get source item count
+    const sourceItemCount = await getVaultItemCount(vaultId, sourceToken);
+    logEntry.sourceItemCount = sourceItemCount;
+    console.log(`Vault ${vaultId} (${vaultName}) source item count: ${sourceItemCount}`);
+    migrationLog.push(`[INFO] Vault ${vaultId} (${vaultName}) source item count: ${sourceItemCount}`);
+    vaultLogs[vaultId].push(`[INFO] Source item count: ${sourceItemCount}`);
 
-      const destEnv = { ...process.env, OP_SERVICE_ACCOUNT_TOKEN: destToken };
-      const createVaultCommand = `op vault create "${vaultName}" --format json`;
-      const newVaultOutput = execSync(createVaultCommand, { env: destEnv, encoding: 'utf8' });
-      const newVault = JSON.parse(newVaultOutput);
-      const newVaultId = newVault.id;
-      logEntry.newVaultId = newVaultId;
-      console.log(`Created new vault ${newVaultId} (${vaultName}) in destination`);
-      migrationLog.push(`[INFO] Created new vault ${newVaultId} (${vaultName}) in destination`);
-      vaultLogs[vaultId].push(`[INFO] Created new vault ${newVaultId} (${vaultName}) in destination`);
+    const destEnv = { ...process.env, OP_SERVICE_ACCOUNT_TOKEN: destToken };
+    const createVaultCommand = `op vault create "${vaultName}" --format json`;
+    const newVaultOutput = execSync(createVaultCommand, { env: destEnv, encoding: 'utf8' });
+    const newVault = JSON.parse(newVaultOutput);
+    const newVaultId = newVault.id;
+    logEntry.newVaultId = newVaultId;
+    console.log(`Created new vault ${newVaultId} (${vaultName}) in destination`);
+    migrationLog.push(`[INFO] Created new vault ${newVaultId} (${vaultName}) in destination`);
+    vaultLogs[vaultId].push(`[INFO] Created new vault ${newVaultId} (${vaultName}) in destination`);
 
-      const items = await sourceSDK.listVaultItems(vaultId);
-      const migrationResults = [];
-      let processedItems = 0;
+    const items = await sourceSDK.listVaultItems(vaultId);
+    const migrationResults = [];
+    let processedItems = 0;
 
-      for (const item of items) {
-        if (isCancelled()) {
-          logEntry.status = 'cancelled';
-          console.log(`Migration cancelled for vault ${vaultId} (${vaultName})`);
-          migrationLog.push(`[INFO] Vault ${vaultId} (${vaultName}): Migration cancelled`);
-          vaultLogs[vaultId].push(`[INFO] Migration cancelled`);
-          migrationLog.push(JSON.stringify(logEntry, null, 2));
-          vaultLogs[vaultId].push(JSON.stringify(logEntry, null, 2));
-          return { itemsLength: items.length, migrationResults, sourceItemCount, destItemCount: null };
+    for (const item of items) {
+      if (isCancelled()) {
+        logEntry.status = 'cancelled';
+        console.log(`Migration cancelled for vault ${vaultId} (${vaultName})`);
+        migrationLog.push(`[INFO] Vault ${vaultId} (${vaultName}): Migration cancelled`);
+        vaultLogs[vaultId].push(`[INFO] Migration cancelled`);
+        migrationLog.push(JSON.stringify(logEntry, null, 2));
+        vaultLogs[vaultId].push(JSON.stringify(logEntry, null, 2));
+        return { itemsLength: items.length, migrationResults, sourceItemCount, destItemCount: null };
+      }
+
+      const newItem = {
+        title: item.title,
+        category: item.category || sdk.ItemCategory.Login,
+        vaultId: newVaultId
+      };
+
+      try {
+        if (item.category === 'Document') {
+          const fullItem = await retryWithBackoff(() => sourceSDK.client.items.get(vaultId, item.id));
+          if (fullItem.category !== sdk.ItemCategory.Document || !fullItem.document) {
+            throw new Error(`Item ${item.id} is not a Document or has no document`);
+          }
+          const documentContent = await retryWithBackoff(() => sourceSDK.client.items.files.read(vaultId, item.id, fullItem.document));
+          newItem.document = {
+            name: fullItem.document.name,
+            content: documentContent instanceof Uint8Array ? documentContent : new Uint8Array(documentContent)
+          };
         }
 
-        const newItem = {
-          title: item.title,
-          category: item.category || sdk.ItemCategory.Login,
-          vaultId: newVaultId
-        };
+        if (item.category === 'SSH_KEY') {
+          newItem.category = sdk.ItemCategory.SshKey;
+        }
 
-        try {
-          if (item.category === 'Document') {
-            const fullItem = await retryWithBackoff(() => sourceSDK.client.items.get(vaultId, item.id));
-            if (fullItem.category !== sdk.ItemCategory.Document || !fullItem.document) {
-              throw new Error(`Item ${item.id} is not a Document or has no document`);
-            }
-            const documentContent = await retryWithBackoff(() => sourceSDK.client.items.files.read(vaultId, item.id, fullItem.document));
-            newItem.document = {
-              name: fullItem.document.name,
-              content: documentContent instanceof Uint8Array ? documentContent : new Uint8Array(documentContent)
+        if (item.category === 'CreditCard' || item.category === sdk.ItemCategory.CreditCard) {
+          newItem.category = sdk.ItemCategory.CreditCard;
+          const fullItem = await retryWithBackoff(() => sourceSDK.client.items.get(vaultId, item.id));
+          newItem.fields = fullItem.fields.map(field => {
+            const newField = {
+              id: field.id || "unnamed",
+              title: field.title || field.label || "unnamed",
+              fieldType: field.fieldType || sdk.ItemFieldType.Text,
+              value: field.value || "",
+              sectionId: field.sectionId
             };
-          }
 
-          if (item.category === 'SSH_KEY') {
-            newItem.category = sdk.ItemCategory.SshKey;
-          }
+            const builtInFieldIds = ["cardholder", "type", "number", "ccnum", "cvv", "expiry"];
 
-          if (item.category === 'CreditCard' || item.category === sdk.ItemCategory.CreditCard) {
-            newItem.category = sdk.ItemCategory.CreditCard;
-            const fullItem = await retryWithBackoff(() => sourceSDK.client.items.get(vaultId, item.id));
-            newItem.fields = fullItem.fields.map(field => {
-              const newField = {
-                id: field.id || "unnamed",
-                title: field.title || field.label || "unnamed",
-                fieldType: field.fieldType || sdk.ItemFieldType.Text,
-                value: field.value || "",
-                sectionId: field.sectionId
+            if (field.id === "type" || field.title.toLowerCase().includes("type")) {
+              newField.fieldType = sdk.ItemFieldType.CreditCardType;
+              const cardTypeMap = {
+                "mc": "Mastercard",
+                "visa": "Visa",
+                "amex": "American Express",
+                "discover": "Discover"
               };
+              newField.value = cardTypeMap[field.value.toLowerCase()] || field.value || "Unknown";
+            }
 
-              const builtInFieldIds = ["cardholder", "type", "number", "ccnum", "cvv", "expiry"];
-
-              if (field.id === "type" || field.title.toLowerCase().includes("type")) {
-                newField.fieldType = sdk.ItemFieldType.CreditCardType;
-                const cardTypeMap = {
-                  "mc": "Mastercard",
-                  "visa": "Visa",
-                  "amex": "American Express",
-                  "discover": "Discover"
-                };
-                newField.value = cardTypeMap[field.value.toLowerCase()] || field.value || "Unknown";
-              }
-
-              if (field.id === "expiry" || field.title.toLowerCase().includes("expiry") || field.title.toLowerCase().includes("expiration")) {
-                newField.fieldType = sdk.ItemFieldType.MonthYear;
-                let expiryValue = field.value || "";
-                if (expiryValue) {
-                  if (/^\d{2}\/\d{4}$/.test(expiryValue)) {
-                    newField.value = expiryValue;
-                  } else if (/^\d{2}-\d{4}$/.test(expiryValue)) {
-                    newField.value = expiryValue.replace('-', '/');
-                  } else if (/^\d{2}\d{2}$/.test(expiryValue)) {
-                    newField.value = `${expiryValue.slice(0, 2)}/20${expiryValue.slice(2)}`;
-                  } else if (/^\d{2}\/\d{2}$/.test(expiryValue)) {
-                    newField.value = `${expiryValue.slice(0, 2)}/20${expiryValue.slice(3)}`;
-                  } else {
-                    newField.value = "01/1970";
-                  }
+            if (field.id === "expiry" || field.title.toLowerCase().includes("expiry") || field.title.toLowerCase().includes("expiration")) {
+              newField.fieldType = sdk.ItemFieldType.MonthYear;
+              let expiryValue = field.value || "";
+              if (expiryValue) {
+                if (/^\d{2}\/\d{4}$/.test(expiryValue)) {
+                  newField.value = expiryValue;
+                } else if (/^\d{2}-\d{4}$/.test(expiryValue)) {
+                  newField.value = expiryValue.replace('-', '/');
+                } else if (/^\d{2}\d{2}$/.test(expiryValue)) {
+                  newField.value = `${expiryValue.slice(0, 2)}/20${expiryValue.slice(2)}`;
+                } else if (/^\d{2}\/\d{2}$/.test(expiryValue)) {
+                  newField.value = `${expiryValue.slice(0, 2)}/20${expiryValue.slice(3)}`;
                 } else {
                   newField.value = "01/1970";
                 }
+              } else {
+                newField.value = "01/1970";
               }
+            }
 
-              if (field.id === "number" || field.id === "ccnum" || field.title.toLowerCase().includes("number")) {
-                newField.fieldType = sdk.ItemFieldType.CreditCardNumber;
-              }
+            if (field.id === "number" || field.id === "ccnum" || field.title.toLowerCase().includes("number")) {
+              newField.fieldType = sdk.ItemFieldType.CreditCardNumber;
+            }
 
-              if (field.id === "cvv" || field.title.toLowerCase().includes("verification")) {
-                newField.fieldType = sdk.ItemFieldType.Concealed;
-              }
+            if (field.id === "cvv" || field.title.toLowerCase().includes("verification")) {
+              newField.fieldType = sdk.ItemFieldType.Concealed;
+            }
 
-              if (field.id === "pin" || field.title.toLowerCase().includes("pin")) {
-                newField.fieldType = sdk.ItemFieldType.Concealed;
-              }
+            if (field.id === "pin" || field.title.toLowerCase().includes("pin")) {
+              newField.fieldType = sdk.ItemFieldType.Concealed;
+            }
 
-              if (!newField.sectionId && !builtInFieldIds.includes(newField.id)) {
-                newField.sectionId = "add more";
-              }
+            if (!newField.sectionId && !builtInFieldIds.includes(newField.id)) {
+              newField.sectionId = "add more";
+            }
 
-              return newField;
-            });
-          }
-
-          if (item.fields && item.fields.length > 0 && newItem.category !== sdk.ItemCategory.CreditCard) {
-            newItem.fields = item.fields.map(field => {
-              const newField = {
-                id: field.id || "unnamed",
-                title: field.title || field.label || "unnamed",
-                fieldType: field.fieldType === sdk.ItemFieldType.Text ? sdk.ItemFieldType.Text :
-                          field.fieldType === sdk.ItemFieldType.Concealed ? sdk.ItemFieldType.Concealed :
-                          field.fieldType === sdk.ItemFieldType.Totp ? sdk.ItemFieldType.Totp :
-                          field.fieldType === sdk.ItemFieldType.Address ? sdk.ItemFieldType.Address :
-                          field.fieldType === sdk.ItemFieldType.SshKey ? sdk.ItemFieldType.SshKey :
-                          field.fieldType === sdk.ItemFieldType.Date ? sdk.ItemFieldType.Date :
-                          field.fieldType === sdk.ItemFieldType.MonthYear ? sdk.ItemFieldType.MonthYear :
-                          field.fieldType === sdk.ItemFieldType.Email ? sdk.ItemFieldType.Email :
-                          field.fieldType === sdk.ItemFieldType.Phone ? sdk.ItemFieldType.Phone :
-                          field.fieldType === sdk.ItemFieldType.Url ? sdk.ItemFieldType.Url :
-                          field.fieldType === sdk.ItemFieldType.Menu ? sdk.ItemFieldType.Menu :
-                          sdk.ItemFieldType.Text,
-                value: field.value || "",
-                sectionId: field.sectionId
-              };
-
-              if (field.fieldType === sdk.ItemFieldType.Address && field.details && field.details.content) {
-                newField.details = {
-                  type: "Address",
-                  content: {
-                    street: field.details.content.street || "",
-                    city: field.details.content.city || "",
-                    country: field.details.content.country || "",
-                    zip: field.details.content.zip || "",
-                    state: field.details.content.state || ""
-                  }
-                };
-                newField.value = "";
-              } else if (field.fieldType === sdk.ItemFieldType.SshKey && field.details && field.details.content) {
-                newField.value = field.details.content.privateKey || field.value || "";
-              } else if (field.fieldType === sdk.ItemFieldType.Totp) {
-                const totpValue = field.value || field.details?.content?.totp || "";
-                const isValidTotpUri = totpValue.startsWith("otpauth://totp/");
-                const isPotentialTotpSeed = /^[A-Z2-7]{16,32}$/i.test(totpValue);
-                if (isValidTotpUri || isPotentialTotpSeed) {
-                  newField.value = totpValue;
-                } else {
-                  newField.fieldType = sdk.ItemFieldType.Text;
-                  newField.value = totpValue;
-                }
-              } else if (field.fieldType === sdk.ItemFieldType.Date || field.fieldType === sdk.ItemFieldType.MonthYear) {
-                newField.value = field.value || "";
-              }
-
-              if (newField.sectionId === undefined && newField.id !== "username" && newField.id !== "password" && newField.fieldType !== sdk.ItemFieldType.Totp) {
-                newField.sectionId = "add more";
-              }
-              return newField;
-            });
-          } else if (item.category === sdk.ItemCategory.SecureNote) {
-            newItem.notes = item.notes || "Migrated Secure Note";
-          }
-
-          const referencedSectionIds = newItem.fields ? [...new Set(newItem.fields.map(field => field.sectionId).filter(id => id !== undefined))] : [];
-          newItem.sections = [];
-          if (item.sections && item.sections.length > 0) {
-            const sourceSections = item.sections
-              .filter(section => referencedSectionIds.includes(section.id) || (section.title && section.title.trim() !== ""))
-              .map(section => ({ id: section.id, title: section.title || "" }));
-            newItem.sections.push(...sourceSections);
-          }
-          if (referencedSectionIds.includes("add more") && !newItem.sections.some(section => section.id === "add more")) {
-            newItem.sections.push({ id: "add more", title: "" });
-          }
-          if (newItem.sections.length === 0 && referencedSectionIds.length === 0) {
-            delete newItem.sections;
-          }
-          if (item.tags && item.tags.length > 0) {
-            newItem.tags = item.tags;
-          }
-          if (item.websites && item.websites.length > 0) {
-            newItem.websites = item.websites.map(website => ({
-              url: website.url || website.href || "",
-              label: website.label || "website",
-              autofillBehavior: website.autofillBehavior || sdk.AutofillBehavior.AnywhereOnWebsite
-            }));
-          }
-
-          let createdItem = await retryWithBackoff(() => destSDK.client.items.create(newItem));
-          const fetchedItem = await retryWithBackoff(() => destSDK.client.items.get(newVaultId, createdItem.id));
-
-          if (item.files && item.files.length > 0) {
-            const fileAttachPromises = item.files.map(file => {
-              const fileName = file.name;
-              const fileContent = file.content;
-              const fileSectionId = newItem.sections && newItem.sections.find(section => section.id === file.sectionId)
-                ? file.sectionId
-                : (newItem.sections && newItem.sections[0]?.id) || "unnamed-section";
-              const fileFieldId = file.fieldId || `${fileName}-${Date.now()}`;
-              if (fileName && fileContent) {
-                return retryWithBackoff(() => destSDK.client.items.files.attach(createdItem, {
-                  name: fileName,
-                  content: fileContent instanceof Uint8Array ? fileContent : new Uint8Array(fileContent),
-                  sectionId: fileSectionId,
-                  fieldId: fileFieldId
-                }));
-              }
-              return Promise.resolve();
-            });
-            await Promise.all(fileAttachPromises);
-          }
-
-          processedItems++;
-          migrationResults.push({ id: item.id, title: item.title, success: true, progress: (processedItems / items.length) * 100 });
-          logEntry.itemResults.push({ id: item.id, title: item.title, success: true });
-          console.log(`Successfully migrated item ${item.id} (${item.title}) in vault ${vaultId}`);
-          migrationLog.push(`[INFO] Successfully migrated item ${item.id} (${item.title}) in vault ${vaultId}`);
-          vaultLogs[vaultId].push(`[INFO] Successfully migrated item ${item.id} (${item.title})`);
-        } catch (error) {
-          processedItems++;
-          console.error(`Error migrating item ${item.id} in vault ${vaultId}: ${error.message}`);
-          migrationResults.push({ id: item.id, title: item.title, success: false, error: error.message, progress: (processedItems / items.length) * 100 });
-          logEntry.errors.push(`Item ${item.id}: ${error.message}`);
-          logEntry.itemResults.push({ id: item.id, title: item.title, success: false, error: error.message });
-          migrationLog.push(`[ERROR] Error migrating item ${item.id} in vault ${vaultId}: ${error.message}`);
-          vaultLogs[vaultId].push(`[ERROR] Error migrating item ${item.id}: ${error.message}`);
+            return newField;
+          });
         }
+
+        if (item.fields && item.fields.length > 0 && newItem.category !== sdk.ItemCategory.CreditCard) {
+          newItem.fields = item.fields.map(field => {
+            const newField = {
+              id: field.id || "unnamed",
+              title: field.title || field.label || "unnamed",
+              fieldType: field.fieldType === sdk.ItemFieldType.Text ? sdk.ItemFieldType.Text :
+                        field.fieldType === sdk.ItemFieldType.Concealed ? sdk.ItemFieldType.Concealed :
+                        field.fieldType === sdk.ItemFieldType.Totp ? sdk.ItemFieldType.Totp :
+                        field.fieldType === sdk.ItemFieldType.Address ? sdk.ItemFieldType.Address :
+                        field.fieldType === sdk.ItemFieldType.SshKey ? sdk.ItemFieldType.SshKey :
+                        field.fieldType === sdk.ItemFieldType.Date ? sdk.ItemFieldType.Date :
+                        field.fieldType === sdk.ItemFieldType.MonthYear ? sdk.ItemFieldType.MonthYear :
+                        field.fieldType === sdk.ItemFieldType.Email ? sdk.ItemFieldType.Email :
+                        field.fieldType === sdk.ItemFieldType.Phone ? sdk.ItemFieldType.Phone :
+                        field.fieldType === sdk.ItemFieldType.Url ? sdk.ItemFieldType.Url :
+                        field.fieldType === sdk.ItemFieldType.Menu ? sdk.ItemFieldType.Menu :
+                        sdk.ItemFieldType.Text,
+              value: field.value || "",
+              sectionId: field.sectionId
+            };
+
+            if (field.fieldType === sdk.ItemFieldType.Address && field.details && field.details.content) {
+              newField.details = {
+                type: "Address",
+                content: {
+                  street: field.details.content.street || "",
+                  city: field.details.content.city || "",
+                  country: field.details.content.country || "",
+                  zip: field.details.content.zip || "",
+                  state: field.details.content.state || ""
+                }
+              };
+              newField.value = "";
+            } else if (field.fieldType === sdk.ItemFieldType.SshKey && field.details && field.details.content) {
+              newField.value = field.details.content.privateKey || field.value || "";
+            } else if (field.fieldType === sdk.ItemFieldType.Totp) {
+              const totpValue = field.value || field.details?.content?.totp || "";
+              const isValidTotpUri = totpValue.startsWith("otpauth://totp/");
+              const isPotentialTotpSeed = /^[A-Z2-7]{16,32}$/i.test(totpValue);
+              if (isValidTotpUri || isPotentialTotpSeed) {
+                newField.value = totpValue;
+              } else {
+                newField.fieldType = sdk.ItemFieldType.Text;
+                newField.value = totpValue;
+              }
+            } else if (field.fieldType === sdk.ItemFieldType.Date || field.fieldType === sdk.ItemFieldType.MonthYear) {
+              newField.value = field.value || "";
+            }
+
+            if (newField.sectionId === undefined && newField.id !== "username" && newField.id !== "password" && newField.fieldType !== sdk.ItemFieldType.Totp) {
+              newField.sectionId = "add more";
+            }
+            return newField;
+          });
+        } else if (item.category === sdk.ItemCategory.SecureNote) {
+          newItem.notes = item.notes || "Migrated Secure Note";
+        }
+
+        const referencedSectionIds = newItem.fields ? [...new Set(newItem.fields.map(field => field.sectionId).filter(id => id !== undefined))] : [];
+        newItem.sections = [];
+        if (item.sections && item.sections.length > 0) {
+          const sourceSections = item.sections
+            .filter(section => referencedSectionIds.includes(section.id) || (section.title && section.title.trim() !== ""))
+            .map(section => ({ id: section.id, title: section.title || "" }));
+          newItem.sections.push(...sourceSections);
+        }
+        if (referencedSectionIds.includes("add more") && !newItem.sections.some(section => section.id === "add more")) {
+          newItem.sections.push({ id: "add more", title: "" });
+        }
+        if (newItem.sections.length === 0 && referencedSectionIds.length === 0) {
+          delete newItem.sections;
+        }
+
+        // Include all files in client.items.create
+        if (item.files && item.files.length > 0) {
+          newItem.files = [];
+          const fileSectionIds = new Set();
+          for (const [index, file] of item.files.entries()) {
+            const fileName = file.name;
+            const fileContent = file.content;
+            const fileSectionId = file.sectionId || "add more"; // Use source sectionId or default to "add more"
+            const fileFieldId = file.fieldId || `${fileName}-${Date.now()}-${index}`; // Unique fieldId
+
+            if (fileName && fileContent) {
+              newItem.files.push({
+                name: fileName,
+                content: fileContent instanceof Uint8Array ? fileContent : new Uint8Array(fileContent),
+                sectionId: fileSectionId,
+                fieldId: fileFieldId
+              });
+              fileSectionIds.add(fileSectionId);
+            }
+          }
+
+          // Ensure all file sectionIds are in newItem.sections
+          if (!newItem.sections) newItem.sections = [];
+          for (const sectionId of fileSectionIds) {
+            if (!newItem.sections.some(section => section.id === sectionId)) {
+              newItem.sections.push({ id: sectionId, title: sectionId === "add more" ? "" : sectionId });
+            }
+          }
+        }
+
+        if (item.tags && item.tags.length > 0) {
+          newItem.tags = item.tags;
+        }
+        if (item.websites && item.websites.length > 0) {
+          newItem.websites = item.websites.map(website => ({
+            url: website.url || website.href || "",
+            label: website.label || "website",
+            autofillBehavior: website.autofillBehavior || sdk.AutofillBehavior.AnywhereOnWebsite
+          }));
+        }
+
+        let createdItem = await retryWithBackoff(() => destSDK.client.items.create(newItem));
+
+        processedItems++;
+        migrationResults.push({ id: item.id, title: item.title, success: true, progress: (processedItems / items.length) * 100 });
+        logEntry.itemResults.push({ id: item.id, title: item.title, success: true });
+        console.log(`Successfully migrated item ${item.id} (${item.title}) in vault ${vaultId}`);
+        migrationLog.push(`[INFO] Successfully migrated item ${item.id} (${item.title}) in vault ${vaultId}`);
+        vaultLogs[vaultId].push(`[INFO] Successfully migrated item ${item.id} (${item.title})`);
+      } catch (error) {
+        processedItems++;
+        console.error(`Error migrating item ${item.id} in vault ${vaultId}: ${error.message}`);
+        migrationResults.push({ id: item.id, title: item.title, success: false, error: error.message, progress: (processedItems / items.length) * 100 });
+        logEntry.errors.push(`Item ${item.id}: ${error.message}`);
+        logEntry.itemResults.push({ id: item.id, title: item.title, success: false, error: error.message });
+        migrationLog.push(`[ERROR] Error migrating item ${item.id} in vault ${vaultId}: ${error.message}`);
+        vaultLogs[vaultId].push(`[ERROR] Error migrating item ${item.id}: ${error.message}`);
       }
-
-      // Get destination item count
-      const destItemCount = await getVaultItemCount(newVaultId, destToken);
-      logEntry.destItemCount = destItemCount;
-      logEntry.status = 'completed';
-      console.log(`Vault ${vaultId} (${vaultName}) destination item count: ${destItemCount}`);
-      migrationLog.push(`[INFO] Vault ${vaultId} (${vaultName}) destination item count: ${destItemCount}`);
-      vaultLogs[vaultId].push(`[INFO] Destination item count: ${destItemCount}`);
-
-      // Log item count comparison
-      if (sourceItemCount === destItemCount) {
-        console.log(`Vault ${vaultId} (${vaultName}): Successfully migrated ${sourceItemCount} items`);
-        migrationLog.push(`[INFO] Vault ${vaultId} (${vaultName}): Successfully migrated ${sourceItemCount} items`);
-        vaultLogs[vaultId].push(`[INFO] Successfully migrated ${sourceItemCount} items`);
-      } else {
-        console.error(`Vault ${vaultId} (${vaultName}): Item count mismatch - Source: ${sourceItemCount}, Destination: ${destItemCount}`);
-        migrationLog.push(`[ERROR] Vault ${vaultId} (${vaultName}): Item count mismatch - Source: ${sourceItemCount}, Destination: ${destItemCount}`);
-        vaultLogs[vaultId].push(`[ERROR] Item count mismatch - Source: ${sourceItemCount}, Destination: ${destItemCount}`);
-      }
-
-      migrationLog.push(JSON.stringify(logEntry, null, 2));
-      vaultLogs[vaultId].push(JSON.stringify(logEntry, null, 2));
-      console.log(`Completed migration for vault ${vaultId} (${vaultName})`);
-      migrationLog.push(`[INFO] Completed migration for vault ${vaultId} (${vaultName})`);
-      vaultLogs[vaultId].push(`[INFO] Completed migration`);
-      return { itemsLength: items.length, migrationResults, sourceItemCount, destItemCount };
-    } catch (error) {
-      console.error(`Error migrating vault ${vaultId}: ${error.message}`);
-      migrationLog.push(`[ERROR] Vault ${vaultId} (${vaultName}): Failed to migrate - ${error.message}`);
-      vaultLogs[vaultId].push(`[ERROR] Failed to migrate: ${error.message}`);
-      logEntry.status = 'failed';
-      logEntry.errors.push(`Vault migration: ${error.message}`);
-      migrationLog.push(JSON.stringify(logEntry, null, 2));
-      vaultLogs[vaultId].push(JSON.stringify(logEntry, null, 2));
-      throw error;
     }
-  }
 
+    // Get destination item count
+    const destItemCount = await getVaultItemCount(newVaultId, destToken);
+    logEntry.destItemCount = destItemCount;
+    logEntry.status = 'completed';
+    console.log(`Vault ${vaultId} (${vaultName}) destination item count: ${destItemCount}`);
+    migrationLog.push(`[INFO] Vault ${vaultId} (${vaultName}) destination item count: ${destItemCount}`);
+    vaultLogs[vaultId].push(`[INFO] Destination item count: ${destItemCount}`);
+
+    // Log item count comparison
+    if (sourceItemCount === destItemCount) {
+      console.log(`Vault ${vaultId} (${vaultName}): Successfully migrated ${sourceItemCount} items`);
+      migrationLog.push(`[INFO] Vault ${vaultId} (${vaultName}): Successfully migrated ${sourceItemCount} items`);
+      vaultLogs[vaultId].push(`[INFO] Successfully migrated ${sourceItemCount} items`);
+    } else {
+      console.error(`Vault ${vaultId} (${vaultName}): Item count mismatch - Source: ${sourceItemCount}, Destination: ${destItemCount}`);
+      migrationLog.push(`[ERROR] Vault ${vaultId} (${vaultName}): Item count mismatch - Source: ${sourceItemCount}, Destination: ${destItemCount}`);
+      vaultLogs[vaultId].push(`[ERROR] Item count mismatch - Source: ${sourceItemCount}, Destination: ${destItemCount}`);
+    }
+
+    migrationLog.push(JSON.stringify(logEntry, null, 2));
+    vaultLogs[vaultId].push(JSON.stringify(logEntry, null, 2));
+    console.log(`Completed migration for vault ${vaultId} (${vaultName})`);
+    migrationLog.push(`[INFO] Completed migration for vault ${vaultId} (${vaultName})`);
+    vaultLogs[vaultId].push(`[INFO] Completed migration`);
+    return { itemsLength: items.length, migrationResults, sourceItemCount, destItemCount };
+  } catch (error) {
+    console.error(`Error migrating vault ${vaultId}: ${error.message}`);
+    migrationLog.push(`[ERROR] Vault ${vaultId} (${vaultName}): Failed to migrate - ${error.message}`);
+    vaultLogs[vaultId].push(`[ERROR] Failed to migrate: ${error.message}`);
+    logEntry.status = 'failed';
+    logEntry.errors.push(`Vault migration: ${error.message}`);
+    migrationLog.push(JSON.stringify(logEntry, null, 2));
+    vaultLogs[vaultId].push(JSON.stringify(logEntry, null, 2));
+    throw error;
+  }
+}
   // Migrate a single vault
   app.post('/migration/migrate-vault', async (req, res) => {
     const { vaultId, vaultName, sourceToken, destToken } = req.body;
