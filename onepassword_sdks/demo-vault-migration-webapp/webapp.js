@@ -1,3 +1,4 @@
+// Load required modules and initialize express
 const sdk = require('@1password/sdk');
 const { execSync } = require('child_process');
 const express = require('express');
@@ -31,6 +32,7 @@ loadPLimit().then(() => {
   const VAULT_CONCURRENCY_LIMIT = 2;
   const ITEM_CONCURRENCY_LIMIT = 1;
 
+  // Set up views and middleware
   app.set('views', path.join(__dirname, 'views'));
   app.set('view engine', 'ejs');
 
@@ -70,7 +72,6 @@ loadPLimit().then(() => {
       const sdkInstance = new OnePasswordSDK(serviceToken);
       await sdkInstance.initializeClient();
       const vaults = await sdkInstance.listVaults();
-      // Get item counts for each vault using CLI
       const vaultsWithCounts = await Promise.all(vaults.map(async (vault) => {
         const count = await getVaultItemCount(vault.id, serviceToken);
         console.log(`Vault ${vault.id} (${vault.name}): ${count} items`);
@@ -116,88 +117,91 @@ loadPLimit().then(() => {
     }
   };
 
+  // Get item count for a vault
   async function getVaultItemCount(vaultId, token, vaultName = 'Unknown') {
-  try {
-    const sdkInstance = new OnePasswordSDK(token);
-    await sdkInstance.initializeClient();
-    // Count active items
-    const activeItems = await sdkInstance.client.items.list(vaultId);
-    const activeCount = activeItems.length;
-    // Count archived items
-    const archivedItems = await sdkInstance.client.items.list(vaultId, {
-      type: "ByState",
-      content: { active: false, archived: true }
-    });
-    const archivedCount = archivedItems.length;
-    // Log archived items if any
-    if (archivedCount > 0) {
-      const logMessage = `[INFO] Vault ${vaultId} (${vaultName}): Contains ${archivedCount} archived items`;
-      console.log(logMessage);
-      migrationLog.push(logMessage);
-      if (vaultLogs[vaultId]) {
-        vaultLogs[vaultId].push(logMessage);
-      } else {
-        vaultLogs[vaultId] = [logMessage];
+    try {
+      const sdkInstance = new OnePasswordSDK(token);
+      await sdkInstance.initializeClient();
+      const activeItems = await sdkInstance.client.items.list(vaultId);
+      const activeCount = activeItems.length;
+      const archivedItems = await sdkInstance.client.items.list(vaultId, {
+        type: "ByState",
+        content: { active: false, archived: true }
+      });
+      const archivedCount = archivedItems.length;
+      if (archivedCount > 0) {
+        const logMessage = `[INFO] Vault ${vaultId} (${vaultName}): Contains ${archivedCount} archived items`;
+        console.log(logMessage);
+        migrationLog.push(logMessage);
+        if (vaultLogs[vaultId]) {
+          vaultLogs[vaultId].push(logMessage);
+        } else {
+          vaultLogs[vaultId] = [logMessage];
+        }
       }
+      return activeCount;
+    } catch (error) {
+      console.error(`Error fetching item count for vault ${vaultId}: ${error.message}`);
+      migrationLog.push(`[ERROR] Vault ${vaultId} (${vaultName}): Failed to fetch item count - ${error.message}`);
+      if (vaultLogs[vaultId]) {
+        vaultLogs[vaultId].push(`[ERROR] Failed to fetch item count: ${error.message}`);
+      }
+      return 0;
     }
-    return activeCount; // Return only active item count for UI and migration
-  } catch (error) {
-    console.error(`Error fetching item count for vault ${vaultId}: ${error.message}`);
-    migrationLog.push(`[ERROR] Vault ${vaultId} (${vaultName}): Failed to fetch item count - ${error.message}`);
-    if (vaultLogs[vaultId]) {
-      vaultLogs[vaultId].push(`[ERROR] Failed to fetch item count: ${error.message}`);
-    }
-    return 0;
   }
-}
 
   // Migrate a single vault and its items
   async function migrateVault(vaultId, vaultName, sourceToken, destToken, sourceSDK, destSDK, isCancelled) {
-  const logEntry = { vaultId, vaultName, timestamp: new Date().toISOString(), errors: [], itemResults: [] };
-  // Initialize vault-specific log
-  vaultLogs[vaultId] = vaultLogs[vaultId] || [];
-  console.log(`Starting migration for vault ${vaultId} (${vaultName})`);
-  migrationLog.push(`[INFO] Starting migration for vault ${vaultId} (${vaultName})`);
-  vaultLogs[vaultId].push(`[INFO] Starting migration for vault ${vaultId} (${vaultName})`);
+    const logEntry = { vaultId, vaultName, timestamp: new Date().toISOString(), errors: [], itemResults: [] };
+    vaultLogs[vaultId] = vaultLogs[vaultId] || [];
+    console.log(`Starting migration for vault ${vaultId} (${vaultName})`);
+    migrationLog.push(`[INFO] Starting migration for vault ${vaultId} (${vaultName})`);
+    vaultLogs[vaultId].push(`[INFO] Starting migration for vault ${vaultId} (${vaultName})`);
 
-  try {
-    // Get source item count
-    const sourceItemCount = await getVaultItemCount(vaultId, sourceToken);
-    logEntry.sourceItemCount = sourceItemCount;
-    console.log(`Vault ${vaultId} (${vaultName}) source item count: ${sourceItemCount}`);
-    migrationLog.push(`[INFO] Vault ${vaultId} (${vaultName}) source item count: ${sourceItemCount}`);
-    vaultLogs[vaultId].push(`[INFO] Source item count: ${sourceItemCount}`);
+    try {
+      const sourceItemCount = await getVaultItemCount(vaultId, sourceToken);
+      logEntry.sourceItemCount = sourceItemCount;
+      console.log(`Vault ${vaultId} (${vaultName}) source item count: ${sourceItemCount}`);
+      migrationLog.push(`[INFO] Vault ${vaultId} (${vaultName}) source item count: ${sourceItemCount}`);
+      vaultLogs[vaultId].push(`[INFO] Source item count: ${sourceItemCount}`);
 
-    const destEnv = { ...process.env, OP_SERVICE_ACCOUNT_TOKEN: destToken };
-    const createVaultCommand = `op vault create "${vaultName}" --format json`;
-    const newVaultOutput = execSync(createVaultCommand, { env: destEnv, encoding: 'utf8' });
-    const newVault = JSON.parse(newVaultOutput);
-    const newVaultId = newVault.id;
-    logEntry.newVaultId = newVaultId;
-    console.log(`Created new vault ${newVaultId} (${vaultName}) in destination`);
-    migrationLog.push(`[INFO] Created new vault ${newVaultId} (${vaultName}) in destination`);
-    vaultLogs[vaultId].push(`[INFO] Created new vault ${newVaultId} (${vaultName}) in destination`);
+      const destEnv = { ...process.env, OP_SERVICE_ACCOUNT_TOKEN: destToken };
+      const createVaultCommand = `op vault create "${vaultName}" --format json`;
+      const newVaultOutput = execSync(createVaultCommand, { env: destEnv, encoding: 'utf8' });
+      const newVault = JSON.parse(newVaultOutput);
+      const newVaultId = newVault.id;
+      logEntry.newVaultId = newVaultId;
+      console.log(`Created new vault ${newVaultId} (${vaultName}) in destination`);
+      migrationLog.push(`[INFO] Created new vault ${newVaultId} (${vaultName}) in destination`);
+      vaultLogs[vaultId].push(`[INFO] Created new vault ${newVaultId} (${vaultName}) in destination`);
 
-    const items = await sourceSDK.listVaultItems(vaultId);
-    const migrationResults = [];
-    let processedItems = 0;
+      const items = await sourceSDK.listVaultItems(vaultId);
+      const migrationResults = [];
+      let processedItems = 0;
 
-    for (const item of items) {
-      if (isCancelled()) {
-        logEntry.status = 'cancelled';
-        console.log(`Migration cancelled for vault ${vaultId} (${vaultName})`);
-        migrationLog.push(`[INFO] Vault ${vaultId} (${vaultName}): Migration cancelled`);
-        vaultLogs[vaultId].push(`[INFO] Migration cancelled`);
-        migrationLog.push(JSON.stringify(logEntry, null, 2));
-        vaultLogs[vaultId].push(JSON.stringify(logEntry, null, 2));
-        return { itemsLength: items.length, migrationResults, sourceItemCount, destItemCount: null };
-      }
+      for (const item of items) {
+        if (isCancelled()) {
+          logEntry.status = 'cancelled';
+          console.log(`Migration cancelled for vault ${vaultId} (${vaultName})`);
+          migrationLog.push(`[INFO] Vault ${vaultId} (${vaultName}): Migration cancelled`);
+          vaultLogs[vaultId].push(`[INFO] Migration cancelled`);
+          migrationLog.push(JSON.stringify(logEntry, null, 2));
+          vaultLogs[vaultId].push(JSON.stringify(logEntry, null, 2));
+          return { itemsLength: items.length, migrationResults, sourceItemCount, destItemCount: null };
+        }
 
-      const newItem = {
-        title: item.title,
-        category: item.category || sdk.ItemCategory.Login,
-        vaultId: newVaultId
-      };
+        const newItem = {
+          title: item.title,
+          category: item.category || sdk.ItemCategory.Login,
+          vaultId: newVaultId
+        };
+
+        // ✅ Add notes if present for all item types
+        if (item.notes && item.notes.trim() !== "") {
+          newItem.notes = item.notes;
+        } else if (item.category === sdk.ItemCategory.SecureNote) {
+          newItem.notes = "Migrated Secure Note";
+        }
 
       try {
         if (item.category === 'Document') {
