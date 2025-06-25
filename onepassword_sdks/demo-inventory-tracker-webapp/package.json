@@ -17,5 +17,8 @@
     "ejs": "^3.1.10",
     "express": "^4.19.2",
     "nodemon": "^3.1.4"
+  },
+  "devDependencies": {
+    "brace-expansion": ">=2.0.2"
   }
 }
