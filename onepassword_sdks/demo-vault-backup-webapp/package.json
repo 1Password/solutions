@@ -17,7 +17,7 @@
     "ejs": "^3.1.10",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
-    "multer": "^1.4.5-lts.2",
+    "multer": "^2.0.1",
     "p-limit": "^4.0.0",
     "selfsigned": "^2.4.1"
   }
