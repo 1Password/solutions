@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: demo-vault-migration-webapp:v1.0.3
+    image: demo-vault-migration-webapp:v1.0.4
     ports:
       - "3001:3001"
     environment:
