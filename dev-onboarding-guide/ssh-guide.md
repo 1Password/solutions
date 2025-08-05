@@ -15,11 +15,13 @@ To use 1Password for SSH & Git, your team members will need:
 - A [1Password subscription](https://start.1password.com/sign-up/plan)
 - The [1Password desktop application](https://1password.com/downloads/)
 - The [1Password browser extension](https://1password.com/downloads/browser-extension)
-- (Optional) [1Password CLI](https://developer.1password.com/docs/cli/get-started/), to use the SSH setup validation script.
+- [1Password CLI](https://developer.1password.com/docs/cli/get-started/) (optional, to use the SSH setup validation script)
 
 ## Step 1: Make sure developer tools are enabled for your team
 
-First, make sure your policies are set to allow 1Password to automatically create SSH configuration files. This enables your team to easily connect to hosts using SSH keys stored in 1Password.
+First, make sure your [team policies](https://support.1password.com/team-policies/) are set up for developer tools.
+
+First, turn on the policy to allow 1Password to automatically create SSH configuration files. This enables your team to easily connect to hosts using SSH keys stored in 1Password.
 
 1. Sign in to your account on 1Password.com
 2. Select **Policies** in the sidebar
@@ -30,19 +32,20 @@ Then, under Sidebar Navigation, make sure **Developer Tools** is toggled off. If
 
 ## Step 2: Review best practices
 
+You can help your team use SSH best practices by sharing the following principles wiht them:
 
-- **Descriptive Key Names:** Name your SSH keys in 1Password clearly, indicating the service/machine and owner (e.g., `GitLab - MyProject - MacBookPro`, `AWS Staging Server Access`).
-- **Key Separation (Recommended):** If feasible, consider using different SSH keys for different critical services or environments.
-- **Regular Review:** Periodically review the public keys registered on your connected services (GitHub, etc.) and remove any that are no longer needed.
-- **Avoid Exporting Private Keys:** Only export private keys from 1Password if absolutely necessary and for a specific, secure purpose.
-- **Use system auth** With the 1Password SSH agent correctly set up, when you use an `ssh` command (e.g., `git pull`, `ssh user@server`), 1Password should prompt you for biometric authentication (fingerprint, face) or your system password. This allows secure and quick authentication instead of typing key passphrases.
+- **Descriptive key names:** Name your SSH keys in 1Password clearly, indicating the service/machine and owner (e.g., `GitLab - MyProject - MacBookPro`, `AWS Staging Server Access`).
+- **Key separation (recommended):** If feasible, consider using different SSH keys for different critical services or environments.
+- **Regular review:** Periodically review the public keys registered on your connected services (GitHub, etc.) and remove any that are no longer needed.
+- **Avoid exporting private keys:** Only export private keys from 1Password if absolutely necessary and for a specific, secure purpose.
+- **Use system authentication:** Make sure your team members have [Touch ID](https://support.1password.com/touch-id-mac/), [Windows Hello](https://support.1password.com/windows-hello/), or [system authentication](https://support.1password.com/system-authentication-linux/) turned on in the 1Password app. With system authentication turned on, when you use an `ssh` command (e.g., `git pull`, `ssh user@server`), 1Password prompts you for biometric authentication (fingerprint, face) or your system password. This allows secure and quick authentication instead of typing key passphrases.
 
 ## Step 3: Help your team get started
 
 When you're ready to onboard your team to 1Password for SSH & Git, have your team members follow the steps in the following articles:
 
 1. [Get started with 1Password for SSH](https://developer.1password.com/docs/ssh/get-started)
-2. [Sign Git commits with SSH](https://developer.1password.com/docs/ssh/git-commit-signing)
+3. [Sign Git commits with SSH](https://developer.1password.com/docs/ssh/git-commit-signing)
 
 ### Step 4: Verify SSH Client Configuration
 
@@ -68,12 +71,10 @@ To verify that their SSH setup is correct after enabling the SSH agent or making
       IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
   ```
 
-  **Note:** The path for `IdentityAgent` can vary by operating system and 1Password version. Check the 1Password app's settings for the correct path if you need to specify it manually.
-
 ## Troubleshooting
 
 - **"Agent not running or not detected":**
-  - Ensure the SSH agent is enabled in the 1Password desktop app settings.
+  - Make sure the SSH agent is enabled in the 1Password desktop app settings.
   - Try restarting your terminal session.
   - Run `echo $SSH_AUTH_SOCK` to see if the expected path is displayed.
 - **"Still being prompted for the passphrase of an old key file":**
@@ -84,21 +85,3 @@ To verify that their SSH setup is correct after enabling the SSH agent or making
   - Confirm the 1Password SSH agent is serving the correct key (you can check with `ssh-add -L`; your 1Password key should be listed).
   - Check the SSH daemon logs on the server (e.g., `/var/log/auth.log` or `/var/log/secure`) for more detailed error messages.
 
----
-
-### About the [SSH Setup Checker Script](ssh-checker.sh)
-
-**What it does:**
-
-This script is a small diagnostic tool designed to help you quickly verify if your local environment is correctly configured to use 1Password as your SSH agent. It performs several checks:
-
-1. **`SSH_AUTH_SOCK` Variable:** Verifies that the `SSH_AUTH_SOCK` environment variable is set and appears to point to the 1Password agent.
-2. **Agent Accessibility & Key Listing:** Attempts to connect to the SSH agent (via `ssh-add -L`) to list loaded SSH keys, looking for indicators that they are managed by 1Password.
-3. **GitHub Connection Test (Optional):** Offers to run a test SSH connection to `git@github.com`. This doesn't check your GitHub permissions but allows you to observe if 1Password prompts for authentication (e.g., biometrics) as expected.
-
-**Why you might want to use it:**
-
-- **Troubleshooting:** If you're having trouble connecting to SSH servers after setting up 1Password for SSH, this script can help pinpoint common configuration issues.
-- **Verification:** After following the setup guide, run this script to confirm everything is working as expected.
-- **Self-Service Check:** Quickly perform a self-service diagnostic before reaching out for support.
-- **Peace of Mind:** Ensure your SSH operations are indeed being securely handled by 1Password.
