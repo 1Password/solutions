@@ -5,7 +5,7 @@ This guide will help you get your team started using the [1Password SSH Agent](h
 - **Enhanced security:** Private keys are encrypted in your 1Password vault and only loaded into the SSH agent when needed, optionally protected by biometrics or Windows Hello.
 - **Streamlined authentication:** No more repeatedly typing passphrases for SSH operations.
 - **Automatic setup:** Automatically generate SSH keys and configure Git commit signing from the 1Password app.
-- **Centralized Management:** Manage all your SSH keys alongside your other passwords and sensitive information in 1Password.
+- **Centralized management:** Manage all your SSH keys alongside your other passwords and sensitive information in 1Password.
 - **Consistency:** Establish a consistent and secure SSH key management practice across the team.
 
 ## Prerequisites
@@ -19,7 +19,7 @@ To use 1Password for SSH & Git, your team members will need:
 
 ## Step 1: Make sure developer tools are enabled for your team
 
-First, make sure your [team policies](https://support.1password.com/team-policies/) are set up for developer tools.
+Before you help your team get started with 1Password for SSH, make sure your [team policies](https://support.1password.com/team-policies/) are set up for developer tools.
 
 First, turn on the policy to allow 1Password to automatically create SSH configuration files. This enables your team to easily connect to hosts using SSH keys stored in 1Password.
 
@@ -32,7 +32,7 @@ Then, under Sidebar Navigation, make sure **Developer Tools** is toggled off. If
 
 ## Step 2: Review best practices
 
-You can help your team use SSH best practices by sharing the following principles wiht them:
+You can help your team use SSH in a secure and efficient manner by sharing the following best practices with them:
 
 - **Descriptive key names:** Name your SSH keys in 1Password clearly, indicating the service/machine and owner (e.g., `GitLab - MyProject - MacBookPro`, `AWS Staging Server Access`).
 - **Key separation (recommended):** If feasible, consider using different SSH keys for different critical services or environments.
