@@ -2,7 +2,7 @@
 
 **What it does:**
 
-This script is a small diagnostic tool designed to help you quickly verify if your local macOS environment is correctly configured to use 1Password as your SSH agent. It performs several checks:
+This script is a small diagnostic tool designed to help you quickly verify if your local Mac or Linux environment is correctly configured to use 1Password as your SSH agent. It performs several checks:
 
 1. **`SSH_AUTH_SOCK` variable:** Verifies that the `SSH_AUTH_SOCK` environment variable is set and appears to point to the 1Password agent.
 2. **Agent accessibility & key listing:** Attempts to connect to the SSH agent (via `ssh-add -L`) to list loaded SSH keys, looking for indicators that they are managed by 1Password.

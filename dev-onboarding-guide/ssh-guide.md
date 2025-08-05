@@ -49,7 +49,7 @@ When you're ready to onboard your team to 1Password for SSH & Git, have your tea
 
 ### Step 4: Verify SSH Client Configuration
 
-If your team uses Mac devices, you can use the SSH Setup Checker script to verify their local environment is correctly configured.
+If your team uses Mac or Linux devices, you can use the SSH Setup Checker script to verify their local environment is correctly configured.
 
 After the 1Password SSH agent is set up, it should typically be used by the system's SSH client automatically. This happens because the `SSH_AUTH_SOCK` environment variable is set to point to the 1Password agent's socket file.
 
