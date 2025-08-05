@@ -2,7 +2,7 @@
 
 This guide will help you get your team started using the [1Password SSH Agent](https://developer.1password.com/docs/ssh) to manage their SSH keys and sign Git commits. By using 1Password for SSH, your team benefits from:
 
-- **Enhanced security:** Private keys are encrypted in your 1Password vault and only loaded into the SSH agent when needed, often protected by biometrics or Windows Hello.
+- **Enhanced security:** Private keys are encrypted in your 1Password vault and only loaded into the SSH agent when needed, optionally protected by biometrics or Windows Hello.
 - **Streamlined authentication:** No more repeatedly typing passphrases for SSH operations.
 - **Automatic setup:** Automatically generate SSH keys and configure Git commit signing from the 1Password app.
 - **Centralized Management:** Manage all your SSH keys alongside your other passwords and sensitive information in 1Password.
