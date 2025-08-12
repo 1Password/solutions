@@ -26,7 +26,7 @@ ONEPASSWORD_SERVICE_ACCOUNT_TOKEN = os.getenv("OP_SERVICE_ACCOUNT_TOKEN")
 KEEPER_USER = os.getenv("KEEPER_USER")  # Your Keeper email address
 
 # Vault name for 1Password where Keeper records will be migrated. (script will create it)
-DEFAULT_1P_VAULT_NAME = "Keeper Import"
+DEFAULT_1P_VAULT_NAME = "Keeper Import2"
 
 
 # --- 1Password Functions ---
@@ -193,21 +193,21 @@ def get_keeper_folders(params: KeeperParams) -> dict:
 
 async def create_1p_vault(vault_name: str) -> str:
     """Creates a new vault in 1Password."""
-    # vault = subprocess.run(
-    #    ["op", "vaults", "create", vault_name, "--allow-admins-to-manage", "true"],
-    #    check=True,
-    #    capture_output=True,
-    #    text=True,
-    # )
-    # Step 2: Get the vault details to find the ID
-    result = subprocess.run(
-        ["op", "vault", "get", vault_name, "--format", "json"],
+    vault = subprocess.run(
+        [
+            "op",
+            "vault",
+            "create",
+            vault_name,
+            "--format",
+            "json",
+        ],
         check=True,
         capture_output=True,
         text=True,
     )
 
-    vault_data = json.loads(result.stdout)
+    vault_data = json.loads(vault.stdout)
     return vault_data["id"]
 
 
@@ -241,7 +241,7 @@ async def main():
     # Determine all unique vault names required for the migration
     required_vault_names = {DEFAULT_1P_VAULT_NAME}
     for record in keeper_records:
-        folder_uid = record.get("folder_uid")
+        folder_uid = record.get("folder")
         if folder_uid and folder_uid in keeper_folders:
             required_vault_names.add(keeper_folders[folder_uid])
 
