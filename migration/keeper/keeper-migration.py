@@ -78,6 +78,16 @@ async def create_op_item(client: Client, vault_id: str, keeper_record: dict):
                 fieldType=ItemFieldType.CONCEALED,
             )
         )
+    
+    if keeper_record.get("totp"):
+        fields.append(
+            ItemField(
+                id="totp",
+                title="totp",
+                value=keeper_record["totp"],
+                fieldType=ItemFieldType.TOTP,
+            )
+        )
 
     # Prepare sections for custom fields
     sections = []
@@ -177,6 +187,7 @@ def get_keeper_records(params: KeeperParams) -> list:
                 {"name": f.name, "value": f.value} for f in record.custom_fields
             ],
             "folder": record.folder,
+            "totp":record.totp,
         }
         records.append(record_data)
     return records
