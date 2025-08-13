@@ -4,7 +4,7 @@ import asyncio
 import subprocess
 import json
 import time
-from keepercommander import api
+from keepercommander import api,cli
 from keepercommander.params import KeeperParams
 from onepassword import *
 from typing import Optional, Dict
@@ -26,7 +26,7 @@ ONEPASSWORD_SERVICE_ACCOUNT_TOKEN = os.getenv("OP_SERVICE_ACCOUNT_TOKEN")
 KEEPER_USER = os.getenv("KEEPER_USER")  # Your Keeper email address
 
 # Vault name for 1Password where Keeper records will be migrated. (script will create it)
-DEFAULT_1P_VAULT_NAME = "Keeper Import2"
+DEFAULT_1P_VAULT_NAME = "Keeper Import"
 
 
 # --- 1Password Functions ---
@@ -168,15 +168,55 @@ def keeper_login(params: KeeperParams) -> bool:
     return False
 
 
+# --- Keeper Folder Mapping Function ---
+
+def build_record_folder_mapping(params: KeeperParams) -> Dict[str, str]:
+    """Returns a mapping of record_uid -> folder_uid from subfolders and shared folders."""
+    mapping = {}
+
+    # Subfolders (personal)
+    if params.subfolder_cache:
+        for folder_uid, folder in params.subfolder_cache.items():
+            record_refs = folder.get("records")
+            if record_refs:
+                for ref in record_refs:
+                    if isinstance(ref, dict):
+                        record_uid = ref.get("record_uid")
+                    else:
+                        record_uid = ref
+                    if record_uid:
+                        mapping[record_uid] = folder_uid
+
+    # Shared folders
+    if params.shared_folder_cache:
+        for folder_uid, folder in params.shared_folder_cache.items():
+            record_refs = folder.get("records")
+            if record_refs:
+                for ref in record_refs:
+                    if isinstance(ref, dict):
+                        record_uid = ref.get("record_uid")
+                    else:
+                        record_uid = ref
+                    if record_uid and record_uid not in mapping:
+                        mapping[record_uid] = folder_uid
+
+    return mapping
+
+
+# --- Updated Keeper Records Function ---
+
 def get_keeper_records(params: KeeperParams) -> list:
-    """Fetches all records from the Keeper vault."""
+    """Fetches all records from the Keeper vault and associates them with folders."""
     records = []
     if not params.record_cache:
         logging.warning("Keeper record cache is empty.")
         return records
 
+    record_folder_mapping = build_record_folder_mapping(params)
+
     for record_uid in params.record_cache:
         record = api.get_record(params, record_uid)
+        folder_uid = record_folder_mapping.get(record_uid)
         record_data = {
             "title": record.title,
             "login": record.login,
@@ -186,20 +226,25 @@ def get_keeper_records(params: KeeperParams) -> list:
             "custom_fields": [
                 {"name": f.name, "value": f.value} for f in record.custom_fields
             ],
-            "folder": record.folder,
-            "totp":record.totp,
+            "folder": folder_uid,  # Now populated
+            "totp": record.totp,
         }
         records.append(record_data)
     return records
 
 
+
 def get_keeper_folders(params: KeeperParams) -> dict:
-    """Fetches all folders from Keeper."""
-    return (
-        {uid: folder.name for uid, folder in params.folder_cache.items()}
-        if params.folder_cache
-        else {}
-    )
+    """Fetches all folders from Keeper (subfolders + shared folders)."""
+    folders = {}
+
+    if params.folder_cache:
+        folders.update({uid: folder["name"] for uid, folder in params.folder_cache.items()})
+
+    if params.shared_folder_cache:
+        folders.update({uid: folder["name"] for uid, folder in params.shared_folder_cache.items()})
+
+    return folders
 
 
 async def create_1p_vault(vault_name: str) -> str:
