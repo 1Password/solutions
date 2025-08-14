@@ -5,7 +5,7 @@ This PowerShell script automates the process of importing login items into 1Pass
 ## 🛠 Prerequisites
 
 - **1Password CLI (`op`)** installed and available in your environment.
-- **Service account token** already configured for CLI authentication.
+- **Service account token** already configured for CLI authentication - ensure the service account or the user running the script has write access to the vaults.
 - **CSV input file** formatted as follows:
 
 ```csv
