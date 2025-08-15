@@ -4,7 +4,7 @@ import asyncio
 import subprocess
 import json
 import time
-from keepercommander import api,cli
+from keepercommander import api, cli
 from keepercommander.params import KeeperParams
 from onepassword import *
 from typing import Optional, Dict
@@ -78,7 +78,7 @@ async def create_op_item(client: Client, vault_id: str, keeper_record: dict):
                 fieldType=ItemFieldType.CONCEALED,
             )
         )
-    
+
     if keeper_record.get("totp"):
         fields.append(
             ItemField(
@@ -170,6 +170,7 @@ def keeper_login(params: KeeperParams) -> bool:
 
 # --- Keeper Folder Mapping Function ---
 
+
 def build_record_folder_mapping(params: KeeperParams) -> Dict[str, str]:
     """Returns a mapping of record_uid -> folder_uid from subfolders and shared folders."""
     mapping = {}
@@ -205,6 +206,7 @@ def build_record_folder_mapping(params: KeeperParams) -> Dict[str, str]:
 
 # --- Updated Keeper Records Function ---
 
+
 def get_keeper_records(params: KeeperParams) -> list:
     """Fetches all records from the Keeper vault and associates them with folders."""
     records = []
@@ -233,16 +235,22 @@ def get_keeper_records(params: KeeperParams) -> list:
     return records
 
 
-
 def get_keeper_folders(params: KeeperParams) -> dict:
     """Fetches all folders from Keeper (subfolders + shared folders)."""
     folders = {}
 
     if params.folder_cache:
-        folders.update({uid: folder["name"] for uid, folder in params.folder_cache.items()})
+        folders.update(
+            {
+                uid: getattr(folder, "name")
+                for uid, folder in params.folder_cache.items()
+            }
+        )
 
     if params.shared_folder_cache:
-        folders.update({uid: folder["name"] for uid, folder in params.shared_folder_cache.items()})
+        folders.update(
+            {uid: folder["name"] for uid, folder in params.shared_folder_cache.items()}
+        )
 
     return folders
 
