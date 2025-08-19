@@ -16,7 +16,7 @@ class Vault:
 
     def __init__(self, name, uuid, users=None, groups=None):
         self.name = name
-        self.uuid = uuid  # Still needed internally for API calls
+        self.uuid = uuid
         self.users = []
         self.groups = []
         Vault.vaults.append(self)
