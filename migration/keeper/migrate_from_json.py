@@ -34,19 +34,19 @@ Limitations & notes
 
 Usage
 -----
-python keeper_to_1password.py \
+python migrate_from_json.py \
   --input /path/to/keeper.json \
-  --employee-vault "Employee" \
+  --employee-vault "Keeper Import" \
   [--private-prefix "Private - "] \
   [--dry-run] [--verbose] [--user-for-private you@example.com]
 
 Examples
 --------
 # Preview actions without writing anything
-python keeper_to_1password.py --input keeper.json --employee-vault "Employee" --dry-run
+python migrate_from_json.py --input keeper.json --employee-vault "Keeper Import" --dry-run
 
 # Real run, creating private vaults that only you can see
-python keeper_to_1password.py --input keeper.json --employee-vault "Employee" --user-for-private you@example.com
+python migrate_from_json.py --input keeper.json --employee-vault "Keeper Import" --user-for-private you@example.com
 
 """
 from __future__ import annotations
