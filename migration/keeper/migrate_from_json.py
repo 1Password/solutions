@@ -64,23 +64,32 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 # --------------------------- CLI helpers ---------------------------
 
-def run(cmd: List[str], *, input_bytes: Optional[bytes] = None, check: bool = False) -> subprocess.CompletedProcess:
+
+def run(
+    cmd: List[str], *, input_bytes: Optional[bytes] = None, check: bool = False
+) -> subprocess.CompletedProcess:
     """Run a subprocess command without invoking the shell.
 
     Raises CalledProcessError if check=True and returncode != 0.
     """
-    proc = subprocess.run(cmd, input=input_bytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.run(
+        cmd, input=input_bytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
     if check and proc.returncode != 0:
-        raise subprocess.CalledProcessError(proc.returncode, cmd, output=proc.stdout, stderr=proc.stderr)
+        raise subprocess.CalledProcessError(
+            proc.returncode, cmd, output=proc.stdout, stderr=proc.stderr
+        )
     return proc
 
 
 def op_exists() -> bool:
     from shutil import which
+
     return which("op") is not None
 
 
 # --------------------------- Data models ---------------------------
+
 
 @dataclass
 class SharedFolderPerm:
@@ -107,11 +116,12 @@ class Record:
     notes: Optional[str]
     otpauth: Optional[str]
     shared_folders: List[str]  # names
-    folders: List[str]         # non-shared folder names
-    category: str              # "Login" or "Secure Note"
+    folders: List[str]  # non-shared folder names
+    category: str  # "Login" or "Secure Note"
 
 
 # --------------------------- Parsing ---------------------------
+
 
 def load_keeper_json(path: str) -> Tuple[List[SharedFolder], List[Record]]:
     with open(path, "r", encoding="utf-8") as f:
@@ -131,10 +141,14 @@ def load_keeper_json(path: str) -> Tuple[List[SharedFolder], List[Record]]:
                     name=name,
                     is_group=is_group,
                     manage_users=bool(p.get("manage_users", defaults_manage_users)),
-                    manage_records=bool(p.get("manage_records", defaults_manage_records)),
+                    manage_records=bool(
+                        p.get("manage_records", defaults_manage_records)
+                    ),
                 )
             )
-        shared.append(SharedFolder(path, defaults_manage_users, defaults_manage_records, perms))
+        shared.append(
+            SharedFolder(path, defaults_manage_users, defaults_manage_records, perms)
+        )
 
     records: List[Record] = []
     for r in data.get("records", []):
@@ -159,13 +173,30 @@ def load_keeper_json(path: str) -> Tuple[List[SharedFolder], List[Record]]:
             elif "folder" in fldr:
                 folders.append(str(fldr["folder"]))
         # Decide category
-        category = "Login" if (r.get("$type") == "login" or (login and password)) else "Secure Note"
-        records.append(Record(title, login, password, login_url, notes, otpauth, shared_folders, folders, category))
+        category = (
+            "Login"
+            if (r.get("$type") == "login" or (login and password))
+            else "Secure Note"
+        )
+        records.append(
+            Record(
+                title,
+                login,
+                password,
+                login_url,
+                notes,
+                otpauth,
+                shared_folders,
+                folders,
+                category,
+            )
+        )
 
     return shared, records
 
 
 # --------------------------- Name helpers ---------------------------
+
 
 def normalize_path_to_name(path: str) -> str:
     """Convert a Keeper path like 'Banking\\Taxes' to a nice vault name.
@@ -177,6 +208,7 @@ def normalize_path_to_name(path: str) -> str:
 
 
 # --------------------------- 1Password wrappers ---------------------------
+
 
 def ensure_vault(vault_name: str, *, dry: bool, verbose: bool) -> None:
     # Check if exists
@@ -192,7 +224,10 @@ def ensure_vault(vault_name: str, *, dry: bool, verbose: bool) -> None:
     create_cmd = ["op", "vault", "create", vault_name, "--format", "json"]
     proc2 = run(create_cmd)
     if proc2.returncode != 0:
-        print(f"ERROR creating vault {vault_name}: {proc2.stderr.decode().strip()}", file=sys.stderr)
+        print(
+            f"ERROR creating vault {vault_name}: {proc2.stderr.decode().strip()}",
+            file=sys.stderr,
+        )
         sys.exit(2)
     if verbose:
         print(f"➕ Created vault: {vault_name}")
@@ -203,7 +238,15 @@ def subject_exists(name: str, is_group: bool) -> bool:
     return run(cmd).returncode == 0
 
 
-def grant_permissions(vault: str, subject: str, is_group: bool, *, manage_users: bool, manage_records: bool, dry: bool) -> None:
+def grant_permissions(
+    vault: str,
+    subject: str,
+    is_group: bool,
+    *,
+    manage_users: bool,
+    manage_records: bool,
+    dry: bool,
+) -> None:
     """Map Keeper flags to 1Password permissions and grant them.
 
     We always include allow_viewing; add allow_editing if manage_records;
@@ -215,13 +258,22 @@ def grant_permissions(vault: str, subject: str, is_group: bool, *, manage_users:
     if manage_users:
         perms.append("allow_managing")
     cmd = [
-        "op", "vault", "group" if is_group else "user", "grant",
-        "--no-input", "--vault", vault,
-        "--" + ("group" if is_group else "user"), subject,
-        "--permissions", ",".join(perms),
+        "op",
+        "vault",
+        "group" if is_group else "user",
+        "grant",
+        "--no-input",
+        "--vault",
+        vault,
+        "--" + ("group" if is_group else "user"),
+        subject,
+        "--permissions",
+        ",".join(perms),
     ]
     if dry:
-        print(f"DRY-RUN: would grant to {'group' if is_group else 'user'} {subject} on {vault}: {perms}")
+        print(
+            f"DRY-RUN: would grant to {'group' if is_group else 'user'} {subject} on {vault}: {perms}"
+        )
         return
     proc = run(cmd)
     if proc.returncode != 0:
@@ -233,14 +285,25 @@ def grant_permissions(vault: str, subject: str, is_group: bool, *, manage_users:
 def get_login_template_json() -> Dict[str, Any]:
     proc = run(["op", "item", "template", "get", "Login", "--format", "json"])
     if proc.returncode != 0:
-        raise RuntimeError("Unable to fetch Login template from op CLI. Are you signed in?")
+        raise RuntimeError(
+            "Unable to fetch Login template from op CLI. Are you signed in?"
+        )
     return json.loads(proc.stdout.decode())
 
 
-def fill_login_template(tpl: Dict[str, Any], *, title: str, username: Optional[str], password: Optional[str], url: Optional[str], notes: Optional[str]) -> Dict[str, Any]:
+def fill_login_template(
+    tpl: Dict[str, Any],
+    *,
+    title: str,
+    username: Optional[str],
+    password: Optional[str],
+    url: Optional[str],
+    notes: Optional[str],
+) -> Dict[str, Any]:
     # Work on a copy
     item = json.loads(json.dumps(tpl))
     item["title"] = title
+
     # Built-in fields
     def set_field(fid: str, value: Optional[str]):
         if value is None:
@@ -250,7 +313,9 @@ def fill_login_template(tpl: Dict[str, Any], *, title: str, username: Optional[s
                 f["value"] = value
                 return
         # If not found, append a new field with minimal shape
-        item.setdefault("fields", []).append({"id": fid, "type": "STRING", "value": value})
+        item.setdefault("fields", []).append(
+            {"id": fid, "type": "STRING", "value": value}
+        )
 
     set_field("username", username)
     if password is not None:
@@ -263,7 +328,9 @@ def fill_login_template(tpl: Dict[str, Any], *, title: str, username: Optional[s
                 found = True
                 break
         if not found:
-            item.setdefault("fields", []).append({"id": "password", "type": "CONCEALED", "value": password})
+            item.setdefault("fields", []).append(
+                {"id": "password", "type": "CONCEALED", "value": password}
+            )
 
     if notes is not None:
         item["notesPlain"] = notes
@@ -274,14 +341,30 @@ def fill_login_template(tpl: Dict[str, Any], *, title: str, username: Optional[s
     return item
 
 
-def create_login_item(vault: str, *, title: str, username: Optional[str], password: Optional[str], url: Optional[str], notes: Optional[str], otpauth: Optional[str], dry: bool, verbose: bool, 
-                       tpl_cache: Dict[str, Any]) -> None:
+def create_login_item(
+    vault: str,
+    *,
+    title: str,
+    username: Optional[str],
+    password: Optional[str],
+    url: Optional[str],
+    notes: Optional[str],
+    otpauth: Optional[str],
+    dry: bool,
+    verbose: bool,
+    tpl_cache: Dict[str, Any],
+) -> None:
     if dry:
-        print(f"DRY-RUN: would create LOGIN '{title}' in vault '{vault}'" + (" with TOTP" if otpauth else ""))
+        print(
+            f"DRY-RUN: would create LOGIN '{title}' in vault '{vault}'"
+            + (" with TOTP" if otpauth else "")
+        )
         return
 
     tpl = tpl_cache.setdefault("login", get_login_template_json())
-    item_json = fill_login_template(tpl, title=title, username=username, password=password, url=url, notes=notes)
+    item_json = fill_login_template(
+        tpl, title=title, username=username, password=password, url=url, notes=notes
+    )
     payload = json.dumps(item_json).encode()
 
     # Build command: use stdin template via '-' and (optionally) add a TOTP assignment
@@ -292,28 +375,41 @@ def create_login_item(vault: str, *, title: str, username: Optional[str], passwo
 
     proc = run(cmd, input_bytes=payload)
     if proc.returncode != 0:
-        print(f"ERROR creating item '{title}' in '{vault}': {proc.stderr.decode().strip()}", file=sys.stderr)
+        print(
+            f"ERROR creating item '{title}' in '{vault}': {proc.stderr.decode().strip()}",
+            file=sys.stderr,
+        )
         return
     if verbose:
         print(f"✔ Created LOGIN '{title}' in '{vault}'")
 
 
-def create_secure_note(vault: str, *, title: str, notes: Optional[str], dry: bool, verbose: bool) -> None:
+def create_secure_note(
+    vault: str, *, title: str, notes: Optional[str], dry: bool, verbose: bool
+) -> None:
     if dry:
         print(f"DRY-RUN: would create SECURE NOTE '{title}' in vault '{vault}'")
         return
     # For notes, safest is assignment to built-in notesPlain on a Secure Note
     cmd = [
-        "op", "item", "create",
-        "--vault", vault,
-        "--category", "Secure Note",
-        "--title", title,
+        "op",
+        "item",
+        "create",
+        "--vault",
+        vault,
+        "--category",
+        "Secure Note",
+        "--title",
+        title,
     ]
     if notes:
         cmd.append(f"notesPlain={notes}")
     proc = run(cmd)
     if proc.returncode != 0:
-        print(f"ERROR creating note '{title}' in '{vault}': {proc.stderr.decode().strip()}", file=sys.stderr)
+        print(
+            f"ERROR creating note '{title}' in '{vault}': {proc.stderr.decode().strip()}",
+            file=sys.stderr,
+        )
         return
     if verbose:
         print(f"✔ Created NOTE '{title}' in '{vault}'")
@@ -321,7 +417,17 @@ def create_secure_note(vault: str, *, title: str, notes: Optional[str], dry: boo
 
 # --------------------------- Planner ---------------------------
 
-def plan_and_apply(shared_folders: List[SharedFolder], records: List[Record], *, employee_vault: str, private_prefix: str, dry: bool, verbose: bool, user_for_private: Optional[str]) -> None:
+
+def plan_and_apply(
+    shared_folders: List[SharedFolder],
+    records: List[Record],
+    *,
+    employee_vault: str,
+    private_prefix: str,
+    dry: bool,
+    verbose: bool,
+    user_for_private: Optional[str],
+) -> None:
     if not op_exists():
         print("ERROR: 'op' (1Password CLI) not found in PATH.", file=sys.stderr)
         sys.exit(1)
@@ -335,9 +441,19 @@ def plan_and_apply(shared_folders: List[SharedFolder], records: List[Record], *,
         for perm in sf.permissions:
             # If the subject doesn't exist, warn but continue
             if not dry and not subject_exists(perm.name, perm.is_group):
-                print(f"WARN: {'Group' if perm.is_group else 'User'} '{perm.name}' not found; skipping permission on '{vault_name}'", file=sys.stderr)
+                print(
+                    f"WARN: {'Group' if perm.is_group else 'User'} '{perm.name}' not found; skipping permission on '{vault_name}'",
+                    file=sys.stderr,
+                )
                 continue
-            grant_permissions(vault_name, perm.name, perm.is_group, manage_users=perm.manage_users, manage_records=perm.manage_records, dry=dry)
+            grant_permissions(
+                vault_name,
+                perm.name,
+                perm.is_group,
+                manage_users=perm.manage_users,
+                manage_records=perm.manage_records,
+                dry=dry,
+            )
 
     # 2) Create private vaults for non-shared folders (unique)
     private_vault_map: Dict[str, str] = {}
@@ -351,7 +467,14 @@ def plan_and_apply(shared_folders: List[SharedFolder], records: List[Record], *,
         ensure_vault(vault_name, dry=dry, verbose=verbose)
         # Optionally grant a single user access ("private")
         if user_for_private:
-            grant_permissions(vault_name, user_for_private, is_group=False, manage_users=False, manage_records=True, dry=dry)
+            grant_permissions(
+                vault_name,
+                user_for_private,
+                is_group=False,
+                manage_users=False,
+                manage_records=True,
+                dry=dry,
+            )
 
     # 3) Ensure employee vault exists (we don't create/alter it by default)
     ensure_vault(employee_vault, dry=dry, verbose=verbose)
@@ -381,7 +504,14 @@ def plan_and_apply(shared_folders: List[SharedFolder], records: List[Record], *,
                 private_vault_map[f] = name
                 ensure_vault(name, dry=dry, verbose=verbose)
                 if user_for_private:
-                    grant_permissions(name, user_for_private, is_group=False, manage_users=False, manage_records=True, dry=dry)
+                    grant_permissions(
+                        name,
+                        user_for_private,
+                        is_group=False,
+                        manage_users=False,
+                        manage_records=True,
+                        dry=dry,
+                    )
                 destinations.append(name)
         # Default: employee vault
         if not destinations:
@@ -407,19 +537,39 @@ def plan_and_apply(shared_folders: List[SharedFolder], records: List[Record], *,
                 notes = rec.notes or ""
                 if rec.login_url:
                     notes = (notes + ("\n" if notes else "")) + f"URL: {rec.login_url}"
-                create_secure_note(vault, title=rec.title, notes=notes, dry=dry, verbose=verbose)
+                create_secure_note(
+                    vault, title=rec.title, notes=notes, dry=dry, verbose=verbose
+                )
 
 
 # --------------------------- Entrypoint ---------------------------
 
+
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Keeper → 1Password migration helper (vaults, permissions, items)")
+    ap = argparse.ArgumentParser(
+        description="Keeper → 1Password migration helper (vaults, permissions, items)"
+    )
     ap.add_argument("--input", required=True, help="Path to Keeper-style JSON export")
-    ap.add_argument("--employee-vault", required=True, help="Name of the Employee/Private vault for items without folders")
-    ap.add_argument("--private-prefix", default="Private - ", help="Prefix to use for private vault names (default: 'Private - ')")
-    ap.add_argument("--dry-run", action="store_true", help="Don't call 'op'; just print planned actions")
+    ap.add_argument(
+        "--employee-vault",
+        required=True,
+        help="Name of the Employee/Private vault for items without folders",
+    )
+    ap.add_argument(
+        "--private-prefix",
+        default="Private - ",
+        help="Prefix to use for private vault names (default: 'Private - ')",
+    )
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Don't call 'op'; just print planned actions",
+    )
     ap.add_argument("--verbose", action="store_true", help="Print progress messages")
-    ap.add_argument("--user-for-private", help="Email of the user who should get access to private vaults (granted allow_editing + allow_viewing)")
+    ap.add_argument(
+        "--user-for-private",
+        help="Email of the user who should get access to private vaults (granted allow_editing + allow_viewing)",
+    )
 
     args = ap.parse_args()
 
@@ -431,11 +581,14 @@ def main() -> None:
         sys.exit(2)
 
     if args.verbose:
-        print(f"Loaded {len(shared)} shared folders and {len(records)} records from {args.input}")
+        print(
+            f"Loaded {len(shared)} shared folders and {len(records)} records from {args.input}"
+        )
 
     # Apply plan
     plan_and_apply(
-        shared, records,
+        shared,
+        records,
         employee_vault=args.employee_vault,
         private_prefix=args.private_prefix,
         dry=args.dry_run,
