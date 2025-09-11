@@ -38,7 +38,7 @@ python migrate_from_json.py \
   --input /path/to/keeper.json \
   --employee-vault "Keeper Import" \
   [--private-prefix "Private - "] \
-  [--dry-run] [--verbose] [--user-for-private you@example.com]
+  [--dry-run] [--silent] [--user-for-private you@example.com]
 
 Examples
 --------
@@ -210,12 +210,12 @@ def normalize_path_to_name(path: str) -> str:
 # --------------------------- 1Password wrappers ---------------------------
 
 
-def ensure_vault(vault_name: str, *, dry: bool, verbose: bool) -> None:
+def ensure_vault(vault_name: str, *, dry: bool, silent: bool) -> None:
     # Check if exists
     get_cmd = ["op", "vault", "get", vault_name, "--format", "json"]
     proc = run(get_cmd)
     if proc.returncode == 0:
-        if verbose:
+        if not silent:
             print(f"✔ Vault exists: {vault_name}")
         return
     if dry:
@@ -229,7 +229,7 @@ def ensure_vault(vault_name: str, *, dry: bool, verbose: bool) -> None:
             file=sys.stderr,
         )
         sys.exit(2)
-    if verbose:
+    if not silent:
         print(f"➕ Created vault: {vault_name}")
 
 
@@ -351,7 +351,7 @@ def create_login_item(
     notes: Optional[str],
     otpauth: Optional[str],
     dry: bool,
-    verbose: bool,
+    silent: bool,
     tpl_cache: Dict[str, Any],
 ) -> None:
     if dry:
@@ -380,12 +380,12 @@ def create_login_item(
             file=sys.stderr,
         )
         return
-    if verbose:
+    if not silent:
         print(f"✔ Created LOGIN '{title}' in '{vault}'")
 
 
 def create_secure_note(
-    vault: str, *, title: str, notes: Optional[str], dry: bool, verbose: bool
+    vault: str, *, title: str, notes: Optional[str], dry: bool, silent: bool
 ) -> None:
     if dry:
         print(f"DRY-RUN: would create SECURE NOTE '{title}' in vault '{vault}'")
@@ -411,7 +411,7 @@ def create_secure_note(
             file=sys.stderr,
         )
         return
-    if verbose:
+    if not silent:
         print(f"✔ Created NOTE '{title}' in '{vault}'")
 
 
@@ -425,7 +425,7 @@ def plan_and_apply(
     employee_vault: str,
     private_prefix: str,
     dry: bool,
-    verbose: bool,
+    silent: bool,
     user_for_private: Optional[str],
 ) -> None:
     if not op_exists():
@@ -437,7 +437,7 @@ def plan_and_apply(
     for sf in shared_folders:
         vault_name = normalize_path_to_name(sf.path)
         shared_vault_map[sf.path] = vault_name
-        ensure_vault(vault_name, dry=dry, verbose=verbose)
+        ensure_vault(vault_name, dry=dry, silent=silent)
         for perm in sf.permissions:
             # If the subject doesn't exist, warn but continue
             if not dry and not subject_exists(perm.name, perm.is_group):
@@ -464,7 +464,7 @@ def plan_and_apply(
     for folder in sorted(non_shared_folders):
         vault_name = f"{private_prefix}{normalize_path_to_name(folder)}"
         private_vault_map[folder] = vault_name
-        ensure_vault(vault_name, dry=dry, verbose=verbose)
+        ensure_vault(vault_name, dry=dry, silent=silent)
         # Optionally grant a single user access ("private")
         if user_for_private:
             grant_permissions(
@@ -477,7 +477,7 @@ def plan_and_apply(
             )
 
     # 3) Ensure employee vault exists (we don't create/alter it by default)
-    ensure_vault(employee_vault, dry=dry, verbose=verbose)
+    ensure_vault(employee_vault, dry=dry, silent=silent)
 
     # 4) Create items in the appropriate vaults
     tpl_cache: Dict[str, Any] = {}
@@ -493,7 +493,7 @@ def plan_and_apply(
                 # we still try to create a vault for it on-the-fly.
                 name = normalize_path_to_name(sf)
                 shared_vault_map[sf] = name
-                ensure_vault(name, dry=dry, verbose=verbose)
+                ensure_vault(name, dry=dry, silent=silent)
                 destinations.append(name)
         # Non-shared folder placements
         for f in rec.folders:
@@ -502,7 +502,7 @@ def plan_and_apply(
             else:
                 name = f"{private_prefix}{normalize_path_to_name(f)}"
                 private_vault_map[f] = name
-                ensure_vault(name, dry=dry, verbose=verbose)
+                ensure_vault(name, dry=dry, silent=silent)
                 if user_for_private:
                     grant_permissions(
                         name,
@@ -529,7 +529,7 @@ def plan_and_apply(
                     notes=rec.notes,
                     otpauth=rec.otpauth,
                     dry=dry,
-                    verbose=verbose,
+                    silent=silent,
                     tpl_cache=tpl_cache,
                 )
             else:
@@ -538,7 +538,7 @@ def plan_and_apply(
                 if rec.login_url:
                     notes = (notes + ("\n" if notes else "")) + f"URL: {rec.login_url}"
                 create_secure_note(
-                    vault, title=rec.title, notes=notes, dry=dry, verbose=verbose
+                    vault, title=rec.title, notes=notes, dry=dry, silent=silent
                 )
 
 
@@ -565,7 +565,7 @@ def main() -> None:
         action="store_true",
         help="Don't call 'op'; just print planned actions",
     )
-    ap.add_argument("--verbose", action="store_true", help="Print progress messages")
+    ap.add_argument("--silent", action="store_true", help="Do not print progress messages")
     ap.add_argument(
         "--user-for-private",
         help="Email of the user who should get access to private vaults (granted allow_editing + allow_viewing)",
@@ -580,7 +580,7 @@ def main() -> None:
         print(f"Failed to parse input JSON: {e}", file=sys.stderr)
         sys.exit(2)
 
-    if args.verbose:
+    if not args.silent:
         print(
             f"Loaded {len(shared)} shared folders and {len(records)} records from {args.input}"
         )
@@ -592,7 +592,7 @@ def main() -> None:
         employee_vault=args.employee_vault,
         private_prefix=args.private_prefix,
         dry=args.dry_run,
-        verbose=args.verbose,
+        silent=args.silent,
         user_for_private=args.user_for_private,
     )
 
