@@ -1,0 +1,40 @@
+<%- include("includes/header"); %>
+<div class="container">
+  <h1>Device Details</h1>
+  <h2><%= item.title %></h2>
+
+  <div class="section-title">Device Details</div>
+  <% item.fields.forEach(field=> { %>
+  <div class="field">
+    <span class="field-title"> <%= field.title %>: </span>
+    <span class="field-value"> <%= field.value %> </span>
+  </div>
+  <% }); %>
+
+  <div class="section-title">1Password Item Details</div>
+  <% ["Item Title", "1Password Item UUID" , "1Password Vault ID"
+  ].forEach((title, index)=> { %>
+  <div class="field">
+    <span class="field-title"> <%= title %>: </span>
+    <span class="field-value">
+      <%= index===0 ? item.title : index===1 ? item.id : item.vaultId %>
+    </span>
+  </div>
+  <% }); %>
+  
+  <div class="button-container">
+    <form method="get" action="/edit/<%= item.id %>">
+      <div class="item-manage-button">
+          <button type="submit"  aria-label="Edit Device">✏️ Edit Device</button>
+      </div>
+    </form>
+    <form method="post" action="/delete">
+      <input type="hidden" name="itemId" value="<%= item.id %>">
+      <div class="item-manage-button">
+        <button type="submit" aria-label="Delete Device">⛔ Delete Device</button>
+      </div>
+    </form>
+    </div>
+</div>
+</body>
+</html>
