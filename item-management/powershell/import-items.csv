@@ -1,9 +1,0 @@
-Vault_Name,Login_Name,Vault_Item_Password_Name,Vault_Item_Uname,Vault_Item_Pass,Vault_Item_WebSite
-VaultA,user1@example.com,Service A,usernameA,passwordA,https://service-a.example.com
-VaultA,user1@example.com,Service B,usernameB,passwordB,https://service-b.example.com
-VaultA,user1@example.com,Service C,usernameC,passwordC,https://service-c.example.com
-VaultA,user1@example.com,Service D,usernameD,passwordD,https://service-d.example.com
-VaultB,user2@example.com,Service A,usernameE,passwordA,https://service-a.example.com
-VaultB,user2@example.com,Service B,usernameF,passwordB,https://service-b.example.com
-VaultB,user2@example.com,Service C,usernameG,passwordC,https://service-c.example.com
-VaultB,user2@example.com,Service D,usernameH,passwordD,https://service-d.example.com
