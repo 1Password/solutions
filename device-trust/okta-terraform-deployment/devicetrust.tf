@@ -9,12 +9,12 @@ resource "okta_app_saml" "device_trust_kolide" {
     logo                  = "./kolide-logo.png"
 
     # TODO: Paste Kolide ACS URL to 'sso_url', 'recipient', and 'destination'.
-    sso_url     = "https://app.kolide.com/5213/saml/ce496209-b7bf-408b-8e86-683a947c46af/consume"
-    recipient   = "https://app.kolide.com/5213/saml/ce496209-b7bf-408b-8e86-683a947c46af/consume"
-    destination = "https://app.kolide.com/5213/saml/ce496209-b7bf-408b-8e86-683a947c46af/consume"
+    sso_url     = ""
+    recipient   = ""
+    destination = ""
     
     # TODO: Paste Kolide Entity ID to 'audience'.
-    audience    = "https://app.kolide.com/5213/saml/ce496209-b7bf-408b-8e86-683a947c46af/metadata"
+    audience    = ""
 
     authn_context_class_ref  = "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport"
     subject_name_id_format   = "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"
@@ -65,7 +65,7 @@ resource "okta_idp_saml" "dt_idp" {
 ##### AUTHENTICATOR #####
 
 # (issue) This may not create an authenticator. If that's the case, create an authenticator manually and proceed.
-# You will still need this code block since it's referenced in policies.
+# You will still need this resource since it's referenced in policies.
 resource "okta_authenticator" "dt_authenticator" {
     name = "Device Trust"
     key  = "external_idp"
@@ -97,7 +97,7 @@ resource "okta_policy_mfa" "dt_mfa" {
         enroll = "REQUIRED"
     }
 
-    # (Optional) You can set 'enroll' to 'OPTIONAL' or 'REQUIRED'.
+    # TODO (Optional): You can set 'enroll' to 'OPTIONAL' or 'REQUIRED'.
     external_idps = [
         {
             "id"     = okta_authenticator.dt_authenticator.id,
