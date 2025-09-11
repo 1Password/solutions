@@ -1,15 +1,15 @@
 # Device Trust Okta Terraform Deployment
 
 ## Introduction
-If your organization uses Terraform to manage Okta instance, you can use this Terraform example to create Device Trust related resources. This is only an example Terraform deployment and should be tailored to your organization's needs.
+If your organization uses Terraform to manage its Okta instance, you can use this example to create Device Trust related resources. This is only a sample Terraform deployment and should be tailored to your organization's specific needs.
 
 ## Instructions
-1. Set up the following to get started.
-    - Make sure you have the following resources in the same directory.
-        - `kolide_idp_signature_certificate.pem` : This is not tenant specific, meaning you can use the certificate in this repository. Make sure the cert doesn’t include `-----***BEGIN CERTIFICATE***-----` and `-----END ***CERTIFICATE***-----` in the beginning and at the end.
+1. Set up the following to get started:
+    - Ensure you have the following resources in your working directory:
+        - `kolide_idp_signature_certificate.pem` : This is not tenant specific, meaning you can use the certificate included in this repository. Make sure the cert **does not** include the lines `-----***BEGIN CERTIFICATE***-----` and `-----END ***CERTIFICATE***-----` in the beginning and at the end of the certificate.
         - `kolide-logo.png`
-    - Edit `devicetrust.tf` file specific to your tenant. The parts you have to fill in are commented as `TODO` .
-    - Make sure your Okta Terraform application has the following scopes granted. This is usually defined in [main.tf](http://main.tf) file as scopes, and inside the Okta application > Okta API Scopes.
+    - Edit the `devicetrust.tf` file to match your tenant configuration. The sections you need to update are marked with `TODO` .
+    - Make sure your Okta Terraform application has the following scopes granted. These are usually defined in the [main.tf](http://main.tf) file and must also be granted in the Okta Admin Console under Okta API Scopes.
         
         ```
         "okta.apps.manage",
@@ -20,29 +20,30 @@ If your organization uses Terraform to manage Okta instance, you can use this Te
         "okta.profileMappings.read",
         ```
         
-2. *(Terraform)* Inside `devicetrust.tf` , copy the codes under `SAML APPLICATION` , `Group Assignment` and `Identity Provider` , complete TODOs, and deploy. This will
+2. *(Terraform)* In `devicetrust.tf` , copy the code blocks under `SAML APPLICATION` , `GROUP ASSIGNMENT` and `IDENTITY PROVIDER`, complete TODOs, and deploy. This will
     - Create a SAML application.
     - Create a test user group.
     - Assign the test user group to the SAML application.
     - Create an Identity Provider.
 
-3. *(Manual)* Inside Okta, go to Security > Identity Provider that was created, click on Actions > Configure Identity Provider, and set `IdP Usage` to `Factor Only`. (This would have been set to `SSO Only` by default.)
+3. *(Manual)* In the Okta Admin Console, go to Security > Identity Providers, locate the newly created Identity Provider, click on Actions > Configure Identity Provider, and set `IdP Usage` to `Factor Only`. 
+    > This is set to `SSO Only` by default.
 
-4. *(Manual)* Inside Okta, go to Security > Authenticator and create an IdP Authenticator.
-    > We have seen cases where an Authenticator was not created even though no error was shown after deploying Terraform and the logs show that the Authenticator was created. You can skip this step and create an authenticator using Terraform (step 5), and then come back if an error occurs.
+4. *(Manual)* In the Okta Admin Console, go to Security > Authenticators and create an IdP Authenticator.
+    > In some cases, the Authenticator may not appear even though no error is shown after Terraform deployment, and logs may indicate it was created. You can skip this step and continue with step 5, then return here only if an issue occurs.
 
-5. *(Terraform)* Inside `devicetrust.tf` , copy the codes under `AUTHENTICATOR`,  `AUTHENTICATOR ENROLLMENT POLICY` , `AUTHENTICATION POLICY` and `OUTPUT` , and deploy. This will
+5. *(Terraform)* In `devicetrust.tf` , copy the code blocks under `AUTHENTICATOR`,  `AUTHENTICATOR ENROLLMENT POLICY` , `AUTHENTICATION POLICY` and `OUTPUT`, then deploy. This will
     - Create an authenticator enrollment policy.
-    - Create an authentication policy rule. (It will be applied to the policy that has Device Trust app in it.)
-    - Output information you need to put inside Device Trust.
+    - Create an authentication policy rule (applied to the policy that includes the Device Trust app).
+    - Output values required to finish up Device Trust configuration inside Kolide.
 
-6. *(Manual)* Make sure your IdP Authenticator didn’t sneak into any of your
+6. *(Manual)* Double-check that your IdP Authenticator has **not** been unintentionally added to
     - Security > Authenticators > Enrollment policies (especially the Default Policy)
     - Security > Authentication Policies (especially Catch-all rules inside each policy)
 
-7. *(Manual)* Inside Device Trust > Identity Providers, use the output (`kolide_instructions.set_up_single_sign-on`) of Terraform to fill in information for step ‘Single Sign-On Provider’.
+7. *(Manual)* In Device Trust > Identity Providers, use the Terraform output `kolide_instructions.set_up_single_sign-on` of Terraform to fill in information for step ‘Single Sign-On Provider’.
 
 8. *(Manual)* Configure SCIM provisioning inside the SAML application in Okta using information in Device Trust > Identity Providers > Set Up User Provisioning.
 
-9. *(Manual)* Inside Device Trust > Identity Providers, use the output (`kolide_instructions.device_trust_authenticator`) of Terraform to fill in information for step ‘Set Up Authenticator’.
-    > Be careful when pasting in the cert. There may be spaces, and make sure you have `-----***BEGIN CERTIFICATE***-----` and `-----END ***CERTIFICATE***-----` at the beginning and the end.
+9. *(Manual)* In Device Trust > Identity Providers, use the Terraform output `kolide_instructions.device_trust_authenticator` to complete the ‘Set Up Authenticator’ step.
+    > Be careful when pasting the certificate. Ensure there are no extra spaces and that the certificate includes `-----***BEGIN CERTIFICATE***-----` and `-----END ***CERTIFICATE***-----` at the beginning and the end of the certificate.
