@@ -31,17 +31,42 @@ only supported when a ZIP with a `files/` directory is provided.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import mimetypes
 import os
 import re
-import shlex
+from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import zipfile
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
+
+from onepassword.client import Client
+from onepassword import *
+
+# --- session bootstrap ---------------------------------------------------------
+
+async def _get_client() -> Client:
+    token = os.getenv("OP_SERVICE_ACCOUNT_TOKEN")
+    if not token:
+        raise RuntimeError("OP_SERVICE_ACCOUNT_TOKEN is not set")
+    return await Client.authenticate(
+        auth=token,
+        integration_name="Importer",
+        integration_version="v1",
+    )
+
+async def _resolve_vault_id(client: Client, vault: str) -> str:
+    # Accept either vault ID or title.
+    vaults = await client.vaults.list()
+    for v in vaults:
+        if v.id == vault or v.title == vault:
+            return v.id
+    raise ValueError(f"Vault not found: {vault}")
 
 # --------------------------- CLI helpers ---------------------------
 
@@ -512,10 +537,133 @@ def create_secure_note(
         print(f"✔ Created NOTE '{title}' in '{vault}'")
 
 
+# --- SDK Item Creation -----------------------------------------------------------------
+
+async def create_login_item_with_sdk(
+    vault: str,
+    *,
+    title: str,
+    username: Optional[str],
+    password: Optional[str],
+    url: Optional[str],
+    notes: Optional[str],
+    otpauth: Optional[str],
+    attachments: List[Tuple[str, str]],  # (display_name, path)
+    dry: bool,
+    silent: bool,
+    tpl_cache: Dict[str, Any],  # unused with SDK; kept for signature parity
+    client: Client,
+) -> None:
+    if dry:
+        names = [n for n, _ in attachments]
+        msg = f"DRY-RUN: LOGIN '{title}' → vault '{vault}'"
+        if otpauth:
+            msg += " with TOTP"
+        if names:
+            msg += f" with files {names}"
+        print(msg)
+        return
+
+    vault_id = await _resolve_vault_id(client, vault)
+
+    fields: List[ItemField] = []
+    if username is not None:
+        fields.append(ItemField(id="username", value=username, title="Username",fieldType=ItemFieldType.TEXT))
+    if password is not None:
+        fields.append(ItemField(id="password", value=password, title="Password",fieldType=ItemFieldType.CONCEALED))
+
+    sections: List[ItemSection] = []
+    if otpauth:
+        sections.append(ItemSection(id="sec-otp", title="Two-Factor"))
+        fields.append(
+            ItemField(
+                id="otp",
+                title="OTP",
+                fieldType=ItemFieldType.TOTP,
+                value=otpauth,   # seed or otpauth:// URI
+                section_id="sec-otp",
+            )
+        )
+
+    websites: List[Website] = []
+    if url:
+        websites.append(
+            Website(url=url, label="site", autofill_behavior=AutofillBehavior.ANYWHEREONWEBSITE)
+        )
+
+    files: List[FileCreateParams] = []
+    for display_name, path in attachments:
+        data = Path(path).read_bytes()
+        sections.append(ItemSection(id="files", title="Files"))
+        files.append(FileCreateParams(name=display_name, content=data, sectionId="files",fieldId="file"))
+
+    params = ItemCreateParams(
+        title=title,
+        category=ItemCategory.LOGIN,
+        vault_id=vault_id,
+        fields=fields or None,
+        sections=sections or None,
+        notes=notes or None,
+        websites=websites or None,
+        files=files or None,  # field-file attachments
+    )
+
+    try:
+        await client.items.create(params)
+    except Exception as e:
+        print(f"ERROR creating item '{title}' in '{vault}': {e}", file=sys.stderr)
+        return
+
+    if not silent:
+        print(f"✔ Created LOGIN '{title}' in '{vault}'")
+
+async def create_secure_note_with_sdk(
+    vault: str,
+    *,
+    title: str,
+    notes: Optional[str],
+    attachments: List[Tuple[str, str]],
+    dry: bool,
+    silent: bool,
+    client: Client,
+) -> None:
+    if dry:
+        names = [n for n, _ in attachments]
+        msg = f"DRY-RUN: NOTE '{title}' → vault '{vault}'"
+        if names:
+            msg += f" with files {names}"
+        print(msg)
+        return
+
+    vault_id = await _resolve_vault_id(client, vault)
+
+    files: List[FileCreateParams] = []
+    for display_name, path in attachments:
+        data = Path(path).read_bytes()
+        files.append(FileCreateParams(name=display_name, content=data))
+
+    params = ItemCreateParams(
+        title=title,
+        category=ItemCategory.SecureNote,
+        vault_id=vault_id,
+        notes=notes or None,
+        files=files or None,  # field-file attachments
+    )
+
+    try:
+        await client.items.create(params)
+    except Exception as e:
+        print(f"ERROR creating note '{title}' in '{vault}': {e}", file=sys.stderr)
+        return
+
+    if not silent:
+        print(f"✔ Created NOTE '{title}' in '{vault}'")
+
+
 # --------------------------- Planner ---------------------------
 
 
-def plan_and_apply(
+async def plan_and_apply(
     shared_folders: List[SharedFolder],
     records: List[Record],
     *,
@@ -529,6 +677,8 @@ def plan_and_apply(
     if not op_exists():
         print("ERROR: 'op' (1Password CLI) not found in PATH.", file=sys.stderr)
         sys.exit(1)
+
+    client = await _get_client()
 
     # 1) Create shared vaults and grant perms
     shared_vault_map: Dict[str, str] = {}
@@ -612,7 +762,7 @@ def plan_and_apply(
 
         for vault in destinations:
             if rec.category == "Login":
-                create_login_item(
+                await create_login_item_with_sdk(
                     vault,
                     title=rec.title,
                     username=rec.login,
@@ -624,25 +774,27 @@ def plan_and_apply(
                     dry=dry,
                     silent=silent,
                     tpl_cache=tpl_cache,
+                    client=client
                 )
             else:
                 notes = rec.notes or ""
                 if rec.login_url:
                     notes = (notes + ("\n" if notes else "")) + f"URL: {rec.login_url}"
-                create_secure_note(
+                await create_secure_note_with_sdk(
                     vault,
                     title=rec.title,
                     notes=notes,
                     attachments=att_list,
                     dry=dry,
                     silent=silent,
+                    client=client
                 )
 
 
 # --------------------------- Entrypoint ---------------------------
 
 
-def main() -> None:
+async def main() -> None:
     ap = argparse.ArgumentParser(
         description="Keeper → 1Password migration helper with attachments from ZIP"
     )
@@ -684,7 +836,7 @@ def main() -> None:
         )
 
     # Apply plan
-    plan_and_apply(
+    await plan_and_apply(
         shared,
         records,
         employee_vault=args.employee_vault,
@@ -697,4 +849,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
