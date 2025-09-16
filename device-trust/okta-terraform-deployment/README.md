@@ -9,7 +9,9 @@ If your organization uses Terraform to manage its Okta instance, you can use thi
         - `kolide_idp_signature_certificate.pem` : This is not tenant specific, meaning you can use the certificate included in this repository. Make sure the cert **does not** include the lines `-----***BEGIN CERTIFICATE***-----` and `-----END ***CERTIFICATE***-----` in the beginning and at the end of the certificate.
         - `kolide-logo.png`
     - Edit the `devicetrust.tf` file to match your tenant configuration. The sections you need to update are marked with `TODO` .
-    - Make sure your Okta Terraform application has the following scopes granted. These are usually defined in the [main.tf](http://main.tf) file and must also be granted in the Okta Admin Console under Okta API Scopes.
+    - Make sure your Okta instance is connected to Terraform and has the right API scopes granted.
+        - If you haven't yet, follow this [Okta documentation](https://developer.okta.com/docs/guides/terraform-enable-org-access/main/) to enable Terraform access for your Okta tenant.
+        - The Okta Terraform application must have the following scopes granted. These are usually defined in the [main.tf](http://main.tf) file and must also be granted in the Okta Admin Console.
         
         ```
         "okta.apps.manage",
