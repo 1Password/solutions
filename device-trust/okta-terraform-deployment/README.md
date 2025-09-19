@@ -11,6 +11,7 @@ If your organization uses Terraform to manage its Okta instance, you can use thi
     - Edit the `devicetrust.tf` file to match your tenant configuration. The sections you need to update are marked with `TODO` .
     - Make sure your Okta instance is connected to Terraform and has the right API scopes granted.
         - If you haven't yet, follow this [Okta documentation](https://developer.okta.com/docs/guides/terraform-enable-org-access/main/) to enable Terraform access for your Okta tenant.
+            - This example uses [1Password Terraform integration](https://developer.1password.com/docs/terraform/) to store Okta's client id and private key.
         - The Okta Terraform application must have the following scopes granted. These are usually defined in the [main.tf](http://main.tf) file and must also be granted in the Okta Admin Console.
         
         ```
