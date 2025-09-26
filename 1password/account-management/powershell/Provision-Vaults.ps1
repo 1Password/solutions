@@ -43,7 +43,7 @@ function Split-List {
 function Invoke-Op {
   param(
     [string]$Command,          # e.g. "vault get"
-    [string[]]$Args = @(),     # e.g. @("MyVault","--format=json")
+    [string[]]$opArgs = @(),     # e.g. @("MyVault","--format=json")
     [int]$MaxRetries = 8,
     [int]$BaseDelayMs = 400,   # base backoff
     [switch]$JsonOut
@@ -54,7 +54,7 @@ function Invoke-Op {
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = "op"
     $psi.ArgumentList.Add($Command)
-    foreach ($a in $Args) { $psi.ArgumentList.Add($a) }
+    foreach ($a in $opArgs) { $psi.ArgumentList.Add($a) }
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError = $true
     $psi.UseShellExecute = $false
@@ -67,7 +67,16 @@ function Invoke-Op {
 
     if ($p.ExitCode -eq 0) {
       if ($JsonOut) {
-        if ($stdout.Trim().Length -gt 0) { return $stdout | ConvertFrom-Json } else { return $null }
+        if ($stdout.Trim().Length -gt 0) {
+          try {
+            return $stdout | ConvertFrom-Json
+          } catch {
+            # Conversion failed — surface both stdout/stderr for debugging instead of returning invalid object
+            throw "Failed to parse JSON from 'op $Command'. stdout:`n$stdout`nstderr:`n$stderr"
+          }
+        } else {
+          return $null
+        }
       } else {
         return $stdout
       }
@@ -87,17 +96,23 @@ function Invoke-Op {
   }
 }
 
-function Ensure-Vault {
+function Test-Vault {
   param([string]$VaultName)
   try {
-    [void](Invoke-Op -Command "vault" -Args @("get", $VaultName, "--format=json") -JsonOut)
+    # Try to get the vault; JsonOut avoids noisy parsing errors
+    [void](Invoke-Op -Command "vault" -opArgs @("get", $VaultName, "--format=json") -JsonOut)
     return $true
   } catch {
-    if ($_.Exception.Message -match 'not found') {
+    $errMsg = $_.Exception.Message.ToString()
+    # Match common "not found" / missing-vault messages from the CLI (case-insensitive)
+    if ($errMsg -match '(?i)(not\s+found|no\s+such\s+vault|vault.*not.*found|Specify the vault)') {
       if ($DryRun) { Write-Host "[DryRun] Would create vault '$VaultName'"; return $false }
-      [void](Invoke-Op -Command "vault" -Args @("create", $VaultName, "--format=json") -JsonOut)
+      Write-Host "Creating vault '$VaultName'..."
+      [void](Invoke-Op -Command "vault" -opArgs @("create", $VaultName, "--format=json") -JsonOut)
       return $true
-    } else { throw }
+    } else {
+      throw
+    }
   }
 }
 
@@ -108,25 +123,11 @@ function Grant-UserPerms {
     [string[]]$Permissions # or @('owner') sentinel
   )
 
-  if ($Permissions.Count -eq 1 -and $Permissions[0] -eq 'owner') {
-    # Prefer role owner if supported
-    $args = @("user","grant","--vault",$VaultName,"--user",$UserIdentifier,"--role","owner")
-    if ($DryRun) { Write-Host "[DryRun] Would grant OWNER role to user '$UserIdentifier' on '$VaultName'"; return }
-    try {
-      [void](Invoke-Op -Command "vault" -Args $args)
-      return
-    } catch {
-      # Fallback to full perms if role not allowed
-      Write-Host "OWNER role grant failed for '$UserIdentifier' on '$VaultName'. Falling back to full permissions."
-      $Permissions = @('manage','view','create','edit','delete','copy','share','archive','import','export','view_items','edit_items') | Select-Object -Unique
-    }
-  }
-
   $permArgs = @()
   foreach ($p in $Permissions) { $permArgs += @("--permissions",$p) }
-  $args = @("user","grant","--vault",$VaultName,"--user",$UserIdentifier) + $permArgs
+  $opArgs = @("user","grant","--vault",$VaultName,"--user",$UserIdentifier) + $permArgs
   if ($DryRun) { Write-Host "[DryRun] Would grant perms [$($Permissions -join ',')] to user '$UserIdentifier' on '$VaultName'"; return }
-  [void](Invoke-Op -Command "vault" -Args $args)
+  [void](Invoke-Op -Command "vault" -opArgs $opArgs)
 }
 
 function Grant-GroupPerms {
@@ -137,25 +138,27 @@ function Grant-GroupPerms {
   )
   $permArgs = @()
   foreach ($p in $Permissions) { $permArgs += @("--permissions",$p) }
-  $args = @("group","grant","--vault",$VaultName,"--group",$GroupIdentifier) + $permArgs
+  $opArgs = @("group","grant","--vault",$VaultName,"--group",$GroupIdentifier) + $permArgs
   if ($DryRun) { Write-Host "[DryRun] Would grant perms [$($Permissions -join ',')] to group '$GroupIdentifier' on '$VaultName'"; return }
-  [void](Invoke-Op -Command "vault" -Args $args)
+  [void](Invoke-Op -Command "vault" -opArgs $opArgs)
 }
 
 # ---------- Permissions requested ----------
-$OwnerSpec      = @('owner')                       # prefers role=owner; falls back to full perms
-$MemberPerms    = @('manage','view','copy')
-$AdminGroupPerm = @('manage')
+$OwnerSpec      = @('allow_viewing,allow_editing,allow_managing')
+$MemberPerms    = @('allow_managing,allow_viewing')
+$AdminGroupPerm = @('allow_managing')
 
 # ---------- Process CSV ----------
 $rows = Import-Csv -LiteralPath $CsvPath
 $processed = 0
 
 foreach ($row in $rows) {
-  $vault   = ($row.VaultName   | ForEach-Object { $_.Trim() })
-  $owner   = ($row.Owner       | ForEach-Object { $_.Trim() })
-  $members = Split-List $row.Members
-  $adminGp = ($row.AdminGroup  | ForEach-Object { $_.Trim() })
+  # Trim directly (don't pipe a string into ForEach-Object — that enumerates characters)
+  $vault   = if ($row.VaultName) { $row.VaultName.Trim() } else { '' }
+  $owner   = if ($row.Owner)     { $row.Owner.Trim() }     else { '' }
+  # Ensure members is always an array (wrap with @())
+  $members = @(Split-List $row.Members)
+  $adminGp = if ($row.AdminGroup) { $row.AdminGroup.Trim() } else { '' }
 
   if ([string]::IsNullOrWhiteSpace($vault)) { Write-Warning "Row skipped: VaultName missing."; continue }
   if ([string]::IsNullOrWhiteSpace($owner)) { Write-Warning "Row for vault '$vault' skipped: Owner missing."; continue }
@@ -163,7 +166,7 @@ foreach ($row in $rows) {
   Write-Host "Processing vault '$vault'..."
 
   # Create or get vault
-  [void](Ensure-Vault -VaultName $vault)
+  [void](Test-Vault -VaultName $vault)
 
   # Owner
   Grant-UserPerms -VaultName $vault -UserIdentifier $owner -Permissions $OwnerSpec
