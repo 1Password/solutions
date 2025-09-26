@@ -1,0 +1,4 @@
+VaultName,Owner,Members,AdminGroup
+Finance,finance.owner@example.com,analyst1@example.com;analyst2@example.com,Finance-Admins
+HR,hr.owner@example.com,hrstaff1@example.com|hrstaff2@example.com,HR-Admins
+Engineering,eng.owner@example.com,dev1@example.com,DevOps-Admins
