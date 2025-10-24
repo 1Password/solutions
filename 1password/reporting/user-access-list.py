@@ -9,7 +9,7 @@ outputPath = scriptPath
 
 class User:
     def __init__(
-        self, name, email, uuid, state, type, createdAt, updatedAt, groups, vaults
+        self, name, email, uuid, state, type, createdAt, updatedAt, lastAuthAt, groups, vaults
     ):
         self.name = name
         self.email = email
@@ -18,6 +18,7 @@ class User:
         self.type = type
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.lastAuthAt = lastAuthAt
         self.groups = groups
         self.vaults = vaults
 
@@ -71,6 +72,7 @@ def writeReport(users):
             "userType",
             "userCreatedAt",
             "userUpdatedAt",
+            "lastAuthAt",
             "directlyAssignedVaults",
             "groups",
         ]
@@ -86,6 +88,7 @@ def writeReport(users):
                     user.type,
                     user.createdAt,
                     user.updatedAt,
+                    user.lastAuthAt,
                     user.vaults,
                     user.groups,
                 ]
@@ -113,6 +116,7 @@ def main():
                 type=user["type"],
                 createdAt=userData["created_at"],
                 updatedAt=userData["updated_at"],
+                lastAuthAt=userData["last_auth_at"],
                 groups=str(groups).removeprefix("[").removesuffix("]"),
                 vaults=str(vaults).removeprefix("[").removesuffix("]"),
             )
