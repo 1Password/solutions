@@ -4,7 +4,7 @@
 Introducing new item management with 1Password SDKs! 
 
 * [Read all about the 1Password SDKs](https://developer.1password.com/docs/sdks/)
-* [Check out a demo app or script](/onepassword_sdks/)
+* [Check out a demo app or script](1password/onepassword_sdks/)
 
 ## Introduction
 
