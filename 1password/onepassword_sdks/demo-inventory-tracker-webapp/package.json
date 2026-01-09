@@ -12,13 +12,13 @@
   "description": "Tool to track device inventory and admin credentials in 1Password.",
   "type": "module",
   "dependencies": {
-    "@1password/sdk": "^0.2.1",
+    "@1password/sdk": "^0.3.1",
     "body-parser": "^2.2.2",
     "ejs": "^3.1.10",
-    "express": "^4.19.2",
-    "nodemon": "^3.1.4"
+    "express": "^5.2.1",
+    "nodemon": "^3.1.11"
   },
   "devDependencies": {
-    "brace-expansion": ">=2.0.2"
+    "brace-expansion": "^4.0.1"
   }
 }
