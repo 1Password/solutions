@@ -11,14 +11,14 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@1password/sdk": "^0.3.0",
-    "argon2": "^0.41.1",
-    "body-parser": "^2.2.0",
+    "@1password/sdk": "^0.3.1",
+    "argon2": "^0.44.0",
+    "body-parser": "^2.2.2",
     "ejs": "^3.1.10",
-    "express": "^4.21.2",
-    "express-session": "^1.18.1",
-    "multer": "^2.0.1",
-    "p-limit": "^4.0.0",
-    "selfsigned": "^2.4.1"
+    "express": "^5.2.1",
+    "express-session": "^1.18.2",
+    "multer": "^2.0.2",
+    "p-limit": "^7.2.0",
+    "selfsigned": "^5.4.0"
   }
 }
