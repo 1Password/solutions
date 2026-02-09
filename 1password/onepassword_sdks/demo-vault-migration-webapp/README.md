@@ -1,67 +1,113 @@
-# 1Password Vault Migration App
+# 1Password Vault Migration Tool
 
-This web app allows you to move vaults from one 1Password account to another. It uses the 1Password JS SDK, as well as 1Password CLI to handle actions not yet supported by the SDK at this time.
+A self-hosted web application for migrating vaults between 1Password accounts. Built with the [1Password JavaScript SDK](https://developer.1password.com/docs/sdks/) (v0.4.0-beta.2) and the [1Password CLI](https://developer.1password.com/docs/cli/get-started).
 
 ## Overview
 
-This app helps you to move vaults between 1Password accounts by:
+The tool provides a browser-based interface to:
 
-- Giving you a simple web page to connect to your source and destination 1Password accounts using service account tokens.
-- Showing you all the vaults from the source account so you can pick which ones to move.
-- Moving the vaults you select (or all of them) to the destination account.
-- Using a mix of the SDK and CLI to handle certain tasks.
+- Connect to source and destination 1Password accounts using service account tokens
+- Browse and search source vaults with item counts
+- Select specific vaults or migrate all at once
+- Track migration progress in real time via Server-Sent Events
+- Download detailed migration logs for auditing and troubleshooting
 
 ## Requirements
 
-- [Docker](https://docs.docker.com/get-started/get-docker/)
-- [1Password CLI](https://developer.1password.com/docs/cli/get-started)
-- [1Password Service Account](https://developer.1password.com/docs/service-accounts/get-started#create-a-service-account) that can access your source and destination accounts:
-  - The source token needs read access, so it can see vaults and items in the source account.
-  - The destination token needs create vault permissions, so it can make new vaults and add items in the destination vault.
+- [Docker](https://docs.docker.com/get-started/get-docker/) and Docker Compose
+- Two [1Password service accounts](https://developer.1password.com/docs/service-accounts/get-started#create-a-service-account):
+  - **Source** — read access to vaults and items
+  - **Destination** — permission to create vaults and items
 
-## Installation
+## Quick start
 
-1. [Install Docker on your computer](https://docs.docker.com/get-started/get-docker/)
-2. Clone or download this project to your computer.
-3. In your terminal, navigate to the project folder. To build and run the Docker image with the Dockerfile, run the following in your terminal:
-```
+```bash
+# Clone or download the project, then:
 docker compose up -d
 ```
 
+Open `https://localhost:3001` in your browser and accept the self-signed certificate warning.
+
 ## Usage
 
-1. Open your browser and go to `https://localhost:3001`.
-2. On the welcome page, click **Vault Migration** in the sidebar to get to the migration tool.
-3. Enter the 1Password service account tokens for your source and destination accounts in the Migration Setup form, then select **Connect**.
-4. You’ll see a table with all the vaults from the source account. You can:
-   - Check the boxes for the vaults you want to move and select **Migrate Selected Vaults**.
-   - Select **Migrate All Vaults** to move everything.
-5. Verify your information is in the destination account once the vault migration completes.
+1. Enter the service account tokens for your source and destination accounts, then click **Connect Accounts**.
+2. A table of source vaults appears with item counts. Select vaults using the checkboxes.
+3. Click **Migrate Selected** to start. Progress updates in real time per vault and per item.
+4. Once complete, review the summary. Click **Download Logs** for a full breakdown including any failures.
+5. Verify the migrated data in your destination account.
 
-## Special Handling with CLI
+## How migration works
 
-- **Vault Creation**: The app uses 1Password CLI (`op vault create`) to make new vaults in the destination account, since vault creation isn't yet supported by the SDK.
+Migration runs in three phases per vault:
 
-## Security Features
+1. **Prepare** — Fetches all items from the source vault using batch `items.getAll()` in chunks of 50, including fields, sections, tags, websites, notes, file attachments, and document content. For credit card items, the expiry date is recovered via the CLI since the SDK returns it as an unsupported field type.
 
-- Runs on HTTPS with a self-signed certificate (good for local testing).
-- Keeps service account tokens in `sessionStorage` on the browser side, so they’re not stored on the server.
-- Has retry logic that waits longer each time if the API says "too many requests" or there’s a conflict.
-- Uses `p-limit` to make sure we don’t send too many requests at once and overwhelm the 1Password API.
+2. **Create** — Batch-creates items in the destination vault using `items.createAll()` in chunks of 50. Items with binary content (files, documents) and credit card items are created individually since they require special handling. Reference fields are stripped during this phase to avoid invalid ID errors.
 
-## Troubleshooting
+3. **Remap references** — For items that had Reference fields, the tool maps source item IDs to their new destination IDs, then adds the Reference fields back with the correct new IDs via `items.put()`.
 
-If something goes wrong:
+### Category handling
 
-- Make sure Docker is installed and running on your computer.
-- Double-check your 1Password service account tokens for both source and destination accounts—they need to be valid, with read access for the source token and create vaults for the destination token.
-- Make sure the Docker container is running and you can reach it at `https://localhost:3001`. You can see the logs with `docker logs <container-name>` to figure out what’s up.
-- If your browser complains about SSL, just accept the self-signed certificate for `localhost`.
+| Source category | Destination handling |
+|---|---|
+| Login, Secure Note, API Credential, Server, SSH Key, Software License, Database, etc. | Migrated as-is with all fields preserved |
+| Credit Card | Special handling: built-in fields assigned to root section, card type mapped to display names (e.g. `mc` → `Mastercard`), expiry recovered via CLI fallback, proper section ordering enforced |
+| Document | Document content downloaded and re-uploaded individually |
+| **Custom / Unsupported** | **Converted to Login** — username, password, and OTP are detected by label/ID and mapped to Login built-in fields; all other fields placed in their original sections; concealed fields remain concealed |
+
+### What gets migrated
+
+- All field types: Text, Concealed, TOTP, Address, SSH Key, Date, MonthYear, Email, Phone, URL, Menu, CreditCardType, CreditCardNumber, and Reference
+- Sections (preserved in original order)
+- File attachments (binary content)
+- Document content
+- Tags
+- Website URLs with autofill behavior
+- Notes
+
+## Project structure
+
+```
+├── webapp.js              # Express server — all migration logic
+├── views/
+│   ├── welcome.ejs        # Landing page
+│   └── migration.ejs      # Migration UI (vault table, progress, logs)
+├── Dockerfile             # Node.js + 1Password CLI
+├── docker-compose.yml
+├── package.json
+└── README.md
+```
+
+## Architecture
+
+- **Backend**: Node.js with Express, serving EJS templates over HTTPS (self-signed certificate via `selfsigned`)
+- **Item operations**: 1Password SDK v0.4.0-beta.2 — `items.getAll()` and `items.createAll()` for batch reads/writes, `items.get()` and `items.create()` for individual items
+- **Vault creation**: 1Password CLI (`op vault create`) via `execSync`, since the SDK doesn't support vault creation
+- **CLI fallback**: `op item get` used to recover credit card expiry dates that the SDK returns as unsupported
+- **Progress streaming**: Server-Sent Events for real-time updates to the browser
+- **Error handling**: Exponential backoff retry (3 attempts) for rate limits and data conflicts, per-item error tracking with detailed failure logs
+
+## Security
+
+- Runs on HTTPS with a self-signed TLS certificate
+- Service account tokens are held in browser memory only — not persisted to disk or server-side storage
+- All vault data (passwords, keys, files) is held in Node.js process memory during migration and released when the process exits — nothing is written to disk
+- The application is designed to run locally with no authentication on the web UI
 
 ## Limitations
 
-- Neither the 1Password SDK, CLI, nor vault data export can access or report on passkey fields. To transfer passkeys between 1Password accounts, use the 1Password desktop or mobile app.
-- The SDK does not natively support retrieving archived items for vault migration.
-- The application uses a self-signed certificate for HTTPS, suitable for local testing but requiring a valid certificate for production deployment.
-- Vault names cannot be modified during migration; the script appends "(Migrated)" to the destination vault names.
-- The application has fixed concurrency limits (2 vaults and 1 item processed simultaneously), which may need adjustment for large-scale migrations.
+- **Passkeys** cannot be migrated — neither the SDK, CLI, nor vault export can access passkey fields
+- **Archived items** are not migrated
+- **Custom category items** are converted to Login items — fields and sections are preserved but the category changes
+- **Vault names** are appended with "(Migrated)" in the destination account
+- **Reference fields** are only remapped within the same vault — cross-vault references will not resolve
+- The self-signed certificate is suitable for local use only
+
+## Troubleshooting
+
+- **Docker not starting**: Ensure Docker is installed and the daemon is running
+- **Connection failures**: Verify service account tokens are valid with correct permissions (read for source, create for destination)
+- **SSL warnings**: Expected with the self-signed certificate — accept the warning for `localhost`
+- **Rate limit errors**: The tool retries automatically with exponential backoff
+- **"Failed to convert to Item"**: Usually caused by unsupported field types or malformed values — check the downloaded log for the specific item and field
+- **Container logs**: Run `docker logs <container-name>` for server-side output
