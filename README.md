@@ -4,7 +4,7 @@
 Introducing new item management with 1Password SDKs! 
 
 * [Read all about the 1Password SDKs](https://developer.1password.com/docs/sdks/)
-* [Check out a demo app or script](/onepassword_sdks/)
+* [Check out a demo app or script](1password/onepassword_sdks/)
 
 ## Introduction
 
@@ -30,9 +30,9 @@ Scripts provided here are not intended to be run as-is. They are intended as exa
 
 ## Contents
 
-* ✨ **NEW!** [Use 1Password SDKs to perform bulk actions](/onepassword_sdks/)
-* [Migrate from another password solution](migration/)
-* [Provision new users from a CSV](scripted-provisioning/)
-* [Scripts for auditing or managing existing users](user-management/)
-* [Scripts for managing your vaults and groups](account-management/)
-* [Scripts for creating or updating items in bulk, as well as item-sharing](item-management)
+* ✨ **NEW!** [Use 1Password SDKs to perform bulk actions](1password/onepassword_sdks/)
+* [Migrate from another password solution](1password/migration/)
+* [Provision new users from a CSV](1password/scripted-provisioning/)
+* [Scripts for auditing or managing existing users](1password/user-management/)
+* [Scripts for managing your vaults and groups](1password/account-management/)
+* [Scripts for creating or updating items in bulk, as well as item-sharing](1password/item-management)

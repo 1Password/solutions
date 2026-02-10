@@ -180,3 +180,14 @@ c-scripts/abk/others.txt
 .task/
 
 .venv
+
+# Terraform state files
+terraform.tfstate
+terraform.tfstate.backup
+
+# Terraform local configuration and downloaded modules/providers
+.terraform/
+.terraform.tfstate.lock.info
+
+# Okta API Key
+okta_api.key

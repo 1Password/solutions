@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome | 1Password Vault Migration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f1419;
+      --bg-secondary: #1a1f29;
+      --bg-tertiary: #242b38;
+      --bg-elevated: #2d3548;
+      
+      --accent-primary: #5b9bd5;
+      --accent-secondary: #7eb5d6;
+      --accent-success: #6ab187;
+      
+      --text-primary: #e4e7ed;
+      --text-secondary: #a8afc0;
+      --text-tertiary: #6e7689;
+      
+      --border-subtle: #2d3548;
+      --border-normal: #3d4658;
+      
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+      
+      --font-sans: 'IBM Plex Sans', -apple-system, system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+    }
+    
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 30% 30%, rgba(91, 155, 213, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 70% 70%, rgba(107, 177, 135, 0.08) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+      text-align: center;
+    }
+    
+    .logo {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    
+    .subtitle {
+      font-size: 1.2rem;
+      color: var(--text-secondary);
+      margin-bottom: 3rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+    
+    .feature-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-normal);
+      border-radius: 16px;
+      padding: 2rem;
+      transition: all 0.3s ease;
+      text-align: left;
+    }
+    
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--accent-primary);
+    }
+    
+    .feature-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+    
+    .feature-card h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+    
+    .feature-card p {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    
+    .cta-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 2.5rem;
+      background: var(--accent-primary);
+      color: white;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-md);
+    }
+    
+    .cta-button:hover {
+      background: var(--accent-secondary);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .note {
+      margin-top: 3rem;
+      padding: 1.5rem;
+      background: var(--bg-tertiary);
+      border-left: 4px solid var(--accent-success);
+      border-radius: 8px;
+      text-align: left;
+    }
+    
+    .note h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--accent-success);
+      margin-bottom: 0.5rem;
+    }
+    
+    .note p {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    
+    .version {
+      margin-top: 3rem;
+      font-size: 0.85rem;
+      color: var(--text-tertiary);
+      font-family: var(--font-mono);
+    }
+    
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2rem;
+      }
+      
+      .subtitle {
+        font-size: 1rem;
+      }
+      
+      .feature-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .container {
+        padding: 2rem 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🔐</div>
+    <h1>Vault Migration Tool</h1>
+    <p class="subtitle">
+      Securely migrate your 1Password vaults between accounts with comprehensive logging and error handling
+    </p>
+    
+    <div class="feature-grid">
+      <div class="feature-card">
+        <span class="feature-icon">🚀</span>
+        <h3>Fast & Reliable</h3>
+        <p>Efficient concurrent processing with automatic retry logic for failed items</p>
+      </div>
+      
+      <div class="feature-card">
+        <span class="feature-icon">🛡️</span>
+        <h3>Secure & Safe</h3>
+        <p>Direct vault-to-vault transfer using official 1Password SDK with end-to-end encryption</p>
+      </div>
+      
+      <div class="feature-card">
+        <span class="feature-icon">📊</span>
+        <h3>Detailed Logging</h3>
+        <p>Comprehensive logs for every operation with downloadable reports for auditing</p>
+      </div>
+      
+      <div class="feature-card">
+        <span class="feature-icon">⚡</span>
+        <h3>Error Recovery</h3>
+        <p>Continues migration even if individual items fail, recording all errors for review</p>
+      </div>
+      
+      <div class="feature-card">
+        <span class="feature-icon">🎯</span>
+        <h3>Selective Migration</h3>
+        <p>Choose specific vaults or migrate everything with progress tracking</p>
+      </div>
+      
+      <div class="feature-card">
+        <span class="feature-icon">📝</span>
+        <h3>Complete Fidelity</h3>
+        <p>Preserves all item types, fields, attachments, tags, and metadata</p>
+      </div>
+    </div>
+    
+    <a href="/migration" class="cta-button">
+      <span>Start Migration</span>
+      <span>→</span>
+    </a>
+    
+    <div class="note">
+      <h4>🔑 Before You Begin</h4>
+      <p>
+        You'll need service account tokens for both your source and destination 1Password accounts. 
+        These can be created in your 1Password account settings under "Integrations" → "Service Accounts". 
+        Make sure the tokens have appropriate vault access permissions.
+      </p>
+    </div>
+    
+    <div class="version">
+      Version 2.0 | Enhanced Error Handling & Logging
+    </div>
+  </div>
+</body>
+</html>

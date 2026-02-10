@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vault Migration | 1Password</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f1419;
+      --bg-secondary: #1a1f29;
+      --bg-tertiary: #242b38;
+      --bg-elevated: #2d3548;
+      --accent-primary: #5b9bd5;
+      --accent-secondary: #7eb5d6;
+      --accent-success: #6ab187;
+      --accent-warning: #d4a574;
+      --accent-error: #d47a7a;
+      --text-primary: #e4e7ed;
+      --text-secondary: #a8afc0;
+      --text-tertiary: #6e7689;
+      --text-muted: #4d5361;
+      --border-subtle: #2d3548;
+      --border-normal: #3d4658;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2rem;
+      --font-sans: 'IBM Plex Sans', -apple-system, system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: 
+        radial-gradient(circle at 20% 20%, rgba(91, 155, 213, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(107, 177, 135, 0.05) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .container { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: var(--space-xl); }
+    .header { margin-bottom: var(--space-xl); padding-bottom: var(--space-lg); border-bottom: 1px solid var(--border-subtle); }
+    .header h1 { font-size: 2rem; font-weight: 600; color: var(--text-primary); margin-bottom: var(--space-sm); letter-spacing: -0.02em; }
+    .header p { color: var(--text-secondary); font-size: 0.95rem; }
+    .status-banner {
+      background: var(--bg-secondary); border: 1px solid var(--border-normal); border-radius: 12px;
+      padding: var(--space-lg); margin-bottom: var(--space-xl); display: none; box-shadow: var(--shadow-sm);
+    }
+    .status-banner.active { display: flex; align-items: center; justify-content: space-between; }
+    .status-banner .status-info { display: flex; align-items: center; gap: var(--space-md); }
+    .status-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: var(--bg-elevated); }
+    .status-icon.connected { background: rgba(107, 177, 135, 0.15); color: var(--accent-success); }
+    .status-text h3 { font-size: 0.9rem; font-weight: 500; color: var(--text-primary); margin-bottom: var(--space-xs); }
+    .status-text p { font-size: 0.85rem; color: var(--text-tertiary); }
+    .card {
+      background: var(--bg-secondary); border: 1px solid var(--border-normal); border-radius: 16px;
+      padding: var(--space-xl); margin-bottom: var(--space-xl); box-shadow: var(--shadow-md); transition: all 0.3s ease;
+    }
+    .card:hover { border-color: var(--border-normal); box-shadow: var(--shadow-lg); }
+    .card h2 { font-size: 1.3rem; font-weight: 600; color: var(--text-primary); margin-bottom: var(--space-sm); }
+    .card .subtitle { color: var(--text-tertiary); font-size: 0.9rem; margin-bottom: var(--space-lg); }
+    .form-group { margin-bottom: var(--space-lg); }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); margin-bottom: var(--space-sm); text-transform: uppercase; letter-spacing: 0.05em; }
+    .form-group input {
+      width: 100%; padding: var(--space-md); background: var(--bg-tertiary); border: 1px solid var(--border-subtle);
+      border-radius: 8px; color: var(--text-primary); font-family: var(--font-mono); font-size: 0.9rem; transition: all 0.2s ease;
+    }
+    .form-group input:focus { outline: none; border-color: var(--accent-primary); background: var(--bg-elevated); box-shadow: 0 0 0 3px rgba(91, 155, 213, 0.1); }
+    .form-group input::placeholder { color: var(--text-muted); }
+    .help-text { font-size: 0.8rem; color: var(--text-tertiary); margin-top: var(--space-xs); font-style: italic; line-height: 1.5; }
+    .btn {
+      padding: var(--space-md) var(--space-xl); border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 500;
+      font-family: var(--font-sans); cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: var(--space-sm); text-decoration: none;
+    }
+    .btn-primary { background: var(--accent-primary); color: white; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-secondary); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+    .btn-secondary { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border-normal); }
+    .btn-secondary:hover:not(:disabled) { background: var(--bg-tertiary); border-color: var(--accent-primary); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--text-muted); border-top-color: var(--accent-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .progress-container { margin: var(--space-lg) 0; display: none; }
+    .progress-container.active { display: block; }
+    .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-sm); }
+    .progress-label { font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; }
+    .progress-percentage { font-size: 0.85rem; color: var(--accent-primary); font-weight: 600; font-family: var(--font-mono); }
+    .progress-stats { font-size: 0.8rem; color: var(--text-tertiary); margin-top: var(--space-xs); font-family: var(--font-mono); }
+    .progress-bar-outer { width: 100%; height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3); }
+    .progress-bar-inner { height: 100%; background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)); border-radius: 4px; width: 0%; transition: width 0.3s ease; box-shadow: 0 0 10px rgba(91, 155, 213, 0.5); }
+    .vault-container { display: none; }
+    .vault-container.active { display: block; }
+    .vault-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); flex-wrap: wrap; gap: var(--space-md); }
+    .vault-header h2 { font-size: 1.3rem; font-weight: 600; color: var(--text-primary); }
+    .vault-actions { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
+    .search-box { position: relative; flex: 1; min-width: 300px; margin-bottom: var(--space-md); }
+    .search-box input {
+      width: 100%; padding: var(--space-md) var(--space-md) var(--space-md) 40px; background: var(--bg-tertiary);
+      border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem;
+    }
+    .search-box::before { content: '🔍'; position: absolute; left: var(--space-md); top: 50%; transform: translateY(-50%); opacity: 0.5; }
+    .vault-table-container { background: var(--bg-secondary); border: 1px solid var(--border-normal); border-radius: 12px; overflow: hidden; }
+    .vault-table { width: 100%; border-collapse: collapse; }
+    .vault-table thead { background: var(--bg-tertiary); }
+    .vault-table th { padding: var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border-normal); }
+    .vault-table td { padding: var(--space-md); border-bottom: 1px solid var(--border-subtle); font-size: 0.9rem; }
+    .vault-table tr:last-child td { border-bottom: none; }
+    .vault-table tbody tr { transition: background 0.2s ease; }
+    .vault-table tbody tr:hover { background: var(--bg-tertiary); }
+    .vault-name { font-weight: 500; color: var(--text-primary); }
+    .vault-id { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-tertiary); }
+    .item-count { font-family: var(--font-mono); color: var(--accent-secondary); font-weight: 500; }
+    .status-badge { display: inline-flex; align-items: center; gap: var(--space-xs); padding: var(--space-xs) var(--space-sm); border-radius: 6px; font-size: 0.8rem; font-weight: 500; }
+    .status-badge.pending { background: rgba(168, 175, 192, 0.15); color: var(--text-tertiary); }
+    .status-badge.preparing { background: rgba(212, 165, 116, 0.15); color: var(--accent-warning); }
+    .status-badge.migrating { background: rgba(91, 155, 213, 0.15); color: var(--accent-primary); }
+    .status-badge.success { background: rgba(107, 177, 135, 0.15); color: var(--accent-success); }
+    .status-badge.error { background: rgba(212, 122, 122, 0.15); color: var(--accent-error); }
+    .status-badge.warning { background: rgba(212, 165, 116, 0.15); color: var(--accent-warning); }
+    .status-badge .spinner-small { width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .checkbox-wrapper { display: flex; align-items: center; justify-content: center; }
+    input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-primary); }
+    .alert { padding: var(--space-md); border-radius: 8px; margin: var(--space-md) 0; display: flex; align-items: center; gap: var(--space-sm); font-size: 0.9rem; animation: slideIn 0.3s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    .alert-success { background: rgba(107, 177, 135, 0.15); border: 1px solid var(--accent-success); color: var(--accent-success); }
+    .alert-error { background: rgba(212, 122, 122, 0.15); border: 1px solid var(--accent-error); color: var(--accent-error); }
+    .alert-warning { background: rgba(212, 165, 116, 0.15); border: 1px solid var(--accent-warning); color: var(--accent-warning); }
+    .alert-info { background: rgba(91, 155, 213, 0.15); border: 1px solid var(--accent-primary); color: var(--accent-primary); }
+    .migration-summary { background: var(--bg-tertiary); border-radius: 12px; padding: var(--space-lg); margin-top: var(--space-lg); display: none; }
+    .migration-summary.active { display: block; animation: slideIn 0.3s ease; }
+    .summary-title { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin-bottom: var(--space-md); }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-md); }
+    .summary-item { background: var(--bg-elevated); padding: var(--space-md); border-radius: 8px; border: 1px solid var(--border-subtle); }
+    .summary-item label { display: block; font-size: 0.8rem; color: var(--text-tertiary); margin-bottom: var(--space-xs); text-transform: uppercase; letter-spacing: 0.05em; }
+    .summary-item .value { font-size: 1.5rem; font-weight: 600; font-family: var(--font-mono); }
+    .summary-item.success .value { color: var(--accent-success); }
+    .summary-item.error .value { color: var(--accent-error); }
+    .summary-item.info .value { color: var(--accent-primary); }
+    @media (max-width: 768px) {
+      .container { padding: var(--space-md); }
+      .header h1 { font-size: 1.5rem; }
+      .vault-header { flex-direction: column; align-items: stretch; }
+      .vault-actions { width: 100%; }
+      .btn { width: 100%; justify-content: center; }
+      .vault-table { font-size: 0.85rem; }
+      .vault-table th, .vault-table td { padding: var(--space-sm); }
+    }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg-primary); }
+    ::-webkit-scrollbar-thumb { background: var(--border-normal); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔐 Vault Migration Tool</h1>
+      <p>Securely migrate your 1Password vaults between accounts</p>
+    </div>
+
+    <div class="status-banner" id="statusBanner">
+      <div class="status-info">
+        <div class="status-icon connected">✓</div>
+        <div class="status-text">
+          <h3>Connected to 1Password</h3>
+          <p>Source and destination accounts are ready</p>
+        </div>
+      </div>
+      <button class="btn btn-secondary" onclick="editConnection()">Edit Connection</button>
+    </div>
+
+    <div class="card" id="connectionCard">
+      <h2>Connect to 1Password</h2>
+      <p class="subtitle">Enter your service account tokens to begin migration</p>
+      
+      <form id="connectionForm">
+        <div class="form-group">
+          <label for="sourceToken">Source Account Token</label>
+          <input type="password" id="sourceToken" name="sourceToken" placeholder="ops_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="destToken">Destination Account Token</label>
+          <input type="password" id="destToken" name="destToken" placeholder="ops_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx" required>
+        </div>
+
+        <div class="help-text" style="margin-bottom: var(--space-lg);">
+          Items with CUSTOM categories will be automatically converted to Login items during migration, preserving all fields and concealed values.
+        </div>
+        
+        <button type="submit" class="btn btn-primary" id="connectBtn">
+          <span id="connectBtnText">Connect Accounts</span>
+          <span id="connectSpinner" style="display: none;" class="spinner"></span>
+        </button>
+      </form>
+      
+      <div id="connectionError"></div>
+    </div>
+
+    <div class="vault-container" id="vaultContainer">
+      <div class="vault-header">
+        <h2>Source Vaults (<span id="vaultCount">0</span>)</h2>
+        <div class="vault-actions">
+          <button class="btn btn-primary" onclick="migrateSelected()" id="migrateSelectedBtn">Migrate Selected</button>
+          <button class="btn btn-secondary" onclick="downloadLogs()" id="downloadLogsBtn">📥 Download Logs</button>
+        </div>
+      </div>
+
+      <div class="search-box">
+        <input type="text" id="vaultSearch" placeholder="Search vaults..." oninput="filterVaults()">
+      </div>
+
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-header">
+          <span class="progress-label" id="progressLabel">Preparing migration...</span>
+          <span class="progress-percentage" id="progressPercentage">0%</span>
+        </div>
+        <div class="progress-bar-outer">
+          <div class="progress-bar-inner" id="progressBar"></div>
+        </div>
+        <div class="progress-stats" id="progressStats">
+          Vaults: <span id="vaultsProgress">0/0</span> | 
+          Items: <span id="itemsProgress">0/0</span>
+        </div>
+      </div>
+
+      <div id="alertContainer"></div>
+
+      <div class="vault-table-container">
+        <table class="vault-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+              <th>Vault Name</th>
+              <th>Vault ID</th>
+              <th>Items</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="vaultTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="migration-summary" id="migrationSummary">
+        <h3 class="summary-title">Migration Summary</h3>
+        <div class="summary-grid">
+          <div class="summary-item success"><label>Successful</label><div class="value" id="successCount">0</div></div>
+          <div class="summary-item error"><label>Failed</label><div class="value" id="failureCount">0</div></div>
+          <div class="summary-item info"><label>Total Items</label><div class="value" id="totalItems">0</div></div>
+          <div class="summary-item info"><label>Total Vaults</label><div class="value" id="totalVaults">0</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let vaults = [];
+    let selectedVaultIds = new Set();
+    let isMigrating = false;
+    let sourceToken = '';
+    let destToken = '';
+    let totalVaultsToMigrate = 0;
+    let completedVaults = 0;
+    let totalItemsToMigrate = 0;
+    let processedItems = 0;
+    
+    document.getElementById('connectionForm').addEventListener('submit', handleConnect);
+    
+    async function handleConnect(e) {
+      e.preventDefault();
+      const connectBtn = document.getElementById('connectBtn');
+      const connectBtnText = document.getElementById('connectBtnText');
+      const connectSpinner = document.getElementById('connectSpinner');
+      const errorDiv = document.getElementById('connectionError');
+      
+      sourceToken = document.getElementById('sourceToken').value;
+      destToken = document.getElementById('destToken').value;
+      
+      connectBtn.disabled = true;
+      connectBtnText.style.display = 'none';
+      connectSpinner.style.display = 'inline-block';
+      errorDiv.innerHTML = '';
+      
+      try {
+        const response = await fetch('/migration/list-vaults', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ serviceToken: sourceToken })
+        });
+        const result = await response.json();
+        if (result.success) {
+          vaults = result.vaults;
+          showVaultList();
+          showAlert('success', `✓ Successfully connected! Found ${vaults.length} vaults.`);
+        } else {
+          throw new Error(result.error || 'Failed to connect');
+        }
+      } catch (error) {
+        errorDiv.innerHTML = `<div class="alert alert-error"><span>⚠️</span><span>Failed to connect: ${error.message}</span></div>`;
+      } finally {
+        connectBtn.disabled = false;
+        connectBtnText.style.display = 'inline';
+        connectSpinner.style.display = 'none';
+      }
+    }
+    
+    function showVaultList() {
+      document.getElementById('connectionCard').style.display = 'none';
+      document.getElementById('statusBanner').classList.add('active');
+      document.getElementById('vaultContainer').classList.add('active');
+      document.getElementById('vaultCount').textContent = vaults.length;
+      renderVaults();
+    }
+    
+    function editConnection() {
+      document.getElementById('connectionCard').style.display = 'block';
+      document.getElementById('statusBanner').classList.remove('active');
+      document.getElementById('vaultContainer').classList.remove('active');
+    }
+    
+    function renderVaults() {
+      const tbody = document.getElementById('vaultTableBody');
+      const searchTerm = document.getElementById('vaultSearch').value.toLowerCase();
+      const filteredVaults = vaults.filter(v => v.name.toLowerCase().includes(searchTerm) || v.id.toLowerCase().includes(searchTerm));
+      
+      tbody.innerHTML = filteredVaults.map(vault => `
+        <tr data-vault-id="${vault.id}">
+          <td class="checkbox-wrapper">
+            <input type="checkbox" class="vault-checkbox" value="${vault.id}" data-item-count="${vault.itemCount}"
+              onchange="handleVaultSelection('${vault.id}', ${vault.itemCount})"
+              ${selectedVaultIds.has(vault.id) ? 'checked' : ''} ${isMigrating ? 'disabled' : ''}>
+          </td>
+          <td class="vault-name">${escapeHtml(vault.name)}</td>
+          <td class="vault-id">${vault.id}</td>
+          <td class="item-count">${vault.itemCount}</td>
+          <td><span class="status-badge pending" id="status-${vault.id}">Pending</span></td>
+        </tr>
+      `).join('');
+    }
+    
+    function filterVaults() { renderVaults(); }
+    
+    function handleVaultSelection(vaultId, itemCount) {
+      if (selectedVaultIds.has(vaultId)) {
+        selectedVaultIds.delete(vaultId);
+        totalItemsToMigrate -= itemCount;
+      } else {
+        selectedVaultIds.add(vaultId);
+        totalItemsToMigrate += itemCount;
+      }
+      updateSelectAllCheckbox();
+    }
+    
+    function toggleSelectAll() {
+      const selectAll = document.getElementById('selectAll');
+      const checkboxes = document.querySelectorAll('.vault-checkbox:not([disabled])');
+      totalItemsToMigrate = 0;
+      if (selectAll.checked) {
+        checkboxes.forEach(cb => { cb.checked = true; selectedVaultIds.add(cb.value); totalItemsToMigrate += parseInt(cb.dataset.itemCount); });
+      } else {
+        checkboxes.forEach(cb => { cb.checked = false; selectedVaultIds.clear(); });
+      }
+    }
+    
+    function updateSelectAllCheckbox() {
+      const selectAll = document.getElementById('selectAll');
+      const checkboxes = document.querySelectorAll('.vault-checkbox:not([disabled])');
+      const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+      selectAll.checked = checkedCount === checkboxes.length && checkboxes.length > 0;
+      selectAll.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+    }
+    
+    function updateVaultStatus(vaultId, status, message, showSpinner = false) {
+      const statusBadge = document.getElementById(`status-${vaultId}`);
+      if (!statusBadge) return;
+      statusBadge.className = `status-badge ${status}`;
+      statusBadge.innerHTML = showSpinner ? `<span class="spinner-small"></span> ${message}` : message;
+    }
+    
+    function resetMigrationUI() {
+      document.getElementById('progressBar').style.width = '0%';
+      document.getElementById('progressPercentage').textContent = '0%';
+      document.getElementById('progressLabel').textContent = 'Preparing migration...';
+      document.getElementById('vaultsProgress').textContent = '0/0';
+      document.getElementById('itemsProgress').textContent = '0/0';
+      selectedVaultIds.forEach(vaultId => { updateVaultStatus(vaultId, 'pending', 'Pending'); });
+      document.getElementById('migrationSummary').classList.remove('active');
+      document.getElementById('alertContainer').innerHTML = '';
+    }
+    
+    async function migrateSelected() {
+      if (selectedVaultIds.size === 0) { showAlert('warning', '⚠️ Please select at least one vault to migrate'); return; }
+      if (isMigrating) { showAlert('warning', '⚠️ Migration already in progress'); return; }
+      
+      resetMigrationUI();
+      isMigrating = true;
+      completedVaults = 0;
+      processedItems = 0;
+      totalVaultsToMigrate = selectedVaultIds.size;
+      
+      totalItemsToMigrate = 0;
+      vaults.forEach(v => { if (selectedVaultIds.has(v.id)) totalItemsToMigrate += v.itemCount; });
+      
+      const selectedVaults = vaults.filter(v => selectedVaultIds.has(v.id)).map(v => ({ vaultId: v.id, vaultName: v.name }));
+      
+      const progressContainer = document.getElementById('progressContainer');
+      progressContainer.classList.add('active');
+      document.getElementById('progressLabel').textContent = 'Preparing migration...';
+      document.getElementById('progressPercentage').textContent = '0%';
+      document.getElementById('progressBar').style.width = '0%';
+      updateProgressStats();
+      document.getElementById('migrateSelectedBtn').disabled = true;
+      
+      let successCount = 0;
+      let failureCount = 0;
+      let totalItems = 0;
+      
+      const url = `/migration/migrate-all-vaults?sourceToken=${encodeURIComponent(sourceToken)}&destToken=${encodeURIComponent(destToken)}&vaults=${encodeURIComponent(JSON.stringify(selectedVaults))}`;
+      const eventSource = new EventSource(url);
+      
+      eventSource.onopen = () => {
+        document.getElementById('progressLabel').textContent = `Migrating ${totalVaultsToMigrate} vaults with ${totalItemsToMigrate} items...`;
+        showAlert('info', `🚀 Starting migration of ${totalVaultsToMigrate} vaults...`);
+      };
+      
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.progress !== undefined && data.outcome) {
+          const vaultId = data.outcome.vaultId;
+          const phase = data.outcome.phase;
+          
+          if (phase === 'preparing') {
+            updateVaultStatus(vaultId, 'preparing', 'Preparing...', true);
+          } else if (phase === 'migrating') {
+            const ip = data.outcome.itemsProcessed || 0;
+            const ti = data.outcome.totalItems || 0;
+            processedItems = (completedVaults * (totalItemsToMigrate / totalVaultsToMigrate)) + ip;
+            updateVaultStatus(vaultId, 'migrating', `Migrating (${ip}/${ti})`, false);
+            updateProgressStats();
+          } else if (phase === 'completed') {
+            completedVaults++;
+            if (data.outcome.success) {
+              updateVaultStatus(vaultId, 'success', `✓ Success (${data.outcome.successCount}/${data.outcome.sourceItemCount})`);
+              successCount += data.outcome.successCount || 0;
+            } else {
+              const fc = data.outcome.failureCount || 0;
+              updateVaultStatus(vaultId, fc > 0 ? 'error' : 'warning', `${fc > 0 ? '✗' : '⚠️'} ${fc} failed / ${data.outcome.sourceItemCount || 0} items`);
+              failureCount += fc;
+              successCount += data.outcome.successCount || 0;
+            }
+            processedItems = completedVaults * (totalItemsToMigrate / totalVaultsToMigrate);
+            totalItems += data.outcome.sourceItemCount || 0;
+          } else if (phase === 'failed') {
+            completedVaults++;
+            updateVaultStatus(vaultId, 'error', `✗ Failed: ${data.outcome.error || 'Unknown error'}`);
+            failureCount += data.outcome.sourceItemCount || 0;
+            processedItems = completedVaults * (totalItemsToMigrate / totalVaultsToMigrate);
+          }
+          
+          updateProgress(data.progress);
+          if (phase !== 'migrating') updateProgressStats();
+        }
+        
+        if (data.finished) {
+          eventSource.close();
+          isMigrating = false;
+          document.getElementById('migrateSelectedBtn').disabled = false;
+          document.getElementById('successCount').textContent = successCount;
+          document.getElementById('failureCount').textContent = failureCount;
+          document.getElementById('totalItems').textContent = totalItems;
+          document.getElementById('totalVaults').textContent = selectedVaults.length;
+          document.getElementById('migrationSummary').classList.add('active');
+          document.getElementById('progressLabel').textContent = 'Migration complete!';
+          
+          showAlert(data.success ? 'success' : 'warning', `${data.success ? '✓' : '⚠️'} ${data.message}`);
+          setTimeout(() => { progressContainer.classList.remove('active'); }, 3000);
+        }
+      };
+      
+      eventSource.onerror = () => {
+        eventSource.close();
+        isMigrating = false;
+        document.getElementById('migrateSelectedBtn').disabled = false;
+        showAlert('error', '✗ Migration failed. Please check the logs for details.');
+        progressContainer.classList.remove('active');
+      };
+    }
+    
+    function updateProgress(percentage) {
+      document.getElementById('progressBar').style.width = `${percentage}%`;
+      document.getElementById('progressPercentage').textContent = `${Math.round(percentage)}%`;
+    }
+    
+    function updateProgressStats() {
+      document.getElementById('vaultsProgress').textContent = `${completedVaults}/${totalVaultsToMigrate}`;
+      document.getElementById('itemsProgress').textContent = `${processedItems}/${totalItemsToMigrate}`;
+    }
+    
+    async function downloadLogs() {
+      try { window.location.href = '/migration/download-log'; showAlert('success', '📥 Log file downloaded successfully'); }
+      catch (error) { showAlert('error', '✗ Failed to download logs'); }
+    }
+    
+    function showAlert(type, message) {
+      const container = document.getElementById('alertContainer');
+      const alert = document.createElement('div');
+      alert.className = `alert alert-${type}`;
+      const icon = type === 'success' ? '✓' : type === 'error' ? '✗' : type === 'warning' ? '⚠️' : 'ℹ️';
+      alert.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+      container.appendChild(alert);
+      setTimeout(() => { alert.style.opacity = '0'; setTimeout(() => alert.remove(), 300); }, 5000);
+    }
+    
+    function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+  </script>
+</body>
+</html>
