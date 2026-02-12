@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """
-Keeper→1Password migration helper (ZIP with files) — bulk create via beta SDK
+Keeper→1Password migration helper (ZIP with files) — SDK bulk create
 
-Same behavior as import-with-files.py but uses the 1Password beta Python SDK's
-Items.create_all to create items in batch per vault (fewer round-trips).
+Uses the 1Password beta Python SDK for items and vault listing:
+- Items.create_all for bulk item creation (max 100 per call).
+- Vaults.list(decrypt_details=True) to resolve vault names to IDs.
+
+Vaults that don't exist are created via the 1Password CLI (`op vault create`).
+You need the `op` CLI in PATH only for vault creation; the rest is SDK.
 
 - Accepts an input **ZIP** with `export.json` and `files/` (or bare keeper JSON).
 - Renames attachment blobs from UID to display name; attaches files to items.
-- Creates shared/private vaults and grants permissions via `op` CLI.
-- Builds all item params, groups by vault, and calls client.items.create_all()
-  for each vault.
 
-Requires: 1Password CLI v2 (for vault/permission setup), OP_SERVICE_ACCOUNT_TOKEN,
-          onepassword-sdk (beta with create_all, e.g. 0.4.0b2).
+Requires: OP_SERVICE_ACCOUNT_TOKEN, onepassword-sdk (beta), and `op` CLI for vault create.
+Permission grants are not applied; configure vault access separately.
 
 Usage
 -----
@@ -20,12 +21,13 @@ python import-with-files-bulk.py \\
   --input /path/to/export-files.zip \\
   --employee-vault "Keeper Import" \\
   [--private-prefix "Private - "] \\
-  [--dry-run] [--silent] [--user-for-private you@example.com]
+  [--dry-run] [--silent]
 """
 from __future__ import annotations
 
 import argparse
 import asyncio
+import difflib
 import json
 import mimetypes
 import os
@@ -36,8 +38,9 @@ import sys
 import tempfile
 import zipfile
 from collections import defaultdict
+from shutil import which
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from onepassword.client import Client
 from onepassword import (
@@ -49,10 +52,11 @@ from onepassword import (
     ItemFieldType,
     ItemSection,
     ItemsUpdateAllResponse,
+    VaultListParams,
     Website,
 )
 
-# --- Session bootstrap ---------------------------------------------------------
+# --------------------------- Session ---------------------------
 
 
 async def _get_client() -> Client:
@@ -66,44 +70,75 @@ async def _get_client() -> Client:
     )
 
 
-def _resolve_vault_id_via_cli(vault_name: str) -> str:
-    """Resolve vault name to vault ID using op CLI (SDK often returns [Encrypted] for titles)."""
-    proc = run(["op", "vault", "get", vault_name, "--format", "json"])
-    if proc.returncode != 0:
-        err = proc.stderr.decode().strip() or proc.stdout.decode().strip()
-        raise ValueError(f"Vault not found: {vault_name!r}. {err}")
-    data = json.loads(proc.stdout.decode())
-    vid = data.get("id")
-    if not vid:
-        raise ValueError(f"Vault not found: {vault_name!r} (no id in op output)")
-    return vid
+def _normalize_vault_name(name: str) -> str:
+    """Collapse whitespace and normalize slash so 'A / B' and 'A/B' match."""
+    s = " ".join(name.split())
+    return s.replace(" / ", "/").replace(" /", "/").replace("/ ", "/")
 
 
-async def _resolve_vault_id(client: Client, vault: str) -> str:
-    """Resolve vault name to vault ID. Uses op CLI so names work when SDK returns [Encrypted]."""
-    return _resolve_vault_id_via_cli(vault)
+async def _vault_name_to_id_map(client: Client) -> Tuple[Dict[str, str], List[str]]:
+    """List vaults with decrypt_details=True; return (name->id map, list of vault titles)."""
+    vaults = await client.vaults.list(VaultListParams(decrypt_details=True))
+    name_to_id: Dict[str, str] = {}
+    titles: List[str] = []
+    for v in vaults:
+        name_to_id[v.title] = v.id
+        titles.append(v.title)
+        normalized = _normalize_vault_name(v.title)
+        if normalized != v.title:
+            name_to_id[normalized] = v.id
+    return name_to_id, sorted(titles)
 
 
-# --------------------------- CLI helpers ---------------------------
+def _resolve_vault_id(name_to_id: Dict[str, str], vault_name: str) -> str:
+    """Resolve vault name to ID using the pre-built map. Raises if not found."""
+    if vault_name in name_to_id:
+        return name_to_id[vault_name]
+    normalized = _normalize_vault_name(vault_name)
+    if normalized in name_to_id:
+        return name_to_id[normalized]
+    # Suggest closest match when vault name is missing (e.g. typo or new vault)
+    all_names = list(name_to_id.keys())
+    candidates = [n for n in all_names if n != "[Encrypted]"]
+    suggestions = difflib.get_close_matches(vault_name, candidates, n=1, cutoff=0.6)
+    msg = f"Vault not found: {vault_name!r}."
+    if suggestions:
+        msg += f" Did you mean {suggestions[0]!r}?"
+    msg += f" Available: {', '.join(sorted(candidates)[:15])}"
+    if len(candidates) > 15:
+        msg += f", ... ({len(candidates)} total)"
+    raise ValueError(msg)
 
 
-def run(
-    cmd: List[str], *, input_bytes: Optional[bytes] = None, check: bool = False
-) -> subprocess.CompletedProcess:
-    proc = subprocess.run(
-        cmd, input=input_bytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+def _run_op(cmd: List[str]) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
-    if check and proc.returncode != 0:
-        raise subprocess.CalledProcessError(
-            proc.returncode, cmd, output=proc.stdout, stderr=proc.stderr
-        )
-    return proc
 
 
-def op_exists() -> bool:
-    from shutil import which
-
+def _op_exists() -> bool:
     return which("op") is not None
+
+
+def _ensure_vault(vault_name: str, *, dry: bool, silent: bool) -> None:
+    """Create vault via CLI if it doesn't exist. No-op if it already exists."""
+    proc = _run_op(["op", "vault", "get", vault_name, "--format", "json"])
+    if proc.returncode == 0:
+        if not silent:
+            print(f"✔ Vault exists: {vault_name}")
+        return
+    if dry:
+        print(f"DRY-RUN: would create vault: {vault_name}")
+        return
+    proc2 = _run_op(["op", "vault", "create", vault_name, "--format", "json"])
+    if proc2.returncode != 0:
+        print(
+            f"ERROR creating vault {vault_name!r}: {proc2.stderr.strip()}",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+    if not silent:
+        print(f"➕ Created vault: {vault_name}")
 
 
 # --------------------------- Data models ---------------------------
@@ -245,72 +280,6 @@ def normalize_path_to_name(path: str) -> str:
     return name
 
 
-# --------------------------- 1Password vault/permission (CLI) ---------------------------
-
-
-def ensure_vault(vault_name: str, *, dry: bool, silent: bool) -> None:
-    proc = run(["op", "vault", "get", vault_name, "--format", "json"])
-    if proc.returncode == 0:
-        if not silent:
-            print(f"✔ Vault exists: {vault_name}")
-        return
-    if dry:
-        print(f"DRY-RUN: would create vault: {vault_name}")
-        return
-    proc2 = run(["op", "vault", "create", vault_name, "--format", "json"])
-    if proc2.returncode != 0:
-        print(
-            f"ERROR creating vault {vault_name}: {proc2.stderr.decode().strip()}",
-            file=sys.stderr,
-        )
-        sys.exit(2)
-    if not silent:
-        print(f"➕ Created vault: {vault_name}")
-
-
-def subject_exists(name: str, is_group: bool) -> bool:
-    cmd = ["op", "group" if is_group else "user", "get", name, "--format", "json"]
-    return run(cmd).returncode == 0
-
-
-def grant_permissions(
-    vault: str,
-    subject: str,
-    is_group: bool,
-    *,
-    manage_users: bool,
-    manage_records: bool,
-    dry: bool,
-) -> None:
-    perms = ["allow_viewing"]
-    if manage_records:
-        perms.append("allow_editing")
-    if manage_users:
-        perms.append("allow_managing")
-    cmd = [
-        "op",
-        "vault",
-        "group" if is_group else "user",
-        "grant",
-        "--no-input",
-        "--vault",
-        vault,
-        "--" + ("group" if is_group else "user"),
-        subject,
-        "--permissions",
-        ",".join(perms),
-    ]
-    if dry:
-        print(
-            f"DRY-RUN: would grant to {'group' if is_group else 'user'} {subject} on {vault}: {perms}"
-        )
-        return
-    proc = run(cmd)
-    if proc.returncode != 0:
-        stderr = proc.stderr.decode().strip()
-        print(f"WARN granting {subject} on {vault}: {stderr}", file=sys.stderr)
-
-
 # --------------------------- ZIP + extraction ---------------------------
 
 
@@ -376,7 +345,8 @@ def extract_and_name_attachments(zc: ZipContext, rec: Record) -> List[Tuple[str,
 
 # --------------------------- Build ItemCreateParams (for bulk) ---------------------------
 
-BULK_CREATE_MAX = 10
+
+BULK_CREATE_MAX = 100
 """Maximum items per client.items.create_all() call."""
 
 
@@ -510,32 +480,13 @@ async def plan_and_apply(
     user_for_private: Optional[str],
     zc: ZipContext,
 ) -> None:
-    if not op_exists():
-        print("ERROR: 'op' (1Password CLI) not found in PATH.", file=sys.stderr)
-        sys.exit(1)
-
     client = await _get_client()
 
+    # Compute shared and private vault names
     shared_vault_map: Dict[str, str] = {}
     for sf in shared_folders:
         vault_name = normalize_path_to_name(sf.path)
         shared_vault_map[sf.path] = vault_name
-        ensure_vault(vault_name, dry=dry, silent=silent)
-        for perm in sf.permissions:
-            if not dry and not subject_exists(perm.name, perm.is_group):
-                print(
-                    f"WARN: {'Group' if perm.is_group else 'User'} '{perm.name}' not found; skipping permission on '{vault_name}'",
-                    file=sys.stderr,
-                )
-                continue
-            grant_permissions(
-                vault_name,
-                perm.name,
-                perm.is_group,
-                manage_users=perm.manage_users,
-                manage_records=perm.manage_records,
-                dry=dry,
-            )
 
     private_vault_map: Dict[str, str] = {}
     non_shared_folders = set()
@@ -545,20 +496,8 @@ async def plan_and_apply(
     for folder in sorted(non_shared_folders):
         vault_name = f"{private_prefix}{normalize_path_to_name(folder)}"
         private_vault_map[folder] = vault_name
-        ensure_vault(vault_name, dry=dry, silent=silent)
-        if user_for_private:
-            grant_permissions(
-                vault_name,
-                user_for_private,
-                is_group=False,
-                manage_users=False,
-                manage_records=True,
-                dry=dry,
-            )
 
-    ensure_vault(employee_vault, dry=dry, silent=silent)
-
-    # Collect all vault names we'll use and resolve to IDs once
+    # All vault names we'll use (including those discovered from records)
     vault_names_used: Set[str] = {employee_vault}
     for rec in records:
         for sf in rec.shared_folders:
@@ -567,7 +506,6 @@ async def plan_and_apply(
             else:
                 name = normalize_path_to_name(sf)
                 shared_vault_map[sf] = name
-                ensure_vault(name, dry=dry, silent=silent)
                 vault_names_used.add(name)
         for f in rec.folders:
             if f in private_vault_map:
@@ -575,20 +513,37 @@ async def plan_and_apply(
             else:
                 name = f"{private_prefix}{normalize_path_to_name(f)}"
                 private_vault_map[f] = name
-                ensure_vault(name, dry=dry, silent=silent)
-                if user_for_private:
-                    grant_permissions(
-                        name,
-                        user_for_private,
-                        is_group=False,
-                        manage_users=False,
-                        manage_records=True,
-                        dry=dry,
-                    )
                 vault_names_used.add(name)
 
+    if not silent:
+        print(
+            f"Using {len(vault_names_used)} vault(s) for import: {', '.join(sorted(vault_names_used))}"
+        )
+
+    # Ensure every vault exists (create via CLI if missing)
+    if not dry and not _op_exists():
+        print(
+            "ERROR: 'op' CLI not found in PATH. Required for creating missing vaults.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    name_to_id, vault_titles = await _vault_name_to_id_map(client)
+    need_create: List[str] = []
+    for v in vault_names_used:
+        if v not in name_to_id and _normalize_vault_name(v) not in name_to_id:
+            need_create.append(v)
+    if need_create and not silent:
+        print(f"Vault(s) to create: {', '.join(sorted(need_create))}")
+    for v in need_create:
+        _ensure_vault(v, dry=dry, silent=silent)
+    if not dry and need_create:
+        name_to_id, vault_titles = await _vault_name_to_id_map(client)
+        if not silent:
+            print(
+                f"Vaults after create ({len(vault_titles)}): {', '.join(vault_titles)}"
+            )
+
     if dry:
-        # Dry-run: print what would be created per vault
         for rec in records:
             destinations: List[str] = []
             for sf in rec.shared_folders:
@@ -604,10 +559,10 @@ async def plan_and_apply(
             if not destinations:
                 destinations = [employee_vault]
             att_list = extract_and_name_attachments(zc, rec)
-            for v in destinations:
+            for vault_name in destinations:
                 kind = "LOGIN" if rec.category == "Login" else "NOTE"
                 names = [n for n, _ in att_list]
-                msg = f"DRY-RUN: {kind} '{rec.title}' → vault '{v}'"
+                msg = f"DRY-RUN: {kind} '{rec.title}' → vault '{vault_name}'"
                 if rec.category == "Login" and rec.otpauth:
                     msg += " with TOTP"
                 if names:
@@ -615,9 +570,10 @@ async def plan_and_apply(
                 print(msg)
         return
 
-    name_to_id: Dict[str, str] = {}
+    # Resolve all vault names to IDs
+    resolved: Dict[str, str] = {}
     for v in vault_names_used:
-        name_to_id[v] = await _resolve_vault_id(client, v)
+        resolved[v] = _resolve_vault_id(name_to_id, v)
 
     # Build (vault_id -> list of ItemCreateParams) for bulk create
     batches: Dict[str, List[ItemCreateParams]] = defaultdict(list)
@@ -644,7 +600,7 @@ async def plan_and_apply(
         att_list = extract_and_name_attachments(zc, rec)
 
         for vault_name in destinations:
-            vault_id = name_to_id[vault_name]
+            vault_id = resolved[vault_name]
             if rec.category == "Login":
                 params = _build_login_params(
                     vault_id,
@@ -669,12 +625,13 @@ async def plan_and_apply(
             batches[vault_id].append(params)
 
     # Bulk create per vault, in chunks of BULK_CREATE_MAX
+    id_to_name = {vid: name for name, vid in resolved.items()}
     for vault_id, params_list in batches.items():
         if not params_list:
             continue
-        vault_title = next(
-            (n for n, vid in name_to_id.items() if vid == vault_id), vault_id
-        )
+        vault_title = id_to_name.get(vault_id, vault_id)
+        if not silent:
+            print(f"Creating {len(params_list)} item(s) in vault '{vault_title}'...")
         total_ok = 0
         for chunk in _chunked(params_list, BULK_CREATE_MAX):
             try:
@@ -709,7 +666,7 @@ async def plan_and_apply(
 
 async def main() -> None:
     ap = argparse.ArgumentParser(
-        description="Keeper → 1Password migration with attachments (bulk create via beta SDK)"
+        description="Keeper → 1Password migration with attachments (SDK-only bulk create)"
     )
     ap.add_argument(
         "--input", required=True, help="Path to export-files.zip or keeper.json"
@@ -732,7 +689,7 @@ async def main() -> None:
     )
     ap.add_argument(
         "--user-for-private",
-        help="Email of user to grant access to private vaults",
+        help="(Unused with SDK-only; vault access must be configured separately)",
     )
 
     args = ap.parse_args()
