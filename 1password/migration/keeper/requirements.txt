@@ -1,1 +1,1 @@
-onepassword-sdk==0.4.0b2
+onepassword-sdk==0.4.0
