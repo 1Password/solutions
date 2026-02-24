@@ -166,12 +166,16 @@ def _ensure_vault(vault_name: str, *, dry: bool, silent: bool) -> None:
 
 
 # Permission masks for SDK (1Password Business granular permissions)
-_PERM_VIEWING = (
-    READ_ITEMS | REVEAL_ITEM_PASSWORD | UPDATE_ITEM_HISTORY
-)
+_PERM_VIEWING = READ_ITEMS | REVEAL_ITEM_PASSWORD | UPDATE_ITEM_HISTORY
 _PERM_EDITING = _PERM_VIEWING | (
-    CREATE_ITEMS | UPDATE_ITEMS | ARCHIVE_ITEMS | DELETE_ITEMS
-    | IMPORT_ITEMS | EXPORT_ITEMS | SEND_ITEMS | PRINT_ITEMS
+    CREATE_ITEMS
+    | UPDATE_ITEMS
+    | ARCHIVE_ITEMS
+    | DELETE_ITEMS
+    | IMPORT_ITEMS
+    | EXPORT_ITEMS
+    | SEND_ITEMS
+    | PRINT_ITEMS
 )
 _PERM_MANAGING = _PERM_EDITING | MANAGE_VAULT
 
@@ -218,14 +222,20 @@ def _grant_user_permissions(
     perms = _perms_list(manage_users, manage_records)
     if dry:
         if not silent:
-            print(
-                f"DRY-RUN: would grant user {user_name!r} on {vault_name!r}: {perms}"
-            )
+            print(f"DRY-RUN: would grant user {user_name!r} on {vault_name!r}: {perms}")
         return
     cmd = [
-        "op", "vault", "user", "grant", "--no-input",
-        "--vault", vault_name, "--user", user_name,
-        "--permissions", ",".join(perms),
+        "op",
+        "vault",
+        "user",
+        "grant",
+        "--no-input",
+        "--vault",
+        vault_name,
+        "--user",
+        user_name,
+        "--permissions",
+        ",".join(perms),
     ]
     proc = _run_op(cmd)
     if proc.returncode != 0:
@@ -254,10 +264,12 @@ async def _grant_group_permissions_sdk(
         perm_int = _PERM_VIEWING
     if dry:
         if not silent:
-            perms_desc = "allow_managing" if manage_users else ("allow_editing" if manage_records else "allow_viewing")
-            print(
-                f"DRY-RUN: would grant group {group_id!r} on vault: {perms_desc}"
+            perms_desc = (
+                "allow_managing"
+                if manage_users
+                else ("allow_editing" if manage_records else "allow_viewing")
             )
+            print(f"DRY-RUN: would grant group {group_id!r} on vault: {perms_desc}")
         return
     try:
         await client.vaults.grant_group_permissions(
@@ -710,7 +722,9 @@ async def plan_and_apply(
                     await _grant_group_permissions_sdk(
                         client,
                         vault_id,
-                        group_id if group_id else perm.name,  # name only for dry-run message
+                        (
+                            group_id if group_id else perm.name
+                        ),  # name only for dry-run message
                         manage_users=perm.manage_users,
                         manage_records=perm.manage_records,
                         dry=dry,
@@ -741,6 +755,16 @@ async def plan_and_apply(
                 dry=dry,
                 silent=silent,
             )
+
+    if user_for_private:
+        _grant_user_permissions(
+            employee_vault,
+            user_for_private,
+            manage_users=True,
+            manage_records=True,
+            dry=dry,
+            silent=silent,
+        )
 
     if dry:
         for rec in records:
