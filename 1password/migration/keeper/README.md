@@ -16,6 +16,26 @@ Migrate Keeper exports into 1Password using `import-from-keeper.py`. The script 
 
 ---
 
+## Keeper export (with files)
+
+To produce a ZIP that includes attachments for use with this script, use the Keeper Commander CLI with `--format json` and `--zip`:
+
+```bash
+# Export vault to a ZIP containing export.json and files/ (attachments)
+keeper export export-files.zip --format json --zip
+
+# Optional: cap attachment size (e.g. skip very large files)
+keeper export export-files.zip --format json --zip --max-size 50M
+```
+
+For **data only** (no attachments), export to JSON without `--zip`:
+
+```bash
+keeper export export.json --format json
+```
+
+---
+
 ## Input formats
 
 - **JSON** — Single file with `shared_folders` and `records`. Data only; no attachments.
