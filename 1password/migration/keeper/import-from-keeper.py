@@ -687,7 +687,10 @@ async def plan_and_apply(
     # Resolve vault names to IDs (for SDK group grants and item creation)
     resolved: Dict[str, str] = {}
     for v in vault_names_used:
-        resolved[v] = _resolve_vault_id(name_to_id, v)
+        if dry and v in need_create:
+            resolved[v] = ""  # placeholder; vault would be created, not in name_to_id
+        else:
+            resolved[v] = _resolve_vault_id(name_to_id, v)
 
     # Apply permission mapping: groups via SDK, users via CLI
     for sf in shared_folders:
