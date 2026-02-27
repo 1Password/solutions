@@ -13,31 +13,22 @@
       --bg-secondary: #1a1f29;
       --bg-tertiary: #242b38;
       --bg-elevated: #2d3548;
-      
       --accent-primary: #5b9bd5;
       --accent-secondary: #7eb5d6;
       --accent-success: #6ab187;
-      
+      --accent-warning: #d4a574;
+      --accent-error: #d47a7a;
       --text-primary: #e4e7ed;
       --text-secondary: #a8afc0;
       --text-tertiary: #6e7689;
-      
       --border-subtle: #2d3548;
       --border-normal: #3d4658;
-      
       --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
       --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-      
       --font-sans: 'IBM Plex Sans', -apple-system, system-ui, sans-serif;
       --font-mono: 'JetBrains Mono', 'Courier New', monospace;
     }
-    
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: var(--font-sans);
       background: var(--bg-primary);
@@ -49,166 +40,130 @@
       justify-content: center;
       overflow-x: hidden;
     }
-    
     body::before {
       content: '';
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0; width: 100%; height: 100%;
       background: 
         radial-gradient(circle at 30% 30%, rgba(91, 155, 213, 0.08) 0%, transparent 50%),
         radial-gradient(circle at 70% 70%, rgba(107, 177, 135, 0.08) 0%, transparent 50%);
       pointer-events: none;
       z-index: 0;
     }
-    
-    .container {
-      position: relative;
-      z-index: 1;
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 3rem 2rem;
-      text-align: center;
-    }
-    
-    .logo {
-      font-size: 4rem;
-      margin-bottom: 1rem;
-      animation: float 3s ease-in-out infinite;
-    }
-    
-    @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-10px); }
-    }
-    
-    h1 {
-      font-size: 3rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin-bottom: 1rem;
-      letter-spacing: -0.02em;
-      line-height: 1.2;
-    }
-    
-    .subtitle {
-      font-size: 1.2rem;
-      color: var(--text-secondary);
-      margin-bottom: 3rem;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    
-    .feature-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 3rem;
-    }
-    
-    .feature-card {
+    .container { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 3rem 2rem; text-align: center; }
+    .logo { font-size: 4rem; margin-bottom: 1rem; animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+    h1 { font-size: 3rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1rem; letter-spacing: -0.02em; line-height: 1.2; }
+    .subtitle { font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 3rem; max-width: 600px; margin-left: auto; margin-right: auto; }
+
+    .auth-selection { margin-bottom: 2rem; }
+    .auth-selection h2 { font-size: 1.3rem; font-weight: 600; color: var(--text-primary); margin-bottom: 1.5rem; }
+    .auth-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; max-width: 800px; margin: 0 auto; }
+    .auth-card {
       background: var(--bg-secondary);
-      border: 1px solid var(--border-normal);
+      border: 2px solid var(--border-normal);
       border-radius: 16px;
       padding: 2rem;
+      cursor: pointer;
       transition: all 0.3s ease;
       text-align: left;
+      position: relative;
     }
-    
-    .feature-card:hover {
-      transform: translateY(-4px);
-      box-shadow: var(--shadow-lg);
-      border-color: var(--accent-primary);
+    .auth-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--accent-primary); }
+    .auth-card.selected { border-color: var(--accent-primary); background: rgba(91, 155, 213, 0.08); }
+    .auth-card.selected::after {
+      content: '✓';
+      position: absolute; top: 12px; right: 12px;
+      width: 24px; height: 24px;
+      background: var(--accent-primary); color: white;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; font-weight: bold;
     }
-    
-    .feature-icon {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      display: block;
+    .auth-card-icon { font-size: 2.5rem; margin-bottom: 1rem; display: block; }
+    .auth-card h3 { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; }
+    .auth-card p { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.03em; margin-top: 0.75rem;
     }
-    
-    .feature-card h3 {
-      font-size: 1.2rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: 0.5rem;
+    .badge-docker { background: rgba(91, 155, 213, 0.15); color: var(--accent-primary); }
+    .badge-local { background: rgba(107, 177, 135, 0.15); color: var(--accent-success); }
+
+    .detail-panel {
+      display: none; max-width: 800px; margin: 0 auto 2rem;
+      padding: 1.5rem; border-radius: 12px; text-align: left;
+      animation: slideIn 0.3s ease;
     }
-    
-    .feature-card p {
-      font-size: 0.95rem;
-      color: var(--text-secondary);
-      line-height: 1.6;
+    .detail-panel.visible { display: block; }
+    .detail-panel h4 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
+    .detail-panel p { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 0.5rem; }
+    .detail-panel ul { margin: 0.5rem 0 0 1.25rem; font-size: 0.9rem; color: var(--text-secondary); line-height: 1.8; }
+    .detail-panel pre {
+      background: var(--bg-elevated); padding: 12px 16px; border-radius: 8px;
+      margin: 0.75rem 0; font-family: var(--font-mono); font-size: 0.85rem;
+      color: var(--text-secondary); overflow-x: auto; white-space: pre;
     }
-    
+    .detail-docker { background: rgba(91, 155, 213, 0.06); border: 1px solid rgba(91, 155, 213, 0.3); }
+    .detail-docker h4 { color: var(--accent-primary); }
+    .detail-local { background: rgba(107, 177, 135, 0.06); border: 1px solid rgba(107, 177, 135, 0.3); }
+    .detail-local h4 { color: var(--accent-success); }
+
+    .env-sub-option {
+      background: var(--bg-tertiary); border: 1px solid var(--border-normal);
+      border-radius: 8px; padding: 1rem 1.25rem; margin-top: 1rem;
+      cursor: pointer; transition: all 0.2s ease;
+    }
+    .env-sub-option:hover { border-color: var(--accent-success); }
+    .env-sub-option.selected { border-color: var(--accent-success); background: rgba(107, 177, 135, 0.08); }
+    .env-sub-option h5 { font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem; }
+    .env-sub-option p { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0; }
+
+    .env-status {
+      display: none; max-width: 800px; margin: 0 auto 1.5rem;
+      padding: 1rem 1.25rem; border-radius: 10px; text-align: left; font-size: 0.9rem;
+    }
+    .env-status.visible { display: flex; align-items: center; gap: 0.75rem; }
+    .env-status.found { background: rgba(107, 177, 135, 0.1); border: 1px solid var(--accent-success); color: var(--accent-success); }
+    .env-status.partial { background: rgba(212, 165, 116, 0.1); border: 1px solid var(--accent-warning); color: var(--accent-warning); }
+    .env-status.not-found { background: rgba(166, 173, 186, 0.08); border: 1px solid rgba(166, 173, 186, 0.3); color: var(--text-secondary); }
+    .env-reload-btn {
+      margin-left: auto; padding: 0.35rem 0.85rem; background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: inherit;
+      font-size: 0.8rem; cursor: pointer; font-family: inherit; white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+    .env-reload-btn:hover { background: rgba(255,255,255,0.15); }
+
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
     .cta-button {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 1rem 2.5rem;
-      background: var(--accent-primary);
-      color: white;
-      text-decoration: none;
-      border-radius: 10px;
-      font-size: 1.1rem;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      box-shadow: var(--shadow-md);
+      display: inline-flex; align-items: center; gap: 0.75rem;
+      padding: 1rem 2.5rem; background: var(--accent-primary); color: white;
+      text-decoration: none; border-radius: 10px; font-size: 1.1rem; font-weight: 600;
+      transition: all 0.3s ease; box-shadow: var(--shadow-md);
+      border: none; cursor: pointer; font-family: var(--font-sans);
     }
-    
-    .cta-button:hover {
-      background: var(--accent-secondary);
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-lg);
+    .cta-button:hover:not(:disabled) { background: var(--accent-secondary); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+    .cta-button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 3rem; }
+    .feature-card {
+      background: var(--bg-secondary); border: 1px solid var(--border-normal);
+      border-radius: 16px; padding: 2rem; transition: all 0.3s ease; text-align: left;
     }
-    
-    .note {
-      margin-top: 3rem;
-      padding: 1.5rem;
-      background: var(--bg-tertiary);
-      border-left: 4px solid var(--accent-success);
-      border-radius: 8px;
-      text-align: left;
-    }
-    
-    .note h4 {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--accent-success);
-      margin-bottom: 0.5rem;
-    }
-    
-    .note p {
-      font-size: 0.9rem;
-      color: var(--text-secondary);
-      line-height: 1.6;
-    }
-    
-    .version {
-      margin-top: 3rem;
-      font-size: 0.85rem;
-      color: var(--text-tertiary);
-      font-family: var(--font-mono);
-    }
-    
+    .feature-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--accent-primary); }
+    .feature-icon { font-size: 2.5rem; margin-bottom: 1rem; display: block; }
+    .feature-card h3 { font-size: 1.2rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; }
+    .feature-card p { font-size: 0.95rem; color: var(--text-secondary); line-height: 1.6; }
+    .version { margin-top: 3rem; font-size: 0.85rem; color: var(--text-tertiary); font-family: var(--font-mono); }
+
     @media (max-width: 768px) {
-      h1 {
-        font-size: 2rem;
-      }
-      
-      .subtitle {
-        font-size: 1rem;
-      }
-      
-      .feature-grid {
-        grid-template-columns: 1fr;
-      }
-      
-      .container {
-        padding: 2rem 1rem;
-      }
+      h1 { font-size: 2rem; }
+      .subtitle { font-size: 1rem; }
+      .feature-grid, .auth-cards { grid-template-columns: 1fr; }
+      .container { padding: 2rem 1rem; }
     }
   </style>
 </head>
@@ -216,65 +171,210 @@
   <div class="container">
     <div class="logo">🔐</div>
     <h1>Vault Migration Tool</h1>
-    <p class="subtitle">
-      Securely migrate your 1Password vaults between accounts with comprehensive logging and error handling
-    </p>
+    <p class="subtitle">Securely migrate your 1Password vaults between accounts with comprehensive logging and error handling</p>
     
-    <div class="feature-grid">
+    <div class="auth-selection">
+      <h2>How are you running this tool?</h2>
+      <div class="auth-cards">
+        <div class="auth-card" id="cardDocker" onclick="selectPath('docker')">
+          <span class="auth-card-icon">🐳</span>
+          <h3>Docker</h3>
+          <p>Running in a Docker container — you'll enter service account tokens manually in the browser</p>
+          <span class="badge badge-docker">Manual Token Entry</span>
+        </div>
+        <div class="auth-card" id="cardLocal" onclick="selectPath('local')">
+          <span class="auth-card-icon">💻</span>
+          <h3>Local Node.js</h3>
+          <p>Running <code>node webapp.js</code> directly — credentials loaded securely from a <code>.env</code> file via 1Password Environments</p>
+          <span class="badge badge-local">Secure .env</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="env-status" id="envStatus"></div>
+
+    <!-- Docker detail panel -->
+    <div class="detail-panel detail-docker" id="panelDocker">
+      <h4>🐳 Docker — Manual Token Entry</h4>
+      <p>You'll enter your source and destination service account tokens in the browser after the app loads. Tokens are held in the browser session only.</p>
+      <ul>
+        <li>Create service account tokens in 1Password → Integrations → Service Accounts</li>
+        <li>Tokens need vault access for both source and destination accounts</li>
+        <li>The 1Password CLI (<code>op</code>) is installed in the container for vault creation</li>
+      </ul>
+    </div>
+
+    <!-- Local Node.js detail panel -->
+    <div class="detail-panel detail-local" id="panelLocal">
+      <h4>💻 Local Node.js — Choose your auth method</h4>
+      <p>Both options use a <code>.env</code> file managed by <a href="https://developer.1password.com/docs/environments/" target="_blank" style="color: var(--accent-success);">1Password Environments</a>. When the app starts and reads the file, 1Password prompts you to authorize — secrets stay in memory only, never on disk.</p>
+
+      <div class="env-sub-option" id="subServiceAccount" onclick="selectSubOption('service-account')">
+        <h5>🔑 Service Account Tokens</h5>
+        <p>Your <code>.env</code> contains service account tokens for source and destination</p>
+      </div>
+      <pre id="preServiceAccount" style="display: none;">AUTH_MODE=service-account
+SOURCE_TOKEN=ops_xxxxxxxxxxxxxxxxxxxx
+DEST_TOKEN=ops_xxxxxxxxxxxxxxxxxxxx</pre>
+
+      <div class="env-sub-option" id="subDesktop" onclick="selectSubOption('desktop')">
+        <h5>🖥️ Desktop App Auth</h5>
+        <p>Your <code>.env</code> contains account names — the 1Password desktop app and CLI handle authentication</p>
+      </div>
+      <pre id="preDesktop" style="display: none;">AUTH_MODE=desktop
+SOURCE_ACCOUNT=My Old Team
+DEST_ACCOUNT=My New Team</pre>
+
+      <div id="desktopReqs" style="display: none; margin-top: 1rem; padding: 0.75rem 1rem; background: rgba(212, 165, 116, 0.08); border: 1px solid rgba(212, 165, 116, 0.25); border-radius: 8px; font-size: 0.85rem; color: var(--text-secondary);">
+        <strong style="color: var(--accent-warning);">Desktop Auth requires:</strong> 1Password desktop app running with app integration enabled, plus the CLI (<code>op</code>) for vault creation.
+        Personal/Private vaults (Employee vaults) are skipped — only shared vaults are migrated with "(Migrated)" appended.
+      </div>
+    </div>
+
+    <button class="cta-button" id="startBtn" onclick="startMigration()" disabled>
+      <span>Select how you're running the tool</span>
+      <span>→</span>
+    </button>
+
+    <div class="feature-grid" style="margin-top: 3rem;">
       <div class="feature-card">
         <span class="feature-icon">🚀</span>
         <h3>Fast & Reliable</h3>
-        <p>Efficient concurrent processing with automatic retry logic for failed items</p>
+        <p>Batch processing with automatic retry logic for failed items</p>
       </div>
-      
       <div class="feature-card">
         <span class="feature-icon">🛡️</span>
         <h3>Secure & Safe</h3>
-        <p>Direct vault-to-vault transfer using official 1Password SDK with end-to-end encryption</p>
+        <p>Direct vault-to-vault transfer using the official 1Password SDK with end-to-end encryption</p>
       </div>
-      
       <div class="feature-card">
         <span class="feature-icon">📊</span>
         <h3>Detailed Logging</h3>
-        <p>Comprehensive logs for every operation with downloadable reports for auditing</p>
+        <p>Comprehensive logs with downloadable reports and optional debug mode</p>
       </div>
-      
-      <div class="feature-card">
-        <span class="feature-icon">⚡</span>
-        <h3>Error Recovery</h3>
-        <p>Continues migration even if individual items fail, recording all errors for review</p>
-      </div>
-      
       <div class="feature-card">
         <span class="feature-icon">🎯</span>
         <h3>Selective Migration</h3>
-        <p>Choose specific vaults or migrate everything with progress tracking</p>
-      </div>
-      
-      <div class="feature-card">
-        <span class="feature-icon">📝</span>
-        <h3>Complete Fidelity</h3>
-        <p>Preserves all item types, fields, attachments, tags, and metadata</p>
+        <p>Choose specific vaults — personal vaults are automatically detected and skipped</p>
       </div>
     </div>
-    
-    <a href="/migration" class="cta-button">
-      <span>Start Migration</span>
-      <span>→</span>
-    </a>
-    
-    <div class="note">
-      <h4>🔑 Before You Begin</h4>
-      <p>
-        You'll need service account tokens for both your source and destination 1Password accounts. 
-        These can be created in your 1Password account settings under "Integrations" → "Service Accounts". 
-        Make sure the tokens have appropriate vault access permissions.
-      </p>
-    </div>
-    
-    <div class="version">
-      Version 2.0 | Enhanced Error Handling & Logging
-    </div>
+
+    <div class="version">Version 3.0 | Multi-Auth, 1Password Environments & Debug Logging</div>
   </div>
+
+  <script>
+    let selectedPath = null;
+    let selectedSubOption = null;
+    let envData = null; // Cached env status
+
+    async function checkEnvStatus() {
+      try {
+        const res = await fetch('/migration/env-status');
+        envData = await res.json();
+        const el = document.getElementById('envStatus');
+        const reloadBtn = '<button class="env-reload-btn" onclick="reloadEnv()">↻ Reload .env</button>';
+        if (envData.loaded && envData.ready) {
+          const label = envData.authMode === 'desktop' ? 'desktop auth accounts' : 'service account tokens';
+          el.className = 'env-status visible found';
+          el.innerHTML = '<span>✓</span><span><strong>.env loaded</strong> — ' + label + ' detected and ready.</span>' + reloadBtn;
+        } else if (envData.loaded && !envData.ready) {
+          el.className = 'env-status visible partial';
+          el.innerHTML = '<span>⚠️</span><span>.env found but incomplete — check that all required variables are set.</span>' + reloadBtn;
+        } else {
+          el.className = 'env-status visible not-found';
+          el.innerHTML = '<span>○</span><span>No .env file detected — create one and click reload, or use Docker with manual tokens.</span>' + reloadBtn;
+        }
+      } catch (e) {
+        
+        const el = document.getElementById('envStatus');
+        el.className = 'env-status visible not-found';
+        el.innerHTML = '<span>○</span><span>No .env file detected.</span><button class="env-reload-btn" onclick="reloadEnv()">↻ Reload .env</button>';
+      }
+      
+      updateButton();
+    }
+
+    async function reloadEnv() {
+      const el = document.getElementById('envStatus');
+      const btn = el.querySelector('.env-reload-btn');
+      if (btn) { btn.textContent = '↻ Reloading...'; btn.disabled = true; }
+      try {
+        await fetch('/migration/env-reload', { method: 'POST' });
+      } catch (e) { /* ignore */ }
+      await checkEnvStatus();
+    }
+
+    function selectPath(p) {
+      selectedPath = p;
+      selectedSubOption = null;
+      document.getElementById('cardDocker').classList.toggle('selected', p === 'docker');
+      document.getElementById('cardLocal').classList.toggle('selected', p === 'local');
+      document.getElementById('panelDocker').classList.toggle('visible', p === 'docker');
+
+      // Local Node.js: if .env is ready, skip sub-options and go directly
+      const envReady = envData && envData.loaded && envData.ready;
+      if (p === 'local' && envReady) {
+        // .env is loaded — no need to pick sub-option, auto-select based on detected mode
+        selectedSubOption = envData.authMode || 'service-account';
+        document.getElementById('panelLocal').classList.remove('visible');
+      } else {
+        // No .env — show setup instructions with sub-options
+        document.getElementById('panelLocal').classList.toggle('visible', p === 'local');
+      }
+
+      
+      document.getElementById('subServiceAccount').classList.remove('selected');
+      document.getElementById('subDesktop').classList.remove('selected');
+      document.getElementById('preServiceAccount').style.display = 'none';
+      document.getElementById('preDesktop').style.display = 'none';
+      document.getElementById('desktopReqs').style.display = 'none';
+      updateButton();
+    }
+
+    function selectSubOption(opt) {
+      selectedSubOption = opt;
+      document.getElementById('subServiceAccount').classList.toggle('selected', opt === 'service-account');
+      document.getElementById('subDesktop').classList.toggle('selected', opt === 'desktop');
+      document.getElementById('preServiceAccount').style.display = opt === 'service-account' ? 'block' : 'none';
+      document.getElementById('preDesktop').style.display = opt === 'desktop' ? 'block' : 'none';
+      document.getElementById('desktopReqs').style.display = opt === 'desktop' ? 'block' : 'none';
+      updateButton();
+    }
+
+    function updateButton() {
+      const btn = document.getElementById('startBtn');
+      const envReady = envData && envData.loaded && envData.ready;
+
+      if (selectedPath === 'docker') {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Continue with Docker</span><span>→</span>';
+      } else if (selectedPath === 'local' && envReady) {
+        btn.disabled = false;
+        const label = envData.authMode === 'desktop' ? 'Desktop Auth' : 'Service Account';
+        btn.innerHTML = '<span>Continue with ' + label + '</span><span>→</span>';
+      } else if (selectedPath === 'local' && selectedSubOption) {
+        btn.disabled = false;
+        const label = selectedSubOption === 'desktop' ? 'Desktop Auth' : 'Service Account .env';
+        btn.innerHTML = '<span>Continue with ' + label + '</span><span>→</span>';
+      } else if (selectedPath === 'local') {
+        btn.disabled = true;
+        btn.innerHTML = '<span>Select an auth method above</span><span>→</span>';
+      } else {
+        btn.disabled = true;
+        btn.innerHTML = '<span>Select how you\'re running the tool</span><span>→</span>';
+      }
+    }
+
+    function startMigration() {
+      if (selectedPath === 'docker') {
+        window.location.href = '/migration?authMode=service-account';
+      } else if (selectedPath === 'local') {
+        const mode = selectedSubOption === 'desktop' ? 'desktop' : 'service-account';
+        window.location.href = '/migration?authMode=' + mode + '&useEnv=true';
+      }
+    }
+
+    checkEnvStatus();
+  </script>
 </body>
 </html>
