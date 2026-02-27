@@ -107,7 +107,7 @@
     .vault-container.active { display: block; }
     .vault-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); flex-wrap: wrap; gap: var(--space-md); }
     .vault-header h2 { font-size: 1.3rem; font-weight: 600; color: var(--text-primary); }
-    .vault-actions { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
+    .vault-actions { display: flex; gap: var(--space-sm); flex-wrap: wrap; align-items: center; }
     .search-box { position: relative; flex: 1; min-width: 300px; margin-bottom: var(--space-md); }
     .search-box input {
       width: 100%; padding: var(--space-md) var(--space-md) var(--space-md) 40px; background: var(--bg-tertiary);
@@ -127,6 +127,7 @@
     .item-count { font-family: var(--font-mono); color: var(--accent-secondary); font-weight: 500; }
     .status-badge { display: inline-flex; align-items: center; gap: var(--space-xs); padding: var(--space-xs) var(--space-sm); border-radius: 6px; font-size: 0.8rem; font-weight: 500; }
     .status-badge.pending { background: rgba(168, 175, 192, 0.15); color: var(--text-tertiary); }
+    .status-badge.personal { background: rgba(212, 165, 116, 0.15); color: var(--accent-warning); }
     .status-badge.preparing { background: rgba(212, 165, 116, 0.15); color: var(--accent-warning); }
     .status-badge.migrating { background: rgba(91, 155, 213, 0.15); color: var(--accent-primary); }
     .status-badge.success { background: rgba(107, 177, 135, 0.15); color: var(--accent-success); }
@@ -151,12 +152,84 @@
     .summary-item.success .value { color: var(--accent-success); }
     .summary-item.error .value { color: var(--accent-error); }
     .summary-item.info .value { color: var(--accent-primary); }
+
+    /* Debug toggle styles */
+    .debug-toggle {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: 6px 12px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-normal);
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+    .debug-toggle:hover {
+      border-color: var(--accent-primary);
+      background: var(--bg-tertiary);
+    }
+    .debug-toggle.active {
+      border-color: var(--accent-warning);
+      background: rgba(212, 165, 116, 0.1);
+    }
+    .debug-toggle-label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .debug-toggle.active .debug-toggle-label {
+      color: var(--accent-warning);
+    }
+    .debug-switch {
+      position: relative;
+      width: 32px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+    .debug-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+    .debug-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: var(--border-normal);
+      border-radius: 18px;
+      transition: 0.2s;
+    }
+    .debug-slider::before {
+      content: "";
+      position: absolute;
+      height: 12px;
+      width: 12px;
+      left: 3px;
+      bottom: 3px;
+      background-color: var(--text-tertiary);
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .debug-switch input:checked + .debug-slider {
+      background-color: var(--accent-warning);
+    }
+    .debug-switch input:checked + .debug-slider::before {
+      transform: translateX(14px);
+      background-color: white;
+    }
+
     @media (max-width: 768px) {
       .container { padding: var(--space-md); }
       .header h1 { font-size: 1.5rem; }
       .vault-header { flex-direction: column; align-items: stretch; }
       .vault-actions { width: 100%; }
       .btn { width: 100%; justify-content: center; }
+      .debug-toggle { width: 100%; justify-content: center; }
       .vault-table { font-size: 0.85rem; }
       .vault-table th, .vault-table td { padding: var(--space-sm); }
     }
@@ -186,21 +259,43 @@
 
     <div class="card" id="connectionCard">
       <h2>Connect to 1Password</h2>
-      <p class="subtitle">Enter your service account tokens to begin migration</p>
+      <p class="subtitle" id="connectionSubtitle">Enter your service account tokens to begin migration</p>
       
+      <!-- Service Account Form -->
       <form id="connectionForm">
-        <div class="form-group">
-          <label for="sourceToken">Source Account Token</label>
-          <input type="password" id="sourceToken" name="sourceToken" placeholder="ops_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx" required>
+        <div id="serviceAccountFields">
+          <div class="form-group">
+            <label for="sourceToken">Source Account Token</label>
+            <input type="password" id="sourceToken" name="sourceToken" placeholder="ops_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+          </div>
+          
+          <div class="form-group">
+            <label for="destToken">Destination Account Token</label>
+            <input type="password" id="destToken" name="destToken" placeholder="ops_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+          </div>
         </div>
-        
-        <div class="form-group">
-          <label for="destToken">Destination Account Token</label>
-          <input type="password" id="destToken" name="destToken" placeholder="ops_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx" required>
+
+        <!-- Desktop Auth Fields -->
+        <div id="desktopAuthFields" style="display: none;">
+          <div class="form-group">
+            <label for="sourceAccountName">Source Account Name</label>
+            <input type="text" id="sourceAccountName" name="sourceAccountName" placeholder="e.g. My Team">
+          </div>
+
+          <div class="form-group">
+            <label for="destAccountName">Destination Account Name</label>
+            <input type="text" id="destAccountName" name="destAccountName" placeholder="e.g. New Company">
+          </div>
+
+          <div style="padding: 12px 16px; background: rgba(212, 165, 116, 0.1); border: 1px solid var(--accent-warning); border-radius: 8px; margin-bottom: var(--space-lg); font-size: 0.85rem; color: var(--text-secondary);">
+            ⚠️ Desktop auth requires the 1Password desktop app running locally. The CLI (<code>op</code>) must be installed for vault creation. Docker is <strong>not supported</strong>.
+          </div>
         </div>
 
         <div class="help-text" style="margin-bottom: var(--space-lg);">
           Items with CUSTOM categories will be automatically converted to Login items during migration, preserving all fields and concealed values.
+          Personal/Private vaults (Employee vaults) are skipped when using service accounts — only shared vaults are migrated with "(Migrated)" appended to the name. With desktop auth, personal vault items are migrated to the destination's existing Private vault.
+        </div>
         </div>
         
         <button type="submit" class="btn btn-primary" id="connectBtn">
@@ -217,13 +312,25 @@
         <h2>Source Vaults (<span id="vaultCount">0</span>)</h2>
         <div class="vault-actions">
           <button class="btn btn-primary" onclick="migrateSelected()" id="migrateSelectedBtn">Migrate Selected</button>
+          <button class="btn btn-secondary" onclick="showAllVaults()" id="showAllVaultsBtn" style="display: none;">Show All Vaults</button>
           <button class="btn btn-secondary" onclick="downloadLogs()" id="downloadLogsBtn">📥 Download Logs</button>
         </div>
       </div>
 
-      <div class="search-box">
-        <input type="text" id="vaultSearch" placeholder="Search vaults..." oninput="filterVaults()">
+      <div class="search-box" style="display: flex; align-items: center; gap: 1rem;">
+        <input type="text" id="vaultSearch" placeholder="Search vaults by name or ID..." oninput="filterVaults()" style="flex: 1;">
+        <span id="vaultSelectionCount" style="font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;"></span>
+        <input type="text" id="globalSuffix" placeholder="Suffix for all vaults (optional)" style="padding: var(--space-md); background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem; width: 260px;">
+        <div class="debug-toggle" id="debugToggle" onclick="toggleDebug()" title="Enable verbose debug logging for all items in migration logs" style="flex-shrink: 0;">
+          <label class="debug-switch">
+            <input type="checkbox" id="debugCheckbox" onclick="event.stopPropagation()">
+            <span class="debug-slider"></span>
+          </label>
+          <span class="debug-toggle-label">Debug</span>
+        </div>
       </div>
+
+      <div id="rateLimitBanner" style="display: none; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.5;"></div>
 
       <div class="progress-container" id="progressContainer">
         <div class="progress-header">
@@ -248,7 +355,9 @@
               <th style="width: 50px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
               <th>Vault Name</th>
               <th>Vault ID</th>
+              <th>Type</th>
               <th>Items</th>
+              <th>Suffix</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -274,12 +383,167 @@
     let isMigrating = false;
     let sourceToken = '';
     let destToken = '';
+    let authMode = 'service-account';
+    let sourceAccountName = '';
+    let destAccountName = '';
     let totalVaultsToMigrate = 0;
     let completedVaults = 0;
     let totalItemsToMigrate = 0;
     let processedItems = 0;
+    let completedItemsFromPriorVaults = 0;
+    let migratedVaultIds = new Set();
+
+    // Warn before page refresh/close during active migration
+    window.addEventListener('beforeunload', (e) => {
+      if (isMigrating) {
+        e.preventDefault();
+        e.returnValue = 'A migration is in progress. Refreshing will disconnect from the progress stream, but the migration will continue on the server. Are you sure?';
+        return e.returnValue;
+      }
+    });
+
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    authMode = urlParams.get('authMode') || 'service-account';
+    const useEnv = urlParams.get('useEnv') === 'true';
+
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      if (useEnv) {
+        // Local Node.js with .env — auto-connect (works for both service-account and desktop modes)
+        document.getElementById('serviceAccountFields').style.display = 'none';
+        document.getElementById('desktopAuthFields').style.display = 'none';
+        document.getElementById('connectionSubtitle').textContent = 'Connecting from .env...';
+        autoConnectWithEnv();
+      } else if (authMode === 'desktop') {
+        document.getElementById('serviceAccountFields').style.display = 'none';
+        document.getElementById('desktopAuthFields').style.display = 'block';
+        document.getElementById('connectionSubtitle').textContent = 'Connect using 1Password desktop app integration';
+      }
+    });
+
+    async function autoConnectWithEnv() {
+      const connectBtn = document.getElementById('connectBtn');
+      const connectBtnText = document.getElementById('connectBtnText');
+      const connectSpinner = document.getElementById('connectSpinner');
+      const errorDiv = document.getElementById('connectionError');
+      const subtitle = document.getElementById('connectionSubtitle');
+
+      
+      document.getElementById('serviceAccountFields').style.display = 'none';
+      document.getElementById('desktopAuthFields').style.display = 'none';
+      connectBtn.disabled = true;
+      connectBtnText.textContent = 'Connecting from .env...';
+      connectSpinner.style.display = 'inline-block';
+      if (subtitle) subtitle.textContent = 'Verifying .env credentials...';
+
+      try {
+        
+        const envRes = await fetch('/migration/env-status');
+        const envData = await envRes.json();
+
+        if (!envData.loaded || !envData.ready) {
+          
+          document.getElementById('serviceAccountFields').style.display = 'block';
+          if (subtitle) subtitle.textContent = '.env not found or incomplete — enter tokens manually';
+          connectBtnText.textContent = 'Connect Accounts';
+          connectBtn.disabled = false;
+          connectSpinner.style.display = 'none';
+          errorDiv.innerHTML = '<div class="alert alert-warning"><span>⚠️</span><span>.env file not loaded or missing required variables. Enter credentials manually.</span></div>';
+          return;
+        }
+
+        
+        if (envData.authMode === 'desktop') {
+          authMode = 'desktop';
+        }
+
+        // Step 2: Connected — now gathering vault details
+        const modeLabel = envData.authMode === 'desktop' ? 'desktop auth' : 'service account';
+        connectBtnText.textContent = 'Gathering vault details...';
+        if (subtitle) subtitle.textContent = `✓ Connected via ${modeLabel} — collecting vault information`;
+
+        // Force DOM repaint before the slow network call
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+        const response = await fetch('/migration/list-vaults', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ useEnvTokens: true })
+        });
+        const result = await response.json();
+        if (result.success) {
+          vaults = result.vaults;
+          showVaultList();
+          
+          connectBtn.style.display = 'none';
+          connectSpinner.style.display = 'none';
+          const personalCount = vaults.filter(v => v.vaultType === 'personal').length;
+          const sharedCount = vaults.length - personalCount;
+          const displayLabel = envData.authMode === 'desktop' ? 'desktop auth' : '1Password Environments';
+          let msg = `✓ Connected via ${displayLabel}! Found ${vaults.length} vaults`;
+          if (personalCount > 0 && authMode === 'desktop') {
+            msg += ` (${sharedCount} shared, ${personalCount} personal — personal vault items will migrate to existing Private vault)`;
+          } else if (personalCount > 0) {
+            msg += ` (${sharedCount} shared, ${personalCount} personal — personal vaults will be skipped)`;
+          }
+          showAlert('success', msg);
+        } else {
+          throw new Error(result.error || 'Failed to connect');
+        }
+      } catch (error) {
+        document.getElementById('serviceAccountFields').style.display = 'block';
+        if (subtitle) subtitle.textContent = 'Auto-connect failed — enter tokens manually';
+        connectBtnText.textContent = 'Connect Accounts';
+        connectBtn.disabled = false;
+        connectSpinner.style.display = 'none';
+        const errEl = document.createElement('div'); errEl.className = 'alert alert-error'; errEl.textContent = '⚠️ Failed to connect with .env: ' + error.message; errorDiv.innerHTML = ''; errorDiv.appendChild(errEl);
+      }
+    }
     
     document.getElementById('connectionForm').addEventListener('submit', handleConnect);
+
+    
+    async function initDebugToggle() {
+      try {
+        const res = await fetch('/migration/debug');
+        const data = await res.json();
+        applyDebugState(data.enabled);
+      } catch (e) {
+        console.warn('Could not fetch debug state:', e);
+      }
+    }
+
+    async function toggleDebug() {
+      const checkbox = document.getElementById('debugCheckbox');
+      const newState = !checkbox.checked;
+      try {
+        const res = await fetch('/migration/debug', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled: newState })
+        });
+        const data = await res.json();
+        applyDebugState(data.enabled);
+        showAlert('info', `🔧 Debug logging ${data.enabled ? 'enabled' : 'disabled'}`);
+      } catch (e) {
+        console.error('Failed to toggle debug:', e);
+        showAlert('error', '✗ Failed to toggle debug mode');
+      }
+    }
+
+    function applyDebugState(enabled) {
+      const checkbox = document.getElementById('debugCheckbox');
+      const toggle = document.getElementById('debugToggle');
+      checkbox.checked = enabled;
+      if (enabled) {
+        toggle.classList.add('active');
+      } else {
+        toggle.classList.remove('active');
+      }
+    }
+
+    initDebugToggle();
     
     async function handleConnect(e) {
       e.preventDefault();
@@ -287,31 +551,59 @@
       const connectBtnText = document.getElementById('connectBtnText');
       const connectSpinner = document.getElementById('connectSpinner');
       const errorDiv = document.getElementById('connectionError');
+      const subtitle = document.getElementById('connectionSubtitle');
       
-      sourceToken = document.getElementById('sourceToken').value;
-      destToken = document.getElementById('destToken').value;
+      if (authMode === 'desktop') {
+        sourceAccountName = document.getElementById('sourceAccountName').value;
+        destAccountName = document.getElementById('destAccountName').value;
+        if (!sourceAccountName) {
+          errorDiv.innerHTML = '<div class="alert alert-error"><span>⚠️</span><span>Source account name is required</span></div>';
+          return;
+        }
+      } else {
+        sourceToken = document.getElementById('sourceToken').value;
+        destToken = document.getElementById('destToken').value;
+      }
       
       connectBtn.disabled = true;
       connectBtnText.style.display = 'none';
       connectSpinner.style.display = 'inline-block';
       errorDiv.innerHTML = '';
+      if (subtitle) subtitle.textContent = 'Connecting to 1Password...';
       
       try {
+        const body = authMode === 'desktop'
+          ? { authMode: 'desktop', sourceAccountName }
+          : { serviceToken: sourceToken };
+
+        // Update status before the potentially slow list-vaults call
+        if (subtitle) subtitle.textContent = 'Connected — collecting vault details...';
+
+        // Force DOM repaint before the slow network call
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
         const response = await fetch('/migration/list-vaults', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ serviceToken: sourceToken })
+          body: JSON.stringify(body)
         });
         const result = await response.json();
         if (result.success) {
           vaults = result.vaults;
           showVaultList();
-          showAlert('success', `✓ Successfully connected! Found ${vaults.length} vaults.`);
+          const personalCount = vaults.filter(v => v.vaultType === 'personal').length;
+          const sharedCount = vaults.length - personalCount;
+          let msg = `✓ Successfully connected! Found ${vaults.length} vaults`;
+          if (personalCount > 0) {
+            msg += ` (${sharedCount} shared, ${personalCount} personal — personal vaults will be skipped)`;
+          }
+          showAlert('success', msg);
         } else {
           throw new Error(result.error || 'Failed to connect');
         }
       } catch (error) {
-        errorDiv.innerHTML = `<div class="alert alert-error"><span>⚠️</span><span>Failed to connect: ${error.message}</span></div>`;
+        const errEl2 = document.createElement('div'); errEl2.className = 'alert alert-error'; errEl2.textContent = '⚠️ Failed to connect: ' + error.message; errorDiv.innerHTML = ''; errorDiv.appendChild(errEl2);
+        if (subtitle) subtitle.textContent = 'Connection failed — check credentials and try again';
       } finally {
         connectBtn.disabled = false;
         connectBtnText.style.display = 'inline';
@@ -325,6 +617,7 @@
       document.getElementById('vaultContainer').classList.add('active');
       document.getElementById('vaultCount').textContent = vaults.length;
       renderVaults();
+      updateSelectionCount();
     }
     
     function editConnection() {
@@ -333,27 +626,93 @@
       document.getElementById('vaultContainer').classList.remove('active');
     }
     
+    let showSelectedOnly = false;
+
     function renderVaults() {
       const tbody = document.getElementById('vaultTableBody');
       const searchTerm = document.getElementById('vaultSearch').value.toLowerCase();
-      const filteredVaults = vaults.filter(v => v.name.toLowerCase().includes(searchTerm) || v.id.toLowerCase().includes(searchTerm));
+      let filteredVaults = vaults.filter(v => v.name.toLowerCase().includes(searchTerm) || v.id.toLowerCase().includes(searchTerm));
       
-      tbody.innerHTML = filteredVaults.map(vault => `
-        <tr data-vault-id="${vault.id}">
-          <td class="checkbox-wrapper">
-            <input type="checkbox" class="vault-checkbox" value="${vault.id}" data-item-count="${vault.itemCount}"
-              onchange="handleVaultSelection('${vault.id}', ${vault.itemCount})"
-              ${selectedVaultIds.has(vault.id) ? 'checked' : ''} ${isMigrating ? 'disabled' : ''}>
-          </td>
-          <td class="vault-name">${escapeHtml(vault.name)}</td>
-          <td class="vault-id">${vault.id}</td>
-          <td class="item-count">${vault.itemCount}</td>
-          <td><span class="status-badge pending" id="status-${vault.id}">Pending</span></td>
-        </tr>
-      `).join('');
+      // During migration, only show selected vaults
+      if (showSelectedOnly) {
+        filteredVaults = filteredVaults.filter(v => selectedVaultIds.has(v.id));
+      } else {
+        // Sort: selected first, then migrated, then the rest — each group alphabetical
+        filteredVaults.sort((a, b) => {
+          const aSelected = selectedVaultIds.has(a.id) ? 0 : 1;
+          const bSelected = selectedVaultIds.has(b.id) ? 0 : 1;
+          if (aSelected !== bSelected) return aSelected - bSelected;
+          const aMigrated = migratedVaultIds.has(a.id) ? 0 : 1;
+          const bMigrated = migratedVaultIds.has(b.id) ? 0 : 1;
+          if (aMigrated !== bMigrated) return aMigrated - bMigrated;
+          return a.name.localeCompare(b.name);
+        });
+      }
+      
+      tbody.innerHTML = filteredVaults.map(vault => {
+        const isPersonal = vault.vaultType === 'personal';
+        const isDesktop = authMode === 'desktop';
+        const personalDisabled = isPersonal && !isDesktop;
+        const wasMigrated = migratedVaultIds.has(vault.id);
+        const statusId = `status-${vault.id}`;
+        // Preserve current status if it was set during migration (success/error/etc)
+        const existingStatus = document.getElementById(statusId);
+        const currentStatusHtml = existingStatus && existingStatus.innerHTML !== 'Pending'
+          ? existingStatus.outerHTML
+          : `<span class="status-badge ${personalDisabled ? 'personal' : (wasMigrated ? 'success' : 'pending')}" id="${statusId}">${personalDisabled ? 'Skipped' : (wasMigrated ? '✓ Migrated' : 'Pending')}</span>`;
+
+        return `
+          <tr data-vault-id="${vault.id}" style="${personalDisabled ? 'opacity: 0.5;' : ''}">
+            <td class="checkbox-wrapper">
+              <input type="checkbox" class="vault-checkbox" value="${vault.id}" data-item-count="${vault.itemCount}"
+                onchange="handleVaultSelection('${vault.id}', ${vault.itemCount})"
+                ${selectedVaultIds.has(vault.id) ? 'checked' : ''} ${isMigrating || personalDisabled ? 'disabled' : ''}
+                title="${personalDisabled ? 'Personal vaults cannot be migrated with service accounts' : (wasMigrated ? 'Already migrated this session — selecting will create duplicates' : '')}">
+            </td>
+            <td class="vault-name">${escapeHtml(vault.name)}</td>
+            <td class="vault-id">${vault.id}</td>
+            <td>${isPersonal
+              ? (isDesktop
+                ? '<span class="status-badge" style="background: rgba(91, 155, 213, 0.15); color: var(--accent-primary);">Personal</span>'
+                : '<span class="status-badge personal">Personal</span>')
+              : '<span class="status-badge" style="background: rgba(107, 177, 135, 0.15); color: var(--accent-success);">Shared</span>'
+            }</td>
+            <td class="item-count">${vault.itemCount}</td>
+            <td>
+              <input type="text" placeholder="optional"
+                style="width:120px; padding:4px 8px; background:var(--bg-tertiary); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-primary); font-size:0.8rem;"
+                value="${escapeHtml(vault.suffix || '')}"
+                onchange="vaults.find(v=>v.id==='${vault.id}').suffix = this.value.trim()"
+                ${isMigrating || personalDisabled ? 'disabled' : ''}>
+            </td>
+            <td>${currentStatusHtml}</td>
+          </tr>
+        `;
+      }).join('');
     }
     
-    function filterVaults() { renderVaults(); }
+    function filterVaults() { renderVaults(); updateSelectionCount(); }
+
+    function showAllVaults() {
+      showSelectedOnly = false;
+      document.getElementById('vaultSearch').value = '';
+      document.getElementById('showAllVaultsBtn').style.display = 'none';
+      renderVaults();
+      updateSelectionCount();
+    }
+    
+    function updateSelectionCount() {
+      const el = document.getElementById('vaultSelectionCount');
+      if (!el) return;
+      const searchTerm = document.getElementById('vaultSearch').value.toLowerCase();
+      const visibleCount = vaults.filter(v => v.name.toLowerCase().includes(searchTerm) || v.id.toLowerCase().includes(searchTerm)).length;
+      const selectedCount = selectedVaultIds.size;
+      if (searchTerm) {
+        el.textContent = `${selectedCount} selected · ${visibleCount}/${vaults.length} shown`;
+      } else {
+        el.textContent = `${selectedCount} of ${vaults.length} selected`;
+      }
+    }
     
     function handleVaultSelection(vaultId, itemCount) {
       if (selectedVaultIds.has(vaultId)) {
@@ -364,17 +723,30 @@
         totalItemsToMigrate += itemCount;
       }
       updateSelectAllCheckbox();
+      updateSelectionCount();
     }
     
     function toggleSelectAll() {
       const selectAll = document.getElementById('selectAll');
       const checkboxes = document.querySelectorAll('.vault-checkbox:not([disabled])');
-      totalItemsToMigrate = 0;
       if (selectAll.checked) {
-        checkboxes.forEach(cb => { cb.checked = true; selectedVaultIds.add(cb.value); totalItemsToMigrate += parseInt(cb.dataset.itemCount); });
+        checkboxes.forEach(cb => {
+          if (!selectedVaultIds.has(cb.value)) {
+            selectedVaultIds.add(cb.value);
+            totalItemsToMigrate += parseInt(cb.dataset.itemCount);
+          }
+          cb.checked = true;
+        });
       } else {
-        checkboxes.forEach(cb => { cb.checked = false; selectedVaultIds.clear(); });
+        checkboxes.forEach(cb => {
+          if (selectedVaultIds.has(cb.value)) {
+            selectedVaultIds.delete(cb.value);
+            totalItemsToMigrate -= parseInt(cb.dataset.itemCount);
+          }
+          cb.checked = false;
+        });
       }
+      updateSelectionCount();
     }
     
     function updateSelectAllCheckbox() {
@@ -401,22 +773,95 @@
       selectedVaultIds.forEach(vaultId => { updateVaultStatus(vaultId, 'pending', 'Pending'); });
       document.getElementById('migrationSummary').classList.remove('active');
       document.getElementById('alertContainer').innerHTML = '';
+      document.getElementById('rateLimitBanner').style.display = 'none';
     }
     
     async function migrateSelected() {
       if (selectedVaultIds.size === 0) { showAlert('warning', '⚠️ Please select at least one vault to migrate'); return; }
       if (isMigrating) { showAlert('warning', '⚠️ Migration already in progress'); return; }
+
+      
+      const alreadyMigrated = [...selectedVaultIds].filter(id => migratedVaultIds.has(id));
+      if (alreadyMigrated.length > 0) {
+        const names = alreadyMigrated.map(id => {
+          const v = vaults.find(v => v.id === id);
+          return v ? `"${v.name}"` : id;
+        }).join(', ');
+        const proceed = confirm(
+          `⚠️ Duplicate Migration Warning\n\n` +
+          `${alreadyMigrated.length === 1 ? 'This vault was' : 'These vaults were'} already migrated in this session:\n` +
+          `${names}\n\n` +
+          `Migrating again will create duplicate items in the destination. ` +
+          `Are you sure you want to proceed?`
+        );
+        if (!proceed) return;
+      }
+
       
       resetMigrationUI();
+
+      // --- Rate limit check (service account only) ---
+      if (authMode !== 'desktop') {
+        const selectedVaultList = vaults.filter(v => selectedVaultIds.has(v.id));
+        const vaultItemCounts = selectedVaultList.map(v => v.itemCount);
+        try {
+          const rlRes = await fetch('/migration/rate-limit-check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vaultItemCounts })
+          });
+          const rl = await rlRes.json();
+          if (rl.success) {
+            const banner = document.getElementById('rateLimitBanner');
+            if (rl.willExceed) {
+              const proceed = confirm(
+                `⚠️ Rate Limit Warning\n\n` +
+                `This migration is estimated to use ~${rl.estimatedCalls} API write calls.\n` +
+                `You have approximately ${rl.remaining} calls remaining in the current hour ` +
+                `(${rl.used} already used).\n\n` +
+                `This migration will likely hit the 1Password rate limit (1,000 writes/hour). ` +
+                `If that happens, you may need to contact 1Password support or wait an hour before retrying.\n\n` +
+                (rl.minutesUntilReset > 0 ? `Your rate limit window should reset in ~${rl.minutesUntilReset} minutes.\n\n` : '') +
+                `Do you want to proceed anyway?`
+              );
+              if (!proceed) return;
+              banner.style.display = 'block';
+              banner.style.background = 'rgba(212, 165, 116, 0.12)';
+              banner.style.border = '1px solid var(--accent-warning)';
+              banner.style.color = 'var(--accent-warning)';
+              banner.textContent = `⚠️ Estimated ~${rl.estimatedCalls} API calls (${rl.remaining} remaining this hour). This may hit the rate limit. If rate limited, contact 1Password support or wait an hour.`;
+            } else {
+              banner.style.display = 'block';
+              banner.style.background = 'rgba(91, 155, 213, 0.1)';
+              banner.style.border = '1px solid var(--accent-primary)';
+              banner.style.color = 'var(--accent-primary)';
+              banner.textContent = `📊 Estimated ~${rl.estimatedCalls} API calls (~${rl.remaining} remaining this hour). This should not hit the rate limit.` +
+                (rl.used > 0 ? ` If you do experience rate limiting, wait an hour or contact 1Password support.` : '');
+            }
+          }
+        } catch (e) {
+          showAlert('info', '📊 Could not estimate rate limit usage. Proceeding with migration.');
+        }
+      }
+      
+      
+      document.getElementById('vaultSearch').value = '';
+      showSelectedOnly = true;
+      document.getElementById('showAllVaultsBtn').style.display = 'inline-flex';
+      renderVaults();
+      updateSelectionCount();
+
       isMigrating = true;
       completedVaults = 0;
       processedItems = 0;
+      completedItemsFromPriorVaults = 0;
       totalVaultsToMigrate = selectedVaultIds.size;
       
       totalItemsToMigrate = 0;
       vaults.forEach(v => { if (selectedVaultIds.has(v.id)) totalItemsToMigrate += v.itemCount; });
       
-      const selectedVaults = vaults.filter(v => selectedVaultIds.has(v.id)).map(v => ({ vaultId: v.id, vaultName: v.name }));
+      const globalSuffix = document.getElementById('globalSuffix').value.trim();
+      const selectedVaults = vaults.filter(v => selectedVaultIds.has(v.id)).map(v => ({ vaultId: v.id, vaultName: v.name, vaultType: v.vaultType || 'shared', suffix: v.suffix || globalSuffix }));
       
       const progressContainer = document.getElementById('progressContainer');
       progressContainer.classList.add('active');
@@ -429,9 +874,45 @@
       let successCount = 0;
       let failureCount = 0;
       let totalItems = 0;
-      
-      const url = `/migration/migrate-all-vaults?sourceToken=${encodeURIComponent(sourceToken)}&destToken=${encodeURIComponent(destToken)}&vaults=${encodeURIComponent(JSON.stringify(selectedVaults))}`;
-      const eventSource = new EventSource(url);
+
+      // POST credentials to get a session ID — tokens never appear in URLs
+      const startPayload = {
+        authMode,
+        vaults: selectedVaults
+      };
+      if (useEnv) {
+        startPayload.useEnv = true;
+      } else if (authMode === 'desktop') {
+        startPayload.sourceAccountName = sourceAccountName;
+        startPayload.destAccountName = destAccountName;
+      } else {
+        startPayload.sourceToken = sourceToken;
+        startPayload.destToken = destToken;
+      }
+
+      let sessionId;
+      try {
+        const startRes = await fetch('/migration/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(startPayload)
+        });
+        const startData = await startRes.json();
+        if (!startData.success) {
+          showAlert('error', '✗ Failed to start migration session');
+          document.getElementById('migrateSelectedBtn').disabled = false;
+          isMigrating = false;
+          return;
+        }
+        sessionId = startData.sessionId;
+      } catch (e) {
+        showAlert('error', '✗ Failed to start migration: ' + e.message);
+        document.getElementById('migrateSelectedBtn').disabled = false;
+        isMigrating = false;
+        return;
+      }
+
+      const eventSource = new EventSource(`/migration/migrate-all-vaults?sessionId=${sessionId}`);
       
       eventSource.onopen = () => {
         document.getElementById('progressLabel').textContent = `Migrating ${totalVaultsToMigrate} vaults with ${totalItemsToMigrate} items...`;
@@ -445,32 +926,46 @@
           const vaultId = data.outcome.vaultId;
           const phase = data.outcome.phase;
           
-          if (phase === 'preparing') {
+          
+          if (phase === 'desktop-source-connect' || phase === 'desktop-dest-connect') {
+            document.getElementById('progressLabel').textContent = data.outcome.message;
+          } else if (phase === 'desktop-reading') {
+            document.getElementById('progressLabel').textContent = data.outcome.message;
+          } else if (phase === 'desktop-writing') {
+            document.getElementById('progressLabel').textContent = data.outcome.message;
+          } else if (phase === 'preparing') {
+            document.getElementById('progressLabel').textContent = `Preparing vault "${data.outcome.vaultName}"...`;
             updateVaultStatus(vaultId, 'preparing', 'Preparing...', true);
           } else if (phase === 'migrating') {
             const ip = data.outcome.itemsProcessed || 0;
             const ti = data.outcome.totalItems || 0;
-            processedItems = (completedVaults * (totalItemsToMigrate / totalVaultsToMigrate)) + ip;
+            document.getElementById('progressLabel').textContent = `Migrating "${data.outcome.vaultName}" (${ip}/${ti} items)...`;
+            processedItems = completedItemsFromPriorVaults + ip;
             updateVaultStatus(vaultId, 'migrating', `Migrating (${ip}/${ti})`, false);
             updateProgressStats();
           } else if (phase === 'completed') {
             completedVaults++;
+            const vaultItemCount = data.outcome.sourceItemCount || 0;
+            completedItemsFromPriorVaults += vaultItemCount;
+            processedItems = completedItemsFromPriorVaults;
             if (data.outcome.success) {
-              updateVaultStatus(vaultId, 'success', `✓ Success (${data.outcome.successCount}/${data.outcome.sourceItemCount})`);
+              migratedVaultIds.add(vaultId);
+              updateVaultStatus(vaultId, 'success', `✓ Success (${data.outcome.successCount}/${vaultItemCount})`);
               successCount += data.outcome.successCount || 0;
             } else {
               const fc = data.outcome.failureCount || 0;
-              updateVaultStatus(vaultId, fc > 0 ? 'error' : 'warning', `${fc > 0 ? '✗' : '⚠️'} ${fc} failed / ${data.outcome.sourceItemCount || 0} items`);
+              updateVaultStatus(vaultId, fc > 0 ? 'error' : 'warning', `${fc > 0 ? '✗' : '⚠️'} ${fc} failed / ${vaultItemCount} items`);
               failureCount += fc;
               successCount += data.outcome.successCount || 0;
             }
-            processedItems = completedVaults * (totalItemsToMigrate / totalVaultsToMigrate);
-            totalItems += data.outcome.sourceItemCount || 0;
+            totalItems += vaultItemCount;
           } else if (phase === 'failed') {
             completedVaults++;
+            const vaultItemCount = data.outcome.sourceItemCount || 0;
+            completedItemsFromPriorVaults += vaultItemCount;
+            processedItems = completedItemsFromPriorVaults;
             updateVaultStatus(vaultId, 'error', `✗ Failed: ${data.outcome.error || 'Unknown error'}`);
-            failureCount += data.outcome.sourceItemCount || 0;
-            processedItems = completedVaults * (totalItemsToMigrate / totalVaultsToMigrate);
+            failureCount += vaultItemCount;
           }
           
           updateProgress(data.progress);
@@ -480,6 +975,9 @@
         if (data.finished) {
           eventSource.close();
           isMigrating = false;
+          // Keep showSelectedOnly true — user can click "Show All Vaults" to see everything
+          
+          updateProgress(100);
           document.getElementById('migrateSelectedBtn').disabled = false;
           document.getElementById('successCount').textContent = successCount;
           document.getElementById('failureCount').textContent = failureCount;
@@ -488,17 +986,32 @@
           document.getElementById('migrationSummary').classList.add('active');
           document.getElementById('progressLabel').textContent = 'Migration complete!';
           
+          
+          if (data.rateLimit) {
+            const banner = document.getElementById('rateLimitBanner');
+            const rl = data.rateLimit;
+            banner.style.display = 'block';
+            banner.style.background = 'rgba(107, 177, 135, 0.1)';
+            banner.style.border = '1px solid var(--accent-success)';
+            banner.style.color = 'var(--accent-success)';
+            banner.textContent = `✓ Migration used ${rl.used} API calls this hour. ~${rl.remaining} calls remaining.` +
+              (rl.remaining < 200 ? ` If you need to run another migration and hit a rate limit, wait an hour or contact 1Password support.` : '');
+          }
+
           showAlert(data.success ? 'success' : 'warning', `${data.success ? '✓' : '⚠️'} ${data.message}`);
-          setTimeout(() => { progressContainer.classList.remove('active'); }, 3000);
+          setTimeout(() => { progressContainer.classList.remove('active'); }, 1500);
+          updateSelectionCount();
         }
       };
       
       eventSource.onerror = () => {
         eventSource.close();
         isMigrating = false;
+        showSelectedOnly = false;
         document.getElementById('migrateSelectedBtn').disabled = false;
         showAlert('error', '✗ Migration failed. Please check the logs for details.');
         progressContainer.classList.remove('active');
+        renderVaults();
       };
     }
     
@@ -509,7 +1022,7 @@
     
     function updateProgressStats() {
       document.getElementById('vaultsProgress').textContent = `${completedVaults}/${totalVaultsToMigrate}`;
-      document.getElementById('itemsProgress').textContent = `${processedItems}/${totalItemsToMigrate}`;
+      document.getElementById('itemsProgress').textContent = `${Math.round(processedItems)}/${totalItemsToMigrate}`;
     }
     
     async function downloadLogs() {
@@ -517,14 +1030,20 @@
       catch (error) { showAlert('error', '✗ Failed to download logs'); }
     }
     
-    function showAlert(type, message) {
+    function showAlert(type, message, duration = null) {
       const container = document.getElementById('alertContainer');
-      const alert = document.createElement('div');
-      alert.className = `alert alert-${type}`;
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `alert alert-${type}`;
       const icon = type === 'success' ? '✓' : type === 'error' ? '✗' : type === 'warning' ? '⚠️' : 'ℹ️';
-      alert.innerHTML = `<span>${icon}</span><span>${message}</span>`;
-      container.appendChild(alert);
-      setTimeout(() => { alert.style.opacity = '0'; setTimeout(() => alert.remove(), 300); }, 5000);
+      const iconSpan = document.createElement('span');
+      iconSpan.textContent = icon;
+      const msgSpan = document.createElement('span');
+      msgSpan.textContent = message;
+      alertDiv.appendChild(iconSpan);
+      alertDiv.appendChild(msgSpan);
+      container.appendChild(alertDiv);
+      const timeout = duration || (type === 'info' ? 10000 : 5000);
+      setTimeout(() => { alertDiv.style.opacity = '0'; setTimeout(() => alertDiv.remove(), 300); }, timeout);
     }
     
     function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
