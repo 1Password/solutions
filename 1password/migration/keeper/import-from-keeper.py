@@ -349,17 +349,36 @@ def _grant_user_permissions(
         print(f"✔ Granted user {user_name!r} on vault {vault_name!r}: {perms}")
 
 
+def _get_group_id_by_name(name: str) -> Optional[str]:
+    """Resolve group name to ID via op CLI. Returns None if not found or CLI unavailable."""
+    if not _op_exists():
+        return None
+    proc = _run_op(["op", "group", "get", name, "--format", "json"])
+    if proc.returncode != 0:
+        return None
+    try:
+        data = json.loads(proc.stdout)
+        return data.get("id")
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+
 async def _grant_group_permissions_sdk(
     client: Client,
     vault_id: str,
-    group_id: str,
+    group_name: str,
     *,
     manage_users: bool,
     manage_records: bool,
     dry: bool,
     silent: bool,
 ) -> None:
-    """Grant vault permissions to a group via SDK."""
+    """Grant vault permissions to a group via SDK.
+
+    Resolves the group name to an ID via the op CLI first. If the group
+    cannot be found, logs a clear warning and skips rather than passing
+    the name as an ID (which produces a cryptic 'not in valid format' error).
+    """
     if manage_users:
         perm_int = _PERM_MANAGING
     elif manage_records:
@@ -373,15 +392,26 @@ async def _grant_group_permissions_sdk(
                 if manage_users
                 else ("allow_editing" if manage_records else "allow_viewing")
             )
-            print(f"DRY-RUN: would grant group {group_id!r} on vault: {perms_desc}")
+            print(f"DRY-RUN: would grant group {group_name!r} on vault: {perms_desc}")
         return
+
+    group_id = _get_group_id_by_name(group_name)
+    if not group_id:
+        print(
+            f"WARN: Group {group_name!r} not found in 1Password — skipping vault permission grant.",
+            file=sys.stderr,
+        )
+        return
+
     try:
         await client.vaults.grant_group_permissions(
             vault_id,
             [GroupAccess(group_id=group_id, permissions=perm_int)],
         )
+        if not silent:
+            print(f"✔ Granted group {group_name!r} on vault (id={vault_id})")
     except Exception as e:
-        print(f"WARN granting group on vault {vault_id!r}: {e}", file=sys.stderr)
+        print(f"WARN granting group {group_name!r} on vault {vault_id!r}: {e}", file=sys.stderr)
 
 
 # --------------------------- Data models ---------------------------
