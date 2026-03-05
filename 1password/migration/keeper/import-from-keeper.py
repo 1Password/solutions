@@ -8,8 +8,9 @@ Uses the 1Password Python SDK for items and vault listing:
 - Vaults.create() to create missing vaults.
 - Vaults.grant_group_permissions for group vault access (SDK).
 
-User vault permissions are logged as warnings — the SDK does not yet support
-user-level vault grants. Apply these manually or via the CLI after import.
+User vault permissions are applied via the `op` CLI (`op vault user grant`).
+Group vault permissions are applied via the SDK. The `op` CLI must be in PATH
+for user grants to be applied automatically.
 
 Accepts three input formats:
   - A **.zip** file with `export.json` and `files/` (import with attachments).
@@ -38,7 +39,7 @@ state file is written next to the input file. Re-running the same command
 will resume from where it left off — completed items are skipped. On full
 success the state file is deleted automatically.
 
-Requires: OP_SERVICE_ACCOUNT_TOKEN and onepassword-sdk.
+Requires: OP_SERVICE_ACCOUNT_TOKEN, onepassword-sdk, and `op` CLI (for user vault grants).
 pykeepass is required for KDBX input and is auto-installed if needed.
 If a requirements.txt exists next to this script, missing packages are
 installed automatically into a local .venv-1pw virtual environment.
@@ -75,11 +76,13 @@ import json
 import mimetypes
 import os
 import re
+import subprocess
 import sys
 import zipfile
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
+from shutil import which
 from typing import Dict, List, Optional, Set, Tuple
 
 # ---------------------------------------------------------------------------
@@ -294,6 +297,56 @@ def _perms_list(manage_users: bool, manage_records: bool) -> List[str]:
     if manage_users:
         perms.append("allow_managing")
     return perms
+
+
+def _run_op(cmd: List[str]) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
+
+
+def _op_exists() -> bool:
+    return which("op") is not None
+
+
+def _grant_user_permissions(
+    vault_name: str,
+    user_name: str,
+    *,
+    manage_users: bool,
+    manage_records: bool,
+    dry: bool,
+    silent: bool,
+) -> None:
+    """Grant vault permissions to a user via the op CLI."""
+    perms = _perms_list(manage_users, manage_records)
+    if dry:
+        if not silent:
+            print(f"DRY-RUN: would grant user {user_name!r} on {vault_name!r}: {perms}")
+        return
+    if not _op_exists():
+        print(
+            f"WARN: 'op' CLI not found — cannot grant user {user_name!r} on {vault_name!r}. "
+            f"Run manually: op vault user grant --vault {vault_name!r} --user {user_name!r} "
+            f"--permissions {','.join(perms)}",
+            file=sys.stderr,
+        )
+        return
+    cmd = [
+        "op", "vault", "user", "grant",
+        "--no-input",
+        "--vault", vault_name,
+        "--user", user_name,
+        "--permissions", ",".join(perms),
+    ]
+    proc = _run_op(cmd)
+    if proc.returncode != 0:
+        print(
+            f"WARN granting user {user_name!r} on {vault_name!r}: {proc.stderr.strip()}",
+            file=sys.stderr,
+        )
+    elif not silent:
+        print(f"✔ Granted user {user_name!r} on vault {vault_name!r}: {perms}")
 
 
 async def _grant_group_permissions_sdk(
@@ -1072,9 +1125,7 @@ async def plan_and_apply(
         else:
             resolved[v] = _resolve_vault_id(name_to_id, v)
 
-    # Apply permission mapping: groups via SDK, users logged as manual actions
-    pending_user_grants: List[Tuple[str, str, bool, bool]] = []
-
+    # Apply permission mapping: groups via SDK, users via op CLI
     for sf in shared_folders:
         vault_name = shared_vault_map[sf.path]
         vault_id = resolved[vault_name]
@@ -1090,29 +1141,35 @@ async def plan_and_apply(
                     silent=silent,
                 )
             else:
-                pending_user_grants.append(
-                    (vault_name, perm.name, perm.manage_users, perm.manage_records)
+                _grant_user_permissions(
+                    vault_name,
+                    perm.name,
+                    manage_users=perm.manage_users,
+                    manage_records=perm.manage_records,
+                    dry=dry,
+                    silent=silent,
                 )
 
     for vault_name in set(private_vault_map.values()):
         if user_for_private:
-            pending_user_grants.append((vault_name, user_for_private, False, True))
+            _grant_user_permissions(
+                vault_name,
+                user_for_private,
+                manage_users=False,
+                manage_records=True,
+                dry=dry,
+                silent=silent,
+            )
 
     if user_for_private:
-        pending_user_grants.append((employee_vault, user_for_private, True, True))
-
-    if pending_user_grants:
-        print(
-            f"\n⚠  {len(pending_user_grants)} user-level vault grant(s) require "
-            f"manual action (SDK does not yet support user vault grants):"
+        _grant_user_permissions(
+            employee_vault,
+            user_for_private,
+            manage_users=True,
+            manage_records=True,
+            dry=dry,
+            silent=silent,
         )
-        for vn, un, mu, mr in pending_user_grants:
-            perms = _perms_list(mu, mr)
-            print(
-                f"   op vault user grant --vault {vn!r} "
-                f"--user {un!r} --permissions {','.join(perms)}"
-            )
-        print()
 
     # ---------------------------------------------------------------------------
     # _destinations: resolve a record's (vault_name, tags) destinations.
