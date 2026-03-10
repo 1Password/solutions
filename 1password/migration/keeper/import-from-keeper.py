@@ -1108,11 +1108,13 @@ async def plan_and_apply(
     # ---------------------------------------------------------------------------
     shared_vault_map: Dict[str, str] = {}
     shared_tag_map: Dict[str, List[str]] = {}
+    vault_names_used: Set[str] = {employee_vault}
     for sf in shared_folders:
         full_path = normalize_path_to_name(sf.path)
         vault_name, tags = _vault_and_tags(sf.path)
         shared_vault_map[full_path] = vault_name
         shared_tag_map[full_path] = tags if tags else [full_path]
+        vault_names_used.add(vault_name)  # so manifest-only folders are created & resolved
 
     private_vault_map: Dict[str, str] = {}
     private_tag_map: Dict[str, List[str]] = {}
@@ -1127,7 +1129,6 @@ async def plan_and_apply(
         private_tag_map[folder] = tags if tags else [folder]
 
     # Collect all vault names from record placements (full path per placement).
-    vault_names_used: Set[str] = {employee_vault}
     for rec in records:
         for (sf, sub) in rec.shared_placements:
             full_path = _placement_full_path(sf, sub)
