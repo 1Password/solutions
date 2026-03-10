@@ -1,12 +1,29 @@
 {
   "shared_folders": [
     {
+      "path": "Engineering",
+      "manage_users": true,
+      "manage_records": true,
+      "permissions": [
+        { "name": "eng-team", "manage_users": false, "manage_records": true },
+        {
+          "name": "alice@example.com",
+          "manage_users": false,
+          "manage_records": true
+        }
+      ]
+    },
+    {
       "path": "Engineering\\DevOps",
       "manage_users": true,
       "manage_records": true,
       "permissions": [
         { "name": "devops-team", "manage_users": true, "manage_records": true },
-        { "name": "alice@example.com", "manage_users": false, "manage_records": true }
+        {
+          "name": "alice@example.com",
+          "manage_users": false,
+          "manage_records": true
+        }
       ]
     },
     {
@@ -14,8 +31,24 @@
       "manage_users": false,
       "manage_records": true,
       "permissions": [
-        { "name": "finance-group", "manage_users": false, "manage_records": true },
-        { "name": "bob@example.com", "manage_users": false, "manage_records": false }
+        {
+          "name": "finance-group",
+          "manage_users": false,
+          "manage_records": true
+        },
+        {
+          "name": "bob@example.com",
+          "manage_users": false,
+          "manage_records": false
+        }
+      ]
+    },
+    {
+      "path": "Shared-Datacatalog Postgres DB",
+      "manage_users": false,
+      "manage_records": true,
+      "permissions": [
+        { "name": "data-team", "manage_users": false, "manage_records": true }
       ]
     }
   ],
@@ -26,8 +59,10 @@
       "password": "SuperSecret123!",
       "login_url": "https://github.com",
       "notes": "Used for CI/CD automation.",
-      "custom_fields": { "TOTP": "otpauth://totp/GitHub:deploy-bot?secret=JBSWY3DPEHPK3PXP&issuer=GitHub" },
-      "folders": [ { "shared_folder": "Engineering\\DevOps" } ],
+      "custom_fields": {
+        "TOTP": "otpauth://totp/GitHub:deploy-bot?secret=JBSWY3DPEHPK3PXP&issuer=GitHub"
+      },
+      "folders": [{ "shared_folder": "Engineering\\DevOps" }],
       "$type": "login"
     },
     {
@@ -36,13 +71,13 @@
       "password": "Payroll!2025",
       "login_url": "https://payroll.example.com",
       "notes": "Finance system login",
-      "folders": [ { "shared_folder": "Finance\\Payroll" } ],
+      "folders": [{ "shared_folder": "Finance\\Payroll" }],
       "$type": "login"
     },
     {
       "title": "Engineering WiFi Password",
       "notes": "SSID: Eng-WiFi\nPassword: EngWifi$2025",
-      "folders": [ { "folder": "IT\\WiFi" } ],
+      "folders": [{ "folder": "IT\\WiFi" }],
       "$type": "note"
     },
     {
@@ -58,6 +93,82 @@
       "notes": "Steps for new hires:\n1. Set up email\n2. Provision laptop\n3. Share credentials",
       "folders": [],
       "$type": "note"
+    },
+    {
+      "title": "Item in shared folder with subfolder",
+      "login": "ci-readonly",
+      "password": "readonly-token",
+      "notes": "CI service account; vault = Engineering/DevOps/CI (full path).",
+      "folders": [{ "shared_folder": "Engineering\\DevOps", "folder": "CI" }],
+      "$type": "login"
+    },
+    {
+      "title": "Secure note with notes in custom_fields ($note::)",
+      "custom_fields": {
+        "$note": "This content comes from a Keeper secure note custom field.\nIt is used when top-level \"notes\" is empty."
+      },
+      "folders": [{ "folder": "Private - Personal" }],
+      "$type": "note"
+    },
+    {
+      "title": "Secure note with notes in fields[] (Record V3)",
+      "fields": [
+        {
+          "type": "note",
+          "value": [
+            "Line one from V3 note field.",
+            "Line two from V3 note field."
+          ]
+        }
+      ],
+      "folders": [],
+      "$type": "note"
+    },
+    {
+      "title": "Multiline note (Record V3)",
+      "fields": [
+        {
+          "type": "multiline",
+          "value": ["Content stored in a multiline field.\nSecond paragraph."]
+        }
+      ],
+      "folders": [],
+      "$type": "note"
+    },
+    {
+      "title": "Company Card",
+      "$type": "paymentCard",
+      "fields": [
+        {
+          "type": "paymentCard",
+          "value": [
+            {
+              "cardNumber": "4111 1111 1111 1111",
+              "cardExpirationDate": "12/2027",
+              "cardSecurityCode": "123",
+              "cardholderName": "Jane Doe"
+            }
+          ]
+        }
+      ],
+      "folders": [{ "shared_folder": "Finance\\Payroll" }]
+    },
+    {
+      "title": "Personal Visa",
+      "$type": "paymentCard",
+      "fields": [
+        {
+          "type": "paymentCard",
+          "value": [
+            {
+              "cardNumber": "5500 0000 0000 0004",
+              "cardExpirationDate": "06/26",
+              "cardSecurityCode": "456"
+            }
+          ]
+        }
+      ],
+      "folders": [{ "folder": "Private - Cards" }]
     }
   ]
 }
