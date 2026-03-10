@@ -467,7 +467,9 @@ class Record:
     login_url: Optional[str]
     notes: Optional[str]
     otpauth: Optional[str]
-    shared_placements: List[SharedFolderPlacement]  # (shared_folder, sub_folder_or_None)
+    shared_placements: List[
+        SharedFolderPlacement
+    ]  # (shared_folder, sub_folder_or_None)
     folders: List[str]
     category: str
     attachments: List[InMemoryAttachment] = field(default_factory=list)
@@ -618,9 +620,16 @@ def load_keeper_json(path_or_data) -> Tuple[List[SharedFolder], List[Record]]:
         password = r.get("password")
         login_url = r.get("login_url")
 
-        # Read notes from top-level field first, then fall back to
-        # custom_fields keys prefixed with "$note::" (used by Keeper secure notes).
+        # Read notes from all possible Keeper locations so secure notes get content.
+        # 1) Top-level "notes"
+        # 2) custom_fields keys "$note::*" (Keeper secure notes)
+        # 3) "fields" array with type "note" or "multiline" (Record V3 export)
         notes = r.get("notes")
+        if isinstance(notes, list):
+            notes = "\n".join(str(x) for x in notes) if notes else None
+        elif notes is not None and not isinstance(notes, str):
+            notes = str(notes)
+
         if not notes:
             for k, v in (r.get("custom_fields") or {}).items():
                 if (
@@ -630,6 +639,39 @@ def load_keeper_json(path_or_data) -> Tuple[List[SharedFolder], List[Record]]:
                 ):
                     notes = v
                     break
+
+        if not notes:
+            # Record V3: fields[] with type "note" or "multiline" (value is array)
+            parts: List[str] = []
+            for f in r.get("fields") or []:
+                if not isinstance(f, dict):
+                    continue
+                ft = f.get("type") or f.get("field_type")
+                if ft not in ("note", "multiline"):
+                    continue
+                val = f.get("value")
+                if isinstance(val, list):
+                    for item in val:
+                        if isinstance(item, str) and item.strip():
+                            parts.append(item.strip())
+                elif isinstance(val, str) and val.strip():
+                    parts.append(val.strip())
+            if parts:
+                notes = "\n".join(parts)
+
+        if not notes:
+            # Fallback: any custom_fields string that looks like note content
+            for k, v in (r.get("custom_fields") or {}).items():
+                if not isinstance(v, str) or not v.strip():
+                    continue
+                if isinstance(k, str) and (
+                    k.startswith("$") or "otp" in k.lower() or "url" in k.lower()
+                ):
+                    continue
+                if v.startswith("otpauth://"):
+                    continue
+                notes = v
+                break
 
         # Extract TOTP — custom_fields values that look like otpauth:// URIs
         otpauth = None
@@ -1114,7 +1156,9 @@ async def plan_and_apply(
         vault_name, tags = _vault_and_tags(sf.path)
         shared_vault_map[full_path] = vault_name
         shared_tag_map[full_path] = tags if tags else [full_path]
-        vault_names_used.add(vault_name)  # so manifest-only folders are created & resolved
+        vault_names_used.add(
+            vault_name
+        )  # so manifest-only folders are created & resolved
 
     private_vault_map: Dict[str, str] = {}
     private_tag_map: Dict[str, List[str]] = {}
@@ -1130,7 +1174,7 @@ async def plan_and_apply(
 
     # Collect all vault names from record placements (full path per placement).
     for rec in records:
-        for (sf, sub) in rec.shared_placements:
+        for sf, sub in rec.shared_placements:
             full_path = _placement_full_path(sf, sub)
             if full_path not in shared_vault_map:
                 vault_name, tags = _vault_and_tags(full_path)
@@ -1251,7 +1295,7 @@ async def plan_and_apply(
     # ---------------------------------------------------------------------------
     def _destinations(rec: Record) -> List[Tuple[str, List[str]]]:
         dests: List[Tuple[str, List[str]]] = []
-        for (sf, sub) in rec.shared_placements:
+        for sf, sub in rec.shared_placements:
             full_path = _placement_full_path(sf, sub)
             vault_name = shared_vault_map.get(full_path)
             if vault_name is None:
