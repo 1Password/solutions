@@ -180,6 +180,7 @@ c-scripts/abk/others.txt
 .task/
 
 .venv
+.venv-1pw
 
 # Terraform state files
 terraform.tfstate
