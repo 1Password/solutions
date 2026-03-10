@@ -1186,27 +1186,42 @@ async def plan_and_apply(
                 normalized_sf_path + "/"
             ):
                 continue
-            vault_id = resolved[vault_name]
+            try:
+                vault_id = resolved[vault_name]
+            except KeyError:
+                if not silent:
+                    print(
+                        f"WARN: Skipping permissions for vault {vault_name!r} (path {full_path!r}) — not in resolved set.",
+                        file=sys.stderr,
+                    )
+                continue
             for perm in sf.permissions:
-                if perm.is_group:
-                    await _grant_group_permissions_sdk(
-                        client,
-                        vault_id,
-                        perm.name,
-                        manage_users=perm.manage_users,
-                        manage_records=perm.manage_records,
-                        dry=dry,
-                        silent=silent,
-                    )
-                else:
-                    _grant_user_permissions(
-                        vault_name,
-                        perm.name,
-                        manage_users=perm.manage_users,
-                        manage_records=perm.manage_records,
-                        dry=dry,
-                        silent=silent,
-                    )
+                try:
+                    if perm.is_group:
+                        await _grant_group_permissions_sdk(
+                            client,
+                            vault_id,
+                            perm.name,
+                            manage_users=perm.manage_users,
+                            manage_records=perm.manage_records,
+                            dry=dry,
+                            silent=silent,
+                        )
+                    else:
+                        _grant_user_permissions(
+                            vault_name,
+                            perm.name,
+                            manage_users=perm.manage_users,
+                            manage_records=perm.manage_records,
+                            dry=dry,
+                            silent=silent,
+                        )
+                except Exception as e:
+                    if not silent:
+                        print(
+                            f"WARN: Skipping permission for {perm.name!r} on vault {vault_name!r}: {e}",
+                            file=sys.stderr,
+                        )
 
     for vault_name in set(private_vault_map.values()):
         if user_for_private:
