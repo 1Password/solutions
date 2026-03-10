@@ -103,9 +103,9 @@
       "$type": "login"
     },
     {
-      "title": "Secure note with notes in custom_fields ($note::)",
+      "title": "Secure note with notes in custom_fields ($note or $note::*)",
       "custom_fields": {
-        "$note": "This content comes from a Keeper secure note custom field.\nIt is used when top-level \"notes\" is empty."
+        "$note": "This content comes from a Keeper secure note custom field (key \"$note\").\nIt is used when top-level \"notes\" is empty."
       },
       "folders": [{ "folder": "Private - Personal" }],
       "$type": "note"

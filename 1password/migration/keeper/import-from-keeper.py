@@ -643,7 +643,7 @@ def load_keeper_json(path_or_data) -> Tuple[List[SharedFolder], List[Record]]:
             for k, v in (r.get("custom_fields") or {}).items():
                 if (
                     isinstance(k, str)
-                    and k.startswith("$note::")
+                    and (k == "$note" or k.startswith("$note::"))
                     and isinstance(v, str)
                 ):
                     notes = v
@@ -772,7 +772,8 @@ def normalize_path_to_name(path: str) -> str:
 
 
 def _keeper_expiry_to_1password(keeper_exp: str) -> str:
-    """Convert Keeper card expiry (MM/YYYY or MM/YY) to 1Password MONTH_YEAR (YYYY-MM)."""
+    """Convert Keeper card expiry (MM/YYYY or MM/YY) to 1Password MONTH_YEAR.
+    SDK expects MM/YYYY for MONTHYEAR value (see SDK example)."""
     keeper_exp = keeper_exp.replace(" ", "")
     m = re.match(r"^(\d{1,2})[/\-](\d{2,4})$", keeper_exp)
     if not m:
@@ -781,7 +782,7 @@ def _keeper_expiry_to_1password(keeper_exp: str) -> str:
     month = month.zfill(2)
     if len(year) == 2:
         year = "20" + year
-    return f"{year}-{month}"
+    return f"{month}/{year}"
 
 
 def _placement_full_path(shared_folder: str, sub_folder: Optional[str]) -> str:
@@ -1179,14 +1180,17 @@ def _build_credit_card_params(
     """Build a 1Password Credit Card item from Keeper payment card data."""
     fields: List[ItemField] = []
     if rec.card_number:
-        fields.append(
-            ItemField(
-                id="cardnumber",
-                value=rec.card_number,
-                title="Card number",
-                fieldType=ItemFieldType.CREDITCARDNUMBER,
+        # Normalize to digits only; 1Password may reject spaces
+        digits = re.sub(r"\D", "", rec.card_number)
+        if digits:
+            fields.append(
+                ItemField(
+                    id="cardnumber",
+                    value=digits,
+                    title="Card number",
+                    fieldType=ItemFieldType.CREDITCARDNUMBER,
+                )
             )
-        )
     if rec.card_expiry:
         fields.append(
             ItemField(
@@ -1205,24 +1209,22 @@ def _build_credit_card_params(
                 fieldType=ItemFieldType.CONCEALED,
             )
         )
+    # Cardholder: use notes if we have it, to avoid invalid built-in field id
+    notes = rec.notes
     if rec.cardholder_name:
-        fields.append(
-            ItemField(
-                id="cardholder",
-                value=rec.cardholder_name,
-                title="Cardholder name",
-                fieldType=ItemFieldType.TEXT,
-            )
-        )
+        notes = f"Cardholder: {rec.cardholder_name}\n\n{notes}" if notes else f"Cardholder: {rec.cardholder_name}"
     sections: List[ItemSection] = []
     files = _make_file_params(attachments, sections)
+    # Credit card category may require at least one section when using the API
+    if not sections:
+        sections = [ItemSection(id="", title="")]
     return ItemCreateParams(
         title=rec.title,
         category=ItemCategory.CREDITCARD,
         vault_id=vault_id,
         fields=fields or None,
         sections=sections or None,
-        notes=rec.notes or None,
+        notes=notes or None,
         files=files or None,
         tags=tags or None,
     )
