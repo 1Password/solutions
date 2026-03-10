@@ -473,6 +473,11 @@ class Record:
     folders: List[str]
     category: str
     attachments: List[InMemoryAttachment] = field(default_factory=list)
+    # Payment card (when category == "Credit Card")
+    card_number: Optional[str] = None
+    card_expiry: Optional[str] = None  # stored as MM/YY or MM/YYYY from Keeper
+    card_cvv: Optional[str] = None
+    cardholder_name: Optional[str] = None
 
 
 # --------------------------- Resumable state file ---------------------------
@@ -496,6 +501,10 @@ def _item_fingerprint(vault_id: str, rec: Record) -> str:
         rec.otpauth or "",
         ",".join(sorted(a.name for a in rec.attachments)),
     ]
+    if rec.category == "Credit Card":
+        parts.extend(
+            [rec.card_number or "", rec.card_expiry or "", rec.card_cvv or ""]
+        )
     raw = "\x00".join(parts).encode("utf-8")
     return hashlib.sha256(raw).hexdigest()
 
@@ -690,8 +699,47 @@ def load_keeper_json(path_or_data) -> Tuple[List[SharedFolder], List[Record]]:
             elif "folder" in fldr:
                 folders.append(str(fldr["folder"]))
 
+        # Detect payment card: $type or fields[] with type paymentCard
+        card_number: Optional[str] = None
+        card_expiry: Optional[str] = None
+        card_cvv: Optional[str] = None
+        cardholder_name: Optional[str] = None
+        is_payment_card = r.get("$type") == "paymentCard"
+        if not is_payment_card:
+            for f in r.get("fields") or []:
+                if isinstance(f, dict) and (f.get("type") or f.get("field_type")) in ("paymentCard", "payment"):
+                    is_payment_card = True
+                    break
+        if is_payment_card:
+            for f in r.get("fields") or []:
+                if not isinstance(f, dict):
+                    continue
+                ft = f.get("type") or f.get("field_type")
+                if ft not in ("paymentCard", "payment"):
+                    continue
+                val = f.get("value")
+                if isinstance(val, list) and val and isinstance(val[0], dict):
+                    d = val[0]
+                    card_number = (d.get("cardNumber") or d.get("number") or "").strip() or None
+                    card_cvv = (d.get("cardSecurityCode") or d.get("cvv") or "").strip() or None
+                    exp = d.get("cardExpirationDate") or d.get("expirationDate") or d.get("expiry") or ""
+                    if isinstance(exp, str) and exp.strip():
+                        card_expiry = _keeper_expiry_to_1password(exp.strip())
+                    cardholder_name = (d.get("cardholderName") or d.get("name") or "").strip() or None
+                    break
+            if not card_number and isinstance(r.get("payment_card"), dict):
+                d = r["payment_card"]
+                card_number = (d.get("cardNumber") or d.get("number") or "").strip() or None
+                card_cvv = (d.get("cardSecurityCode") or d.get("cvv") or "").strip() or None
+                exp = d.get("cardExpirationDate") or d.get("expirationDate") or ""
+                if isinstance(exp, str) and exp.strip():
+                    card_expiry = _keeper_expiry_to_1password(exp.strip())
+                cardholder_name = (d.get("cardholderName") or d.get("name") or "").strip() or None
+
         category = (
-            "Login"
+            "Credit Card"
+            if is_payment_card
+            else "Login"
             if (r.get("$type") == "login" or (login and password))
             else "Secure Note"
         )
@@ -707,6 +755,10 @@ def load_keeper_json(path_or_data) -> Tuple[List[SharedFolder], List[Record]]:
                 shared_placements=shared_placements,
                 folders=folders,
                 category=category,
+                card_number=card_number,
+                card_expiry=card_expiry,
+                card_cvv=card_cvv,
+                cardholder_name=cardholder_name,
             )
         )
 
@@ -717,6 +769,19 @@ def normalize_path_to_name(path: str) -> str:
     name = path.replace("\\", "/").strip()
     name = re.sub(r"\s+", " ", name)
     return name
+
+
+def _keeper_expiry_to_1password(keeper_exp: str) -> str:
+    """Convert Keeper card expiry (MM/YYYY or MM/YY) to 1Password MONTH_YEAR (YYYY-MM)."""
+    keeper_exp = keeper_exp.replace(" ", "")
+    m = re.match(r"^(\d{1,2})[/\-](\d{2,4})$", keeper_exp)
+    if not m:
+        return keeper_exp
+    month, year = m.group(1), m.group(2)
+    month = month.zfill(2)
+    if len(year) == 2:
+        year = "20" + year
+    return f"{year}-{month}"
 
 
 def _placement_full_path(shared_folder: str, sub_folder: Optional[str]) -> str:
@@ -1105,6 +1170,64 @@ def _build_secure_note_params(
     )
 
 
+def _build_credit_card_params(
+    vault_id: str,
+    rec: Record,
+    attachments: List[InMemoryAttachment],
+    tags: Optional[List[str]],
+) -> ItemCreateParams:
+    """Build a 1Password Credit Card item from Keeper payment card data."""
+    fields: List[ItemField] = []
+    if rec.card_number:
+        fields.append(
+            ItemField(
+                id="cardnumber",
+                value=rec.card_number,
+                title="Card number",
+                fieldType=ItemFieldType.CREDITCARDNUMBER,
+            )
+        )
+    if rec.card_expiry:
+        fields.append(
+            ItemField(
+                id="expiry",
+                value=rec.card_expiry,
+                title="Expiry date",
+                fieldType=ItemFieldType.MONTHYEAR,
+            )
+        )
+    if rec.card_cvv:
+        fields.append(
+            ItemField(
+                id="cvv",
+                value=rec.card_cvv,
+                title="Verification number",
+                fieldType=ItemFieldType.CONCEALED,
+            )
+        )
+    if rec.cardholder_name:
+        fields.append(
+            ItemField(
+                id="cardholder",
+                value=rec.cardholder_name,
+                title="Cardholder name",
+                fieldType=ItemFieldType.TEXT,
+            )
+        )
+    sections: List[ItemSection] = []
+    files = _make_file_params(attachments, sections)
+    return ItemCreateParams(
+        title=rec.title,
+        category=ItemCategory.CREDITCARD,
+        vault_id=vault_id,
+        fields=fields or None,
+        sections=sections or None,
+        notes=rec.notes or None,
+        files=files or None,
+        tags=tags or None,
+    )
+
+
 # --------------------------- Planner + bulk create ---------------------------
 
 
@@ -1319,7 +1442,13 @@ async def plan_and_apply(
     if dry:
         for rec in records:
             for vault_name, tags in _destinations(rec):
-                kind = "LOGIN" if rec.category == "Login" else "NOTE"
+                kind = (
+                    "LOGIN"
+                    if rec.category == "Login"
+                    else "CARD"
+                    if rec.category == "Credit Card"
+                    else "NOTE"
+                )
                 names = [a.name for a in rec.attachments]
                 msg = f"DRY-RUN: {kind} '{rec.title}' → vault '{vault_name}'"
                 if tags:
@@ -1348,6 +1477,10 @@ async def plan_and_apply(
 
             if rec.category == "Login":
                 params = _build_login_params(
+                    vault_id, rec, rec.attachments, tags or None
+                )
+            elif rec.category == "Credit Card":
+                params = _build_credit_card_params(
                     vault_id, rec, rec.attachments, tags or None
                 )
             else:
