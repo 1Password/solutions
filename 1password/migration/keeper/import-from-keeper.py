@@ -26,13 +26,12 @@ Permission mapping: Keeper shared_folder permissions → 1Password vault access
 
 Folder → Vault mapping:
   Without --collapse-folders:
-    - Top-level folder items → vault named after the folder, tagged with folder name.
-    - Sub-folder items       → vault named after the child folder only,
-                               tagged with "Parent\\Child".
+    - Each folder path (parent, parent/child, parent/child/deeper) → one vault
+      named after the full path; items tagged with the folder path.
   With --collapse-folders:
     - All items go into the parent vault.
     - Top-level items tagged with parent name.
-    - Sub-folder items tagged with "Parent\\Child".
+    - Sub-folder items tagged with "Parent\\Child" (or "Parent\\Child\\Deeper").
 
 Resumability: if the import is interrupted (e.g. by a rate limit / 429), a
 state file is written next to the input file. Re-running the same command
@@ -149,7 +148,15 @@ except ImportError:
     else:
         print("Installing onepassword-sdk and pykeepass...")
         _sp.check_call(
-            [_venv_python, "-m", "pip", "install", "--quiet", "onepassword-sdk", "pykeepass"]
+            [
+                _venv_python,
+                "-m",
+                "pip",
+                "install",
+                "--quiet",
+                "onepassword-sdk",
+                "pykeepass",
+            ]
         )
 
     # Re-launch this script inside the venv with all original arguments
@@ -179,7 +186,9 @@ except ImportError:
     else:
         # No venv — install into current environment and re-exec
         print("Installing pykeepass...")
-        _sp2.check_call([sys.executable, "-m", "pip", "install", "--quiet", "pykeepass"])
+        _sp2.check_call(
+            [sys.executable, "-m", "pip", "install", "--quiet", "pykeepass"]
+        )
         os.execv(sys.executable, [sys.executable] + sys.argv)
 
 
@@ -333,11 +342,17 @@ def _grant_user_permissions(
         )
         return
     cmd = [
-        "op", "vault", "user", "grant",
+        "op",
+        "vault",
+        "user",
+        "grant",
         "--no-input",
-        "--vault", vault_name,
-        "--user", user_name,
-        "--permissions", ",".join(perms),
+        "--vault",
+        vault_name,
+        "--user",
+        user_name,
+        "--permissions",
+        ",".join(perms),
     ]
     proc = _run_op(cmd)
     if proc.returncode != 0:
@@ -411,7 +426,10 @@ async def _grant_group_permissions_sdk(
         if not silent:
             print(f"✔ Granted group {group_name!r} on vault (id={vault_id})")
     except Exception as e:
-        print(f"WARN granting group {group_name!r} on vault {vault_id!r}: {e}", file=sys.stderr)
+        print(
+            f"WARN granting group {group_name!r} on vault {vault_id!r}: {e}",
+            file=sys.stderr,
+        )
 
 
 # --------------------------- Data models ---------------------------
@@ -436,6 +454,7 @@ class SharedFolder:
 @dataclass
 class InMemoryAttachment:
     """An attachment held entirely in memory — never touches disk."""
+
     name: str
     content: bytes
 
@@ -448,11 +467,17 @@ class Record:
     login_url: Optional[str]
     notes: Optional[str]
     otpauth: Optional[str]
-    shared_folders: List[str]
+    shared_placements: List[
+        SharedFolderPlacement
+    ]  # (shared_folder, sub_folder_or_None)
     folders: List[str]
-    sub_folders: List[str]
     category: str
     attachments: List[InMemoryAttachment] = field(default_factory=list)
+    # Payment card (when category == "Credit Card")
+    card_number: Optional[str] = None
+    card_expiry: Optional[str] = None  # stored as MM/YY or MM/YYYY from Keeper
+    card_cvv: Optional[str] = None
+    cardholder_name: Optional[str] = None
 
 
 # --------------------------- Resumable state file ---------------------------
@@ -476,6 +501,10 @@ def _item_fingerprint(vault_id: str, rec: Record) -> str:
         rec.otpauth or "",
         ",".join(sorted(a.name for a in rec.attachments)),
     ]
+    if rec.category == "Credit Card":
+        parts.extend(
+            [rec.card_number or "", rec.card_expiry or "", rec.card_cvv or ""]
+        )
     raw = "\x00".join(parts).encode("utf-8")
     return hashlib.sha256(raw).hexdigest()
 
@@ -501,7 +530,10 @@ def load_state(input_path: str, *, silent: bool) -> Set[str]:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
     except (json.JSONDecodeError, OSError) as e:
-        print(f"WARN: Could not read state file {path}: {e}. Starting fresh.", file=sys.stderr)
+        print(
+            f"WARN: Could not read state file {path}: {e}. Starting fresh.",
+            file=sys.stderr,
+        )
         return set()
 
     fingerprints = data.get("completed", [])
@@ -581,7 +613,9 @@ def load_keeper_json(path_or_data) -> Tuple[List[SharedFolder], List[Record]]:
                     name=name,
                     is_group=is_group,
                     manage_users=bool(p.get("manage_users", defaults_manage_users)),
-                    manage_records=bool(p.get("manage_records", defaults_manage_records)),
+                    manage_records=bool(
+                        p.get("manage_records", defaults_manage_records)
+                    ),
                 )
             )
         shared.append(
@@ -595,14 +629,58 @@ def load_keeper_json(path_or_data) -> Tuple[List[SharedFolder], List[Record]]:
         password = r.get("password")
         login_url = r.get("login_url")
 
-        # Read notes from top-level field first, then fall back to
-        # custom_fields keys prefixed with "$note::" (used by Keeper secure notes).
+        # Read notes from all possible Keeper locations so secure notes get content.
+        # 1) Top-level "notes"
+        # 2) custom_fields keys "$note::*" (Keeper secure notes)
+        # 3) "fields" array with type "note" or "multiline" (Record V3 export)
         notes = r.get("notes")
+        if isinstance(notes, list):
+            notes = "\n".join(str(x) for x in notes) if notes else None
+        elif notes is not None and not isinstance(notes, str):
+            notes = str(notes)
+
         if not notes:
             for k, v in (r.get("custom_fields") or {}).items():
-                if isinstance(k, str) and k.startswith("$note::") and isinstance(v, str):
+                if (
+                    isinstance(k, str)
+                    and (k == "$note" or k.startswith("$note::"))
+                    and isinstance(v, str)
+                ):
                     notes = v
                     break
+
+        if not notes:
+            # Record V3: fields[] with type "note" or "multiline" (value is array)
+            parts: List[str] = []
+            for f in r.get("fields") or []:
+                if not isinstance(f, dict):
+                    continue
+                ft = f.get("type") or f.get("field_type")
+                if ft not in ("note", "multiline"):
+                    continue
+                val = f.get("value")
+                if isinstance(val, list):
+                    for item in val:
+                        if isinstance(item, str) and item.strip():
+                            parts.append(item.strip())
+                elif isinstance(val, str) and val.strip():
+                    parts.append(val.strip())
+            if parts:
+                notes = "\n".join(parts)
+
+        if not notes:
+            # Fallback: any custom_fields string that looks like note content
+            for k, v in (r.get("custom_fields") or {}).items():
+                if not isinstance(v, str) or not v.strip():
+                    continue
+                if isinstance(k, str) and (
+                    k.startswith("$") or "otp" in k.lower() or "url" in k.lower()
+                ):
+                    continue
+                if v.startswith("otpauth://"):
+                    continue
+                notes = v
+                break
 
         # Extract TOTP — custom_fields values that look like otpauth:// URIs
         otpauth = None
@@ -611,20 +689,57 @@ def load_keeper_json(path_or_data) -> Tuple[List[SharedFolder], List[Record]]:
                 otpauth = v
                 break
 
-        shared_folders: List[str] = []
-        sub_folders: List[str] = []   # record-level sub-folder inside a shared folder
+        shared_placements: List[SharedFolderPlacement] = []
         folders: List[str] = []
         for fldr in r.get("folders", []) or []:
             if "shared_folder" in fldr:
-                shared_folders.append(str(fldr["shared_folder"]))
-                # Capture the record-level sub-folder name for vault/tag routing
-                if "folder" in fldr:
-                    sub_folders.append(str(fldr["folder"]))
+                sf_name = str(fldr["shared_folder"])
+                sub_name = str(fldr["folder"]) if fldr.get("folder") else None
+                shared_placements.append((sf_name, sub_name))
             elif "folder" in fldr:
                 folders.append(str(fldr["folder"]))
 
+        # Detect payment card: $type or fields[] with type paymentCard
+        card_number: Optional[str] = None
+        card_expiry: Optional[str] = None
+        card_cvv: Optional[str] = None
+        cardholder_name: Optional[str] = None
+        is_payment_card = r.get("$type") == "paymentCard"
+        if not is_payment_card:
+            for f in r.get("fields") or []:
+                if isinstance(f, dict) and (f.get("type") or f.get("field_type")) in ("paymentCard", "payment"):
+                    is_payment_card = True
+                    break
+        if is_payment_card:
+            for f in r.get("fields") or []:
+                if not isinstance(f, dict):
+                    continue
+                ft = f.get("type") or f.get("field_type")
+                if ft not in ("paymentCard", "payment"):
+                    continue
+                val = f.get("value")
+                if isinstance(val, list) and val and isinstance(val[0], dict):
+                    d = val[0]
+                    card_number = (d.get("cardNumber") or d.get("number") or "").strip() or None
+                    card_cvv = (d.get("cardSecurityCode") or d.get("cvv") or "").strip() or None
+                    exp = d.get("cardExpirationDate") or d.get("expirationDate") or d.get("expiry") or ""
+                    if isinstance(exp, str) and exp.strip():
+                        card_expiry = _keeper_expiry_to_1password(exp.strip())
+                    cardholder_name = (d.get("cardholderName") or d.get("name") or "").strip() or None
+                    break
+            if not card_number and isinstance(r.get("payment_card"), dict):
+                d = r["payment_card"]
+                card_number = (d.get("cardNumber") or d.get("number") or "").strip() or None
+                card_cvv = (d.get("cardSecurityCode") or d.get("cvv") or "").strip() or None
+                exp = d.get("cardExpirationDate") or d.get("expirationDate") or ""
+                if isinstance(exp, str) and exp.strip():
+                    card_expiry = _keeper_expiry_to_1password(exp.strip())
+                cardholder_name = (d.get("cardholderName") or d.get("name") or "").strip() or None
+
         category = (
-            "Login"
+            "Credit Card"
+            if is_payment_card
+            else "Login"
             if (r.get("$type") == "login" or (login and password))
             else "Secure Note"
         )
@@ -637,10 +752,13 @@ def load_keeper_json(path_or_data) -> Tuple[List[SharedFolder], List[Record]]:
                 login_url=login_url,
                 notes=notes,
                 otpauth=otpauth,
-                shared_folders=shared_folders,
+                shared_placements=shared_placements,
                 folders=folders,
-                sub_folders=sub_folders,
                 category=category,
+                card_number=card_number,
+                card_expiry=card_expiry,
+                card_cvv=card_cvv,
+                cardholder_name=cardholder_name,
             )
         )
 
@@ -651,6 +769,27 @@ def normalize_path_to_name(path: str) -> str:
     name = path.replace("\\", "/").strip()
     name = re.sub(r"\s+", " ", name)
     return name
+
+
+def _keeper_expiry_to_1password(keeper_exp: str) -> str:
+    """Convert Keeper card expiry (MM/YYYY or MM/YY) to 1Password MONTH_YEAR.
+    SDK expects MM/YYYY for MONTHYEAR value (see SDK example)."""
+    keeper_exp = keeper_exp.replace(" ", "")
+    m = re.match(r"^(\d{1,2})[/\-](\d{2,4})$", keeper_exp)
+    if not m:
+        return keeper_exp
+    month, year = m.group(1), m.group(2)
+    month = month.zfill(2)
+    if len(year) == 2:
+        year = "20" + year
+    return f"{month}/{year}"
+
+
+def _placement_full_path(shared_folder: str, sub_folder: Optional[str]) -> str:
+    """Full path for a shared placement: 'Parent/Child' or 'Parent/Child/Deeper'."""
+    if not sub_folder:
+        return normalize_path_to_name(shared_folder)
+    return normalize_path_to_name(f"{shared_folder}/{sub_folder}")
 
 
 def _split_folder_path(path: str) -> Tuple[str, Optional[str]]:
@@ -669,6 +808,7 @@ def _split_folder_path(path: str) -> Tuple[str, Optional[str]]:
 @dataclass
 class InputContext:
     """Holds open file handles for ZIP input. No temp files are created."""
+
     zf: Optional[zipfile.ZipFile]
     is_kdbx: bool = False
 
@@ -708,7 +848,7 @@ def _load_kdbx(input_path: str) -> Tuple[List[SharedFolder], List[Record]]:
 
     KDBX does not carry shared folder permission data — that lives only in the
     JSON export. Folder structure is read from KeePass group names and mapped
-    to shared_folders / sub_folders on each Record so that --collapse-folders
+    to shared_placements on each Record so that --collapse-folders
     works the same way as with JSON input.
 
     Attachments are loaded into memory for every entry that has them.
@@ -727,7 +867,9 @@ def _load_kdbx(input_path: str) -> Tuple[List[SharedFolder], List[Record]]:
         sys.exit(2)
 
     # Prompt securely — never echo the password
-    password = getpass.getpass(f"Enter KeePass password for {os.path.basename(input_path)}: ")
+    password = getpass.getpass(
+        f"Enter KeePass password for {os.path.basename(input_path)}: "
+    )
 
     try:
         kp = PyKeePass(input_path, password=password)
@@ -765,9 +907,8 @@ def _load_kdbx(input_path: str) -> Tuple[List[SharedFolder], List[Record]]:
 
         # Build folder path from KeePass group hierarchy.
         # KeePass root group is typically named after the vault — skip it.
-        # Groups below root map to: shared_folder = parent, sub_folder = child.
-        shared_folders: List[str] = []
-        sub_folders: List[str] = []
+        # Groups below root map to one placement: (top_level, rest_of_path).
+        shared_placements: List[SharedFolderPlacement] = []
         folders: List[str] = []
 
         group = entry.group
@@ -779,11 +920,10 @@ def _load_kdbx(input_path: str) -> Tuple[List[SharedFolder], List[Record]]:
         if len(path_parts) == 0:
             pass  # no folder → goes to employee/fallback vault
         elif len(path_parts) == 1:
-            shared_folders.append(path_parts[0])
+            shared_placements.append((path_parts[0], None))
         else:
-            # Use first segment as shared folder, second as sub-folder
-            shared_folders.append(path_parts[0])
-            sub_folders.append(path_parts[1])
+            # Full path: parent + child + deeper as (first_segment, "child/deeper")
+            shared_placements.append((path_parts[0], "/".join(path_parts[1:])))
 
         # Attachments — load into memory, warn if over KeePass 1MB cap
         attachments: List[InMemoryAttachment] = []
@@ -797,7 +937,9 @@ def _load_kdbx(input_path: str) -> Tuple[List[SharedFolder], List[Record]]:
                     file=sys.stderr,
                 )
             if att.data:
-                attachments.append(InMemoryAttachment(name=att.filename, content=att.data))
+                attachments.append(
+                    InMemoryAttachment(name=att.filename, content=att.data)
+                )
 
         category = "Login" if (login and password_val) else "Secure Note"
 
@@ -809,9 +951,8 @@ def _load_kdbx(input_path: str) -> Tuple[List[SharedFolder], List[Record]]:
                 login_url=login_url,
                 notes=notes,
                 otpauth=otpauth,
-                shared_folders=shared_folders,
+                shared_placements=shared_placements,
                 folders=folders,
-                sub_folders=sub_folders,
                 category=category,
                 attachments=attachments,
             )
@@ -1030,12 +1171,72 @@ def _build_secure_note_params(
     )
 
 
+def _build_credit_card_params(
+    vault_id: str,
+    rec: Record,
+    attachments: List[InMemoryAttachment],
+    tags: Optional[List[str]],
+) -> ItemCreateParams:
+    """Build a 1Password Credit Card item from Keeper payment card data."""
+    fields: List[ItemField] = []
+    if rec.card_number:
+        # Normalize to digits only; 1Password may reject spaces
+        digits = re.sub(r"\D", "", rec.card_number)
+        if digits:
+            fields.append(
+                ItemField(
+                    id="cardnumber",
+                    value=digits,
+                    title="Card number",
+                    fieldType=ItemFieldType.CREDITCARDNUMBER,
+                )
+            )
+    if rec.card_expiry:
+        fields.append(
+            ItemField(
+                id="expiry",
+                value=rec.card_expiry,
+                title="Expiry date",
+                fieldType=ItemFieldType.MONTHYEAR,
+            )
+        )
+    if rec.card_cvv:
+        fields.append(
+            ItemField(
+                id="cvv",
+                value=rec.card_cvv,
+                title="Verification number",
+                fieldType=ItemFieldType.CONCEALED,
+            )
+        )
+    # Cardholder: use notes if we have it, to avoid invalid built-in field id
+    notes = rec.notes
+    if rec.cardholder_name:
+        notes = f"Cardholder: {rec.cardholder_name}\n\n{notes}" if notes else f"Cardholder: {rec.cardholder_name}"
+    sections: List[ItemSection] = []
+    files = _make_file_params(attachments, sections)
+    # Credit card category may require at least one section when using the API
+    if not sections:
+        sections = [ItemSection(id="", title="")]
+    return ItemCreateParams(
+        title=rec.title,
+        category=ItemCategory.CREDITCARD,
+        vault_id=vault_id,
+        fields=fields or None,
+        sections=sections or None,
+        notes=notes or None,
+        files=files or None,
+        tags=tags or None,
+    )
+
+
 # --------------------------- Planner + bulk create ---------------------------
 
 
 @dataclass
 class _PendingItem:
     """An item queued for creation, with its fingerprint for state tracking."""
+
     params: ItemCreateParams
     fingerprint: str
     rec: Record
@@ -1069,21 +1270,20 @@ async def plan_and_apply(
         return f"{prefix}{normalize_path_to_name(path)}", []
 
     # ---------------------------------------------------------------------------
-    # Build shared folder vault names + tags from the shared_folders manifest.
-    #
-    # FIX: shared_tag_map values always default to [sf.path] (the folder name)
-    # rather than [] when _vault_and_tags returns no tags (non-collapse mode).
-    # This ensures every item in a shared folder gets at least the folder name
-    # as a tag, regardless of whether the folder had sub-folders or not.
+    # Build shared folder vault names + tags keyed by full path (parent/child/deeper).
+    # Vault name is always derived from the full path, not child-only.
     # ---------------------------------------------------------------------------
     shared_vault_map: Dict[str, str] = {}
     shared_tag_map: Dict[str, List[str]] = {}
+    vault_names_used: Set[str] = {employee_vault}
     for sf in shared_folders:
+        full_path = normalize_path_to_name(sf.path)
         vault_name, tags = _vault_and_tags(sf.path)
-        shared_vault_map[sf.path] = vault_name
-        # Always tag with at least the folder name — tags may be [] in
-        # non-collapse mode for top-level paths, so fall back to [sf.path].
-        shared_tag_map[sf.path] = tags if tags else [sf.path]
+        shared_vault_map[full_path] = vault_name
+        shared_tag_map[full_path] = tags if tags else [full_path]
+        vault_names_used.add(
+            vault_name
+        )  # so manifest-only folders are created & resolved
 
     private_vault_map: Dict[str, str] = {}
     private_tag_map: Dict[str, List[str]] = {}
@@ -1097,28 +1297,15 @@ async def plan_and_apply(
         # Always tag with at least the folder name.
         private_tag_map[folder] = tags if tags else [folder]
 
-    # All vault names we'll use, accounting for sub-folder routing.
-    # FIX: when a record references a shared folder not in the manifest,
-    # ensure shared_tag_map is populated with at least the folder name.
-    vault_names_used: Set[str] = {employee_vault}
+    # Collect all vault names from record placements (full path per placement).
     for rec in records:
-        for i, sf in enumerate(rec.shared_folders):
-            has_sub = i < len(rec.sub_folders)
-            sub = rec.sub_folders[i] if has_sub else None
-            if has_sub and not collapse_folders:
-                # Without --collapse-folders: child gets its own vault named
-                # after the child folder only (no parent prefix).
-                if sub not in shared_vault_map:
-                    shared_vault_map[sub] = sub
-                    shared_tag_map[sub] = [f"{sf}\\{sub}"]
-                vault_names_used.add(sub)
-            else:
-                if sf not in shared_vault_map:
-                    vault_name, _ = _vault_and_tags(sf)
-                    shared_vault_map[sf] = vault_name
-                    # FIX: always fall back to [sf] so the tag is never empty.
-                    shared_tag_map[sf] = [sf]
-                vault_names_used.add(shared_vault_map[sf])
+        for sf, sub in rec.shared_placements:
+            full_path = _placement_full_path(sf, sub)
+            if full_path not in shared_vault_map:
+                vault_name, tags = _vault_and_tags(full_path)
+                shared_vault_map[full_path] = vault_name
+                shared_tag_map[full_path] = tags if tags else [full_path]
+            vault_names_used.add(shared_vault_map[full_path])
         for f in rec.folders:
             if f not in private_vault_map:
                 vault_name, tags = _vault_and_tags(f, prefix=private_prefix)
@@ -1135,7 +1322,8 @@ async def plan_and_apply(
     # Ensure every vault exists (create via SDK if missing)
     name_to_id, vault_titles = await _vault_name_to_id_map(client)
     need_create = [
-        v for v in vault_names_used
+        v
+        for v in vault_names_used
         if v not in name_to_id and _normalize_vault_name(v) not in name_to_id
     ]
     if need_create and not silent:
@@ -1145,7 +1333,9 @@ async def plan_and_apply(
     if not dry and need_create:
         name_to_id, vault_titles = await _vault_name_to_id_map(client)
         if not silent:
-            print(f"Vaults after create ({len(vault_titles)}): {', '.join(vault_titles)}")
+            print(
+                f"Vaults after create ({len(vault_titles)}): {', '.join(vault_titles)}"
+            )
 
     # Resolve vault names to IDs (for SDK group grants and item creation)
     resolved: Dict[str, str] = {}
@@ -1155,30 +1345,52 @@ async def plan_and_apply(
         else:
             resolved[v] = _resolve_vault_id(name_to_id, v)
 
-    # Apply permission mapping: groups via SDK, users via op CLI
+    # Apply permission mapping: groups via SDK, users via op CLI.
+    # Each SharedFolder (manifest) applies to every vault whose full path
+    # equals or is under that folder path.
     for sf in shared_folders:
-        vault_name = shared_vault_map[sf.path]
-        vault_id = resolved[vault_name]
-        for perm in sf.permissions:
-            if perm.is_group:
-                await _grant_group_permissions_sdk(
-                    client,
-                    vault_id,
-                    perm.name,
-                    manage_users=perm.manage_users,
-                    manage_records=perm.manage_records,
-                    dry=dry,
-                    silent=silent,
-                )
-            else:
-                _grant_user_permissions(
-                    vault_name,
-                    perm.name,
-                    manage_users=perm.manage_users,
-                    manage_records=perm.manage_records,
-                    dry=dry,
-                    silent=silent,
-                )
+        normalized_sf_path = normalize_path_to_name(sf.path)
+        for full_path, vault_name in shared_vault_map.items():
+            if full_path != normalized_sf_path and not full_path.startswith(
+                normalized_sf_path + "/"
+            ):
+                continue
+            try:
+                vault_id = resolved[vault_name]
+            except KeyError:
+                if not silent:
+                    print(
+                        f"WARN: Skipping permissions for vault {vault_name!r} (path {full_path!r}) — not in resolved set.",
+                        file=sys.stderr,
+                    )
+                continue
+            for perm in sf.permissions:
+                try:
+                    if perm.is_group:
+                        await _grant_group_permissions_sdk(
+                            client,
+                            vault_id,
+                            perm.name,
+                            manage_users=perm.manage_users,
+                            manage_records=perm.manage_records,
+                            dry=dry,
+                            silent=silent,
+                        )
+                    else:
+                        _grant_user_permissions(
+                            vault_name,
+                            perm.name,
+                            manage_users=perm.manage_users,
+                            manage_records=perm.manage_records,
+                            dry=dry,
+                            silent=silent,
+                        )
+                except Exception as e:
+                    if not silent:
+                        print(
+                            f"WARN: Skipping permission for {perm.name!r} on vault {vault_name!r}: {e}",
+                            file=sys.stderr,
+                        )
 
     for vault_name in set(private_vault_map.values()):
         if user_for_private:
@@ -1202,29 +1414,24 @@ async def plan_and_apply(
         )
 
     # ---------------------------------------------------------------------------
-    # _destinations: resolve a record's (vault_name, tags) destinations.
-    #
-    # FIX: fall back to [sf] as tag when shared_tag_map has no entry for a
-    # folder key — guards against any remaining key-mismatch edge cases (e.g.
-    # whitespace differences between manifest path and record folder string).
+    # _destinations: resolve a record's (vault_name, tags) from shared_placements
+    # and private folders. Each placement is (shared_folder, sub_folder_or_None);
+    # full path is used to look up vault and tags.
     # ---------------------------------------------------------------------------
     def _destinations(rec: Record) -> List[Tuple[str, List[str]]]:
         dests: List[Tuple[str, List[str]]] = []
-        for i, sf in enumerate(rec.shared_folders):
-            has_sub = i < len(rec.sub_folders)
-            sub = rec.sub_folders[i] if has_sub else None
-
-            if has_sub and not collapse_folders:
-                # Without --collapse-folders: child gets its own vault,
-                # tagged with Parent\Child only.
-                dests.append((sub, [f"{sf}\\{sub}"]))
-            else:
-                # FIX: fall back to [sf] if the key is absent or maps to [].
-                base_tags = shared_tag_map.get(sf) or [sf]
-                # With --collapse-folders: child gets Parent\Child tag
-                if has_sub:
-                    base_tags = [f"{sf}\\{sub}"]
-                dests.append((shared_vault_map[sf], base_tags))
+        for sf, sub in rec.shared_placements:
+            full_path = _placement_full_path(sf, sub)
+            vault_name = shared_vault_map.get(full_path)
+            if vault_name is None:
+                vault_name, _ = _vault_and_tags(full_path)
+                shared_vault_map[full_path] = vault_name
+                shared_tag_map[full_path] = [full_path]
+            base_tags = shared_tag_map.get(full_path) or [full_path]
+            # With --collapse-folders, tag may be parent or parent\child
+            if sub and collapse_folders:
+                base_tags = [f"{sf}\\{sub}".replace("/", "\\")]
+            dests.append((vault_name, base_tags))
         for f in rec.folders:
             if f not in private_vault_map:
                 vn, tg = _vault_and_tags(f, prefix=private_prefix)
@@ -1237,7 +1444,13 @@ async def plan_and_apply(
     if dry:
         for rec in records:
             for vault_name, tags in _destinations(rec):
-                kind = "LOGIN" if rec.category == "Login" else "NOTE"
+                kind = (
+                    "LOGIN"
+                    if rec.category == "Login"
+                    else "CARD"
+                    if rec.category == "Credit Card"
+                    else "NOTE"
+                )
                 names = [a.name for a in rec.attachments]
                 msg = f"DRY-RUN: {kind} '{rec.title}' → vault '{vault_name}'"
                 if tags:
@@ -1265,10 +1478,20 @@ async def plan_and_apply(
                 continue
 
             if rec.category == "Login":
-                params = _build_login_params(vault_id, rec, rec.attachments, tags or None)
+                params = _build_login_params(
+                    vault_id, rec, rec.attachments, tags or None
+                )
+            elif rec.category == "Credit Card":
+                params = _build_credit_card_params(
+                    vault_id, rec, rec.attachments, tags or None
+                )
             else:
-                params = _build_secure_note_params(vault_id, rec, rec.attachments, tags or None)
-            batches[vault_id].append(_PendingItem(params=params, fingerprint=fp, rec=rec))
+                params = _build_secure_note_params(
+                    vault_id, rec, rec.attachments, tags or None
+                )
+            batches[vault_id].append(
+                _PendingItem(params=params, fingerprint=fp, rec=rec)
+            )
 
     if skipped and not silent:
         print(f"⏭  Skipping {skipped} already-completed items")
@@ -1400,9 +1623,13 @@ async def main() -> None:
     ctx = open_input_container(args.input)
     if not args.silent:
         if ctx.is_kdbx:
-            print("Input is KDBX; importing credentials + attachments (≤1MB each). Note: no shared folder permissions in KDBX.")
+            print(
+                "Input is KDBX; importing credentials + attachments (≤1MB each). Note: no shared folder permissions in KDBX."
+            )
         elif ctx.is_zip:
-            print("Input is ZIP; importing credentials, folder structure, and attachments.")
+            print(
+                "Input is ZIP; importing credentials, folder structure, and attachments."
+            )
         else:
             print("Input is JSON; importing without attachments.")
     try:
