@@ -61,6 +61,7 @@ A dedicated vault scoped to the service account is the recommended pattern for i
 2. In the left sidebar, click **New Vault**.
 3. Name it something like `Automated Shares` and save.
 4. Do **not** grant any user or group access. Only the service account (next step) should reach it.
+5. Copy the vault ID from the URL: it looks like `https://[domain].1password.com/vaults/abcd1234efgh5678ijklmnop` — the `abcd1234...` segment is the ID.
 
 ### A2. Create a service account with item + share permissions
 
@@ -71,14 +72,6 @@ A dedicated vault scoped to the service account is the recommended pattern for i
 5. Also add any team-shared vaults your automation workflows need to write into, with at minimum **Read** and **Write**.
 6. Click **Create** and **copy the token**. You will not see it again. Paste it somewhere temporary (a scratch note) for the next section — you'll move it to Azure Key Vault and then delete it from the scratch note.
 
-### A3. Record the vault ID
-
-The SDK needs the vault ID (not the name).
-
-1. In the 1Password web app, open the `Automated Shares` vault.
-2. Copy the vault ID from the URL: it looks like `https://[domain].1password.com/vaults/abcd1234efgh5678ijklmnop` — the `abcd1234...` segment is the ID.
-3. Save it next to the token for the next step.
-
 ---
 
 ## 4. Part B — Azure infrastructure (all in the Portal)
@@ -88,21 +81,27 @@ The SDK needs the vault ID (not the name).
 1. In the Azure Portal, click **Create a resource** (top left).
 2. Search for **Resource group** and click **Create**.
 3. Fill in:
-   - **Subscription:** your subscription
-   - **Resource group name:** `rg-onepassword-automation`
-   - **Region:** pick one close to your primary webhook source (e.g., `East US`, `Canada Central`)
+
+- **Subscription:** your subscription
+- **Resource group name:** `rg-onepassword-automation`
+- **Region:** pick one close to your primary webhook source (e.g., `East US`, `Canada Central`)
+
 4. Click **Review + create** → **Create**.
 
 ### B2. Create the Key Vault
 
 1. Click **Create a resource** → search **Key Vault** → **Create**.
 2. **Basics** tab:
-   - **Resource group:** `rg-onepassword-automation`
-   - **Key vault name:** `kv-onepassword-<something-unique>` (must be globally unique)
-   - **Region:** same as the resource group
-   - **Pricing tier:** Standard
+
+- **Resource group:** `rg-onepassword-automation`
+- **Key vault name:** `kv-onepassword-<something-unique>` (must be globally unique)
+- **Region:** same as the resource group
+- **Pricing tier:** Standard
+
 3. **Access configuration** tab:
-   - **Permission model:** select **Azure role-based access control** (RBAC). This is the modern default and is easier to reason about than access policies.
+
+- **Permission model:** select **Azure role-based access control** (RBAC). This is the modern default and is easier to reason about than access policies.
+
 4. Leave the other tabs on defaults.
 5. Click **Review + create** → **Create**.
 
@@ -110,17 +109,21 @@ The SDK needs the vault ID (not the name).
 
 1. Open the Key Vault you just created.
 2. You'll see a banner saying you don't have access to view secrets — that's expected with the RBAC model. Grant yourself access first:
-   - Click **Access control (IAM)** in the left blade.
-   - Click **Add** → **Add role assignment**.
-   - Role: **Key Vault Secrets Officer**
-   - Assign access to: **User, group, or service principal**
-   - Select your own account.
-   - **Review + assign**.
+
+- Click **Access control (IAM)** in the left blade.
+- Click **Add** → **Add role assignment**.
+- Role: **Key Vault Secrets Officer**
+- Assign access to: **User, group, or service principal**
+- Select your own account.
+- **Review + assign**.
+
 3. Wait ~60 seconds for the role to propagate, then in the Key Vault left blade, click **Secrets** → **Generate/Import**.
 4. Fill in:
-   - **Upload options:** Manual
-   - **Name:** `OP-SERVICE-ACCOUNT-TOKEN` (Key Vault secret names can't contain underscores; use hyphens)
-   - **Secret value:** paste the service account token from step A2
+
+- **Upload options:** Manual
+- **Name:** `OP-SERVICE-ACCOUNT-TOKEN` (Key Vault secret names can't contain underscores; use hyphens)
+- **Secret value:** paste the service account token from step A2
+
 5. Click **Create**.
 6. Open the secret, click the current version, and **copy the Secret Identifier** (it's a URL like `https://kv-onepassword-xxx.vault.azure.net/secrets/OP-SERVICE-ACCOUNT-TOKEN/<version-id>`). You'll use this in step B6.
 7. Delete the token from your scratch note.
@@ -130,12 +133,14 @@ The SDK needs the vault ID (not the name).
 1. Click **Create a resource** → search **Function App** → **Create**.
 2. On the **Select a hosting plan** screen, pick **Flex Consumption**. This plan supports Python 3.11, installs `requirements.txt` automatically, scales to zero, and charges per execution.
 3. **Basics** tab:
-   - **Resource group:** `rg-onepassword-automation`
-   - **Function App name:** `func-onepassword-share-<unique>` (globally unique, becomes part of the URL)
-   - **Region:** same as the resource group
-   - **Runtime stack:** Python
-   - **Version:** 3.11 (or latest supported)
-   - **Instance size:** 2048 MB is plenty
+
+- **Resource group:** `rg-onepassword-automation`
+- **Function App name:** `func-onepassword-share-<unique>` (globally unique, becomes part of the URL)
+- **Region:** same as the resource group
+- **Runtime stack:** Python
+- **Version:** 3.11 (or latest supported)
+- **Instance size:** 2048 MB is plenty
+
 4. **Storage** tab: accept defaults (a new storage account will be created).
 5. **Networking** tab: accept defaults unless your organization requires private endpoints.
 6. **Monitoring** tab: enable Application Insights (strongly recommended — this is how you'll debug).
@@ -167,12 +172,12 @@ The function code will read `OP_SERVICE_ACCOUNT_TOKEN` from its environment. Azu
 2. In the left blade, go to **Settings** → **Environment variables**.
 3. On the **App settings** tab, click **+ Add** and create the following entries one at a time. For the first, paste the Secret Identifier from B3 inside the Key Vault reference syntax.
 
-   | Name                       | Value                                                                   |
-   | -------------------------- | ----------------------------------------------------------------------- |
-   | `OP_SERVICE_ACCOUNT_TOKEN` | `@Microsoft.KeyVault(SecretUri=<paste the Secret Identifier URL here>)` |
-   | `OP_VAULT_ID`              | the vault ID you copied in step A3                                      |
-   | `OP_INTEGRATION_NAME`      | `Azure Function Integration`                                            |
-   | `OP_INTEGRATION_VERSION`   | `v1.0.0`                                                                |
+| Name                       | Value                                                                   |
+| -------------------------- | ----------------------------------------------------------------------- |
+| `OP_SERVICE_ACCOUNT_TOKEN` | `@Microsoft.KeyVault(SecretUri=<paste the Secret Identifier URL here>)` |
+| `OP_VAULT_ID`              | the vault ID you copied in step A1                                      |
+| `OP_INTEGRATION_NAME`      | `Azure Function Integration`                                            |
+| `OP_INTEGRATION_VERSION`   | `v1.0.0`                                                                |
 
 4. Click **Apply** (at the bottom), then **Confirm**. The app will restart.
 5. After ~30 seconds, refresh the page. The `OP_SERVICE_ACCOUNT_TOKEN` entry should show a green check next to it, meaning the Key Vault reference resolved successfully. A red X means the managed identity doesn't have permission yet — give it another minute and refresh.
@@ -183,188 +188,9 @@ The function code will read `OP_SERVICE_ACCOUNT_TOKEN` from its environment. Azu
 
 You need three small files. Create them locally in a folder (call it `op-share-function/`) using any editor — Notepad works.
 
-### C1. `function_app.py`
-
-```python
-import azure.functions as func
-import logging
-import os
-import json
-
-from onepassword.client import Client
-from onepassword import (
-    ItemCreateParams,
-    ItemCategory,
-    ItemField,
-    ItemFieldType,
-    Website,
-    AutofillBehavior,
-    ItemShareParams,
-    ItemShareDuration,
-)
-
-app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
-
-
-@app.route(route="create-shared-item", methods=["POST"])
-async def create_shared_item(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info("Received request to create + share 1Password item")
-
-    # --- Parse and validate request body ---
-    try:
-        body = req.get_json()
-    except ValueError:
-        return _json_error("Request body must be valid JSON", 400)
-
-    title = body.get("title")
-    username = body.get("username")
-    password = body.get("password")
-    website = body.get("website")
-    recipient_emails = body.get("recipients", [])  # optional; empty = anyone with link
-    expire_after = body.get("expireAfter", "SEVEN_DAYS")
-    one_time_only = bool(body.get("oneTimeOnly", False))
-
-    if not (title and username and password):
-        return _json_error(
-            "Fields 'title', 'username', and 'password' are required", 400
-        )
-
-    # --- Pull config from environment ---
-    token = os.environ.get("OP_SERVICE_ACCOUNT_TOKEN")
-    vault_id = os.environ.get("OP_VAULT_ID")
-    if not (token and vault_id):
-        logging.error("Missing OP_SERVICE_ACCOUNT_TOKEN or OP_VAULT_ID")
-        return _json_error("Server misconfiguration", 500)
-
-    integration_name = os.environ.get("OP_INTEGRATION_NAME", "Azure Function Integration")
-    integration_version = os.environ.get("OP_INTEGRATION_VERSION", "v1.0.0")
-
-    # --- Talk to 1Password ---
-    try:
-        client = await Client.authenticate(
-            auth=token,
-            integration_name=integration_name,
-            integration_version=integration_version,
-        )
-
-        # Create the login item
-        fields = [
-            ItemField(
-                id="username",
-                title="username",
-                field_type=ItemFieldType.TEXT,
-                value=username,
-            ),
-            ItemField(
-                id="password",
-                title="password",
-                field_type=ItemFieldType.CONCEALED,
-                value=password,
-            ),
-        ]
-
-        create_params = ItemCreateParams(
-            title=title,
-            category=ItemCategory.LOGIN,
-            vault_id=vault_id,
-            fields=fields,
-        )
-        if website:
-            create_params.websites = [
-                Website(
-                    url=website,
-                    label="website",
-                    autofill_behavior=AutofillBehavior.ANYWHEREONWEBSITE,
-                )
-            ]
-
-        item = await client.items.create(create_params)
-        logging.info("Created item %s in vault %s", item.id, vault_id)
-
-        # Fetch share policy for the account/vault
-        policy = await client.items.shares.get_account_policy(vault_id, item.id)
-
-        # If specific recipients were passed, validate them against the policy
-        valid_recipients = []
-        if recipient_emails:
-            valid_recipients = await client.items.shares.validate_recipients(
-                policy, recipient_emails
-            )
-
-        duration_map = {
-            "ONE_HOUR": ItemShareDuration.ONEHOUR,
-            "ONE_DAY": ItemShareDuration.ONEDAY,
-            "SEVEN_DAYS": ItemShareDuration.SEVENDAYS,
-            "FOURTEEN_DAYS": ItemShareDuration.FOURTEENDAYS,
-            "THIRTY_DAYS": ItemShareDuration.THIRTYDAYS,
-        }
-
-        share_params = ItemShareParams(
-            recipients=valid_recipients,
-            expireAfter=duration_map.get(expire_after, ItemShareDuration.SEVENDAYS),
-            oneTimeOnly=one_time_only,
-        )
-
-        share_link = await client.items.shares.create(item, policy, share_params)
-        logging.info("Generated share link for item %s", item.id)
-
-        return func.HttpResponse(
-            json.dumps(
-                {
-                    "itemId": item.id,
-                    "vaultId": vault_id,
-                    "shareLink": share_link,
-                    "expireAfter": expire_after,
-                    "oneTimeOnly": one_time_only,
-                }
-            ),
-            status_code=200,
-            mimetype="application/json",
-        )
-
-    except Exception as exc:
-        logging.exception("Failed to create or share item")
-        return _json_error(f"1Password operation failed: {exc}", 500)
-
-
-def _json_error(message: str, status_code: int) -> func.HttpResponse:
-    return func.HttpResponse(
-        json.dumps({"error": message}),
-        status_code=status_code,
-        mimetype="application/json",
-    )
-```
-
-> **Note on SDK method names:** The 1Password Python SDK is under active development — exact class names like `ItemField` and `ItemCreateParams` may shift between versions. Before going to production, cross-check against [the official examples](https://github.com/1Password/onepassword-sdk-python/blob/main/example/example.py) and pin the SDK version in `requirements.txt` so future releases don't break you.
-
-### C2. `requirements.txt`
-
-```
-azure-functions
-onepassword-sdk
-```
-
-(Pin versions once you've confirmed things work — e.g. `onepassword-sdk==0.3.1`.)
-
-### C3. `host.json`
-
-```json
-{
-  "version": "2.0",
-  "logging": {
-    "applicationInsights": {
-      "samplingSettings": {
-        "isEnabled": true,
-        "excludedTypes": "Request"
-      }
-    }
-  },
-  "extensionBundle": {
-    "id": "Microsoft.Azure.Functions.ExtensionBundle",
-    "version": "[4.*, 5.0.0)"
-  }
-}
-```
+1. requirements.txt
+2. host.json
+3. function_app.py
 
 ---
 
@@ -374,7 +200,7 @@ This sets up an Azure-managed GitHub Actions pipeline that performs a **remote b
 
 > **Why GitHub Actions specifically:** On the Flex Consumption plan, the Kudu `/ZipDeployUI` page does **not** run `pip install`, and the `SCM_DO_BUILD_DURING_DEPLOYMENT` / `ENABLE_ORYX_BUILD` app settings are ignored. The remote-build trigger has to be passed by the deploy _client_, and the `Azure/functions-action@v1` GitHub Action is the only fully portal-driven path that does this. If you skip the GitHub Actions setup or omit the `remote-build: true` flag, the function will fail at startup with `ModuleNotFoundError: No module named 'onepassword'`.
 
-### D1. Put the code in a GitHub repository
+### D1. Put the code in a new GitHub repository
 
 1. Go to [github.com](https://github.com) and create a new **private** repository, e.g. `your-org/op-share-function`.
 2. In the GitHub web UI, click **Add file** → **Upload files**. Drag in `function_app.py`, `requirements.txt`, and `host.json`. Commit to `main`.
@@ -447,7 +273,6 @@ Use any HTTP tool. Below are two options that don't require installing anything.
 - URL: paste the function URL from E1
 - Headers: `Content-Type: application/json`
 - Body (raw → JSON):
-
   ```json
   {
     "title": "Smoke test credential",
@@ -487,8 +312,8 @@ Verify:
 
 ### E4. When things go wrong
 
-- **`ModuleNotFoundError: No module named 'onepassword'`** → `requirements.txt` didn't run during deploy. On Flex Consumption this almost always means `remote-build: true` is missing from the GitHub Actions workflow. Fix: see Part D, step D3. Verify with the Kudu `api/vfs/...` URL in step D4.
-- **`Error: msg='data did not match any variant of untagged enum Invocation at line 1 column N'`** → you've passed a raw dict where the SDK expects a typed Pydantic model (e.g. assigning `[{"url": "..."}]` to `create_params.websites` instead of a `Website(...)` instance). The Rust core rejects the malformed JSON and surfaces an opaque enum-mismatch error rather than a useful "missing required field" message. Fix: use the typed model, including all required fields like `Website.autofill_behavior`.
+- `**ModuleNotFoundError: No module named 'onepassword'**` → `requirements.txt` didn't run during deploy. On Flex Consumption this almost always means `remote-build: true` is missing from the GitHub Actions workflow. Fix: see Part D, step D3. Verify with the Kudu `api/vfs/...` URL in step D4.
+- `**Error: msg='data did not match any variant of untagged enum Invocation at line 1 column N'**` → you've passed a raw dict where the SDK expects a typed Pydantic model (e.g. assigning `[{"url": "..."}]` to `create_params.websites` instead of a `Website(...)` instance). The Rust core rejects the malformed JSON and surfaces an opaque enum-mismatch error rather than a useful "missing required field" message. Fix: use the typed model, including all required fields like `Website.autofill_behavior`.
 - **401 from 1Password** → service account token is wrong or lacks permissions. Check B6 access and A2 permissions (Share permission must be explicitly added).
 - **Key Vault reference resolution failed** (red X in B7) → managed identity role assignment hasn't propagated, or the Key Vault Secret URI is malformed. Re-check B6 and re-paste the URI in B7.
 - **Function not visible after deploy** → restart the Function App from its **Overview** page, then refresh **Functions**.
@@ -502,10 +327,10 @@ Since the function already accepts a POST webhook, the remaining work is just on
 
 1. In Jira, go to **Settings** (gear icon) → **System** → **WebHooks** (or, for Jira Automation, create an automation rule with a **Send web request** action).
 2. Point the webhook at the function URL from E1 (including the `?code=...` key).
-3. Map the issue fields Nextech is already using to the JSON body shown in E2. Jira Automation lets you template the body with smart values like `{{issue.fields.summary}}`.
+3. Map the issue fields to the JSON body shown in E2. Jira Automation lets you template the body with smart values like `{{issue.fields.summary}}`.
 4. Optional but recommended: generate a second function key for Jira specifically (Function App → your function → **Function Keys** → **New function key**), so you can revoke it independently.
 
-The email-delivery piece Ben mentioned on the call (sending the share link to the requester) is a separate concern — once the function returns the share link in the response, Jira Automation can pipe that into an **Send email** action, or you can route the response to a Logic App as Benjamin originally suggested.
+The email-delivery piece (sending the share link to the requester) is a separate concern — once the function returns the share link in the response, Jira Automation can pipe that into an **Send email** action, or you can route the response to a Logic App.
 
 ---
 
@@ -513,19 +338,19 @@ The email-delivery piece Ben mentioned on the call (sending the share link to th
 
 Before production, confirm:
 
-- [ ] Service account has access only to the vaults it needs, at the minimum permission level.
-- [ ] `Automated Shares` vault has no human members — only the service account.
-- [ ] Function key is treated as a secret (store it in Jira's secret manager, not in plain-text automation config).
-- [ ] Key Vault has **purge protection** and **soft delete** on (defaults are fine, but verify on the Key Vault **Properties** blade).
-- [ ] Application Insights has a log retention policy that complies with your data policy (default is 90 days).
-- [ ] Consider locking down the Function App with IP restrictions if Jira Cloud egress IPs are available, or with Private Endpoints if you're on an isolated SKU later.
-- [ ] Rotate the 1Password service account token on a schedule; Azure Key Vault makes version rotation painless (upload new version, the Key Vault reference automatically picks up the latest).
+- Service account has access only to the vaults it needs, at the minimum permission level.
+- `Automated Shares` vault has no human members — only the service account.
+- Function key is treated as a secret (store it in Jira's secret manager, not in plain-text automation config).
+- Key Vault has **purge protection** and **soft delete** on (defaults are fine, but verify on the Key Vault **Properties** blade).
+- Application Insights has a log retention policy that complies with your data policy (default is 90 days).
+- Consider locking down the Function App with IP restrictions if Jira Cloud egress IPs are available, or with Private Endpoints if you're on an isolated SKU later.
+- Rotate the 1Password service account token on a schedule; Azure Key Vault makes version rotation painless (upload new version, the Key Vault reference automatically picks up the latest).
 
 ---
 
 ## 10. Appendix — PowerShell + container alternative (sketch)
 
-If you later want to go back to PowerShell (Nextech's native stack), the path looks like this:
+If you later want to switch to PowerShell, the path looks like this:
 
 1. Build a Docker image based on `mcr.microsoft.com/azure-functions/powershell:4` that installs the `op` CLI via a RUN step pulling the binary from `https://cache.agilebits.com/dist/1P/op2/pkg/...`.
 2. Push the image to Azure Container Registry (create one via **Create a resource** → **Container Registry**).
