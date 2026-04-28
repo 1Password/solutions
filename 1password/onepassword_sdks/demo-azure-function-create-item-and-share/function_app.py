@@ -5,30 +5,15 @@ import json
 import subprocess
 import sys
 
-# Install pinned 1Password SDK if not already present
-try:
-    from onepassword.client import Client
-    from onepassword import (
-        ItemCreateParams,
-        ItemCategory,
-        ItemField,
-        ItemFieldType,
-        ItemShareParams,
-        ItemShareDuration,
-    )
-except ImportError:
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "onepassword-sdk==0.4.0", "--quiet"]
-    )
-    from onepassword.client import Client
-    from onepassword import (
-        ItemCreateParams,
-        ItemCategory,
-        ItemField,
-        ItemFieldType,
-        ItemShareParams,
-        ItemShareDuration,
-    )
+from onepassword.client import Client
+from onepassword import (
+    ItemCreateParams,
+    ItemCategory,
+    ItemField,
+    ItemFieldType,
+    ItemShareParams,
+    ItemShareDuration,
+)
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
@@ -37,7 +22,7 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 async def create_shared_item(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Received request to create + share 1Password item")
 
-    # Parse and validate request body
+    # --- Parse and validate request body ---
     try:
         body = req.get_json()
     except ValueError:
@@ -47,7 +32,7 @@ async def create_shared_item(req: func.HttpRequest) -> func.HttpResponse:
     username = body.get("username")
     password = body.get("password")
     website = body.get("website")
-    recipient_emails = body.get("recipients", [])
+    recipient_emails = body.get("recipients", [])  # optional; empty = anyone with link
     expire_after = body.get("expireAfter", "SEVEN_DAYS")
     one_time_only = bool(body.get("oneTimeOnly", False))
 
@@ -56,7 +41,7 @@ async def create_shared_item(req: func.HttpRequest) -> func.HttpResponse:
             "Fields 'title', 'username', and 'password' are required", 400
         )
 
-    # Pull config from environment
+    # --- Pull config from environment ---
     token = os.environ.get("OP_SERVICE_ACCOUNT_TOKEN")
     vault_id = os.environ.get("OP_VAULT_ID")
     if not (token and vault_id):
@@ -66,6 +51,7 @@ async def create_shared_item(req: func.HttpRequest) -> func.HttpResponse:
     integration_name = os.environ.get("OP_INTEGRATION_NAME", "1Password Azure Function")
     integration_version = os.environ.get("OP_INTEGRATION_VERSION", "v1.0.0")
 
+    # --- Talk to 1Password ---
     try:
         client = await Client.authenticate(
             auth=token,
