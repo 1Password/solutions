@@ -63,7 +63,7 @@ async def create_shared_item(req: func.HttpRequest) -> func.HttpResponse:
         logging.error("Missing OP_SERVICE_ACCOUNT_TOKEN or OP_VAULT_ID")
         return _json_error("Server misconfiguration", 500)
 
-    integration_name = os.environ.get("OP_INTEGRATION_NAME", "Nextech Azure Function")
+    integration_name = os.environ.get("OP_INTEGRATION_NAME", "1Password Azure Function")
     integration_version = os.environ.get("OP_INTEGRATION_VERSION", "v1.0.0")
 
     try:
