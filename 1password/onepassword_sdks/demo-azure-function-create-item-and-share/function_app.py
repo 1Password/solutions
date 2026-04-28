@@ -7,12 +7,14 @@ import sys
 
 from onepassword.client import Client
 from onepassword import (
+    AutofillBehavior,
     ItemCreateParams,
     ItemCategory,
     ItemField,
     ItemFieldType,
     ItemShareParams,
     ItemShareDuration,
+    Website,
 )
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
@@ -82,7 +84,13 @@ async def create_shared_item(req: func.HttpRequest) -> func.HttpResponse:
             fields=fields,
         )
         if website:
-            create_params.websites = [{"url": website, "label": "website"}]
+            create_params.websites = [
+                Website(
+                    url=website,
+                    label="website",
+                    autofill_behavior=AutofillBehavior.ANYWHEREONWEBSITE,
+                )
+            ]
 
         item = await client.items.create(create_params)
         logging.info("Created item %s in vault %s", item.id, vault_id)
