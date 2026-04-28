@@ -65,8 +65,8 @@ A dedicated vault scoped to the service account is the recommended pattern for i
 
 ### A2. Create a service account with item + share permissions
 
-1. In the 1Password web app, go to **Settings** (bottom of left sidebar) → **Developer** → **Service Accounts**, or use the **Developer** section in the left sidebar directly.
-2. Click **Create Service Account**.
+1. In the 1Password admin dashboard, **Developer** → **Service Accounts**.
+2. Click **New Service Account**.
 3. Name it something descriptive like `azure-function-integration`.
 4. Under **Vault Access**, add the `Automated Shares` vault with **Read, Write, and Share** permissions. The Share permission is mandatory — without it, `items.shares.create()` fails.
 5. Also add any team-shared vaults your automation workflows need to write into, with at minimum **Read** and **Write**.
@@ -86,7 +86,7 @@ A dedicated vault scoped to the service account is the recommended pattern for i
 - **Resource group name:** `rg-onepassword-automation`
 - **Region:** pick one close to your primary webhook source (e.g., `East US`, `Canada Central`)
 
-4. Click **Review + create** → **Create**.
+1. Click **Review + create** → **Create**.
 
 ### B2. Create the Key Vault
 
@@ -98,12 +98,12 @@ A dedicated vault scoped to the service account is the recommended pattern for i
 - **Region:** same as the resource group
 - **Pricing tier:** Standard
 
-3. **Access configuration** tab:
+1. **Access configuration** tab:
 
 - **Permission model:** select **Azure role-based access control** (RBAC). This is the modern default and is easier to reason about than access policies.
 
-4. Leave the other tabs on defaults.
-5. Click **Review + create** → **Create**.
+1. Leave the other tabs on defaults.
+2. Click **Review + create** → **Create**.
 
 ### B3. Store the service account token as a secret
 
@@ -117,16 +117,16 @@ A dedicated vault scoped to the service account is the recommended pattern for i
 - Select your own account.
 - **Review + assign**.
 
-3. Wait ~60 seconds for the role to propagate, then in the Key Vault left blade, click **Secrets** → **Generate/Import**.
-4. Fill in:
+1. Wait ~60 seconds for the role to propagate, then in the Key Vault left blade, click **Secrets** → **Generate/Import**.
+2. Fill in:
 
 - **Upload options:** Manual
 - **Name:** `OP-SERVICE-ACCOUNT-TOKEN` (Key Vault secret names can't contain underscores; use hyphens)
 - **Secret value:** paste the service account token from step A2
 
-5. Click **Create**.
-6. Open the secret, click the current version, and **copy the Secret Identifier** (it's a URL like `https://kv-onepassword-xxx.vault.azure.net/secrets/OP-SERVICE-ACCOUNT-TOKEN/<version-id>`). You'll use this in step B6.
-7. Delete the token from your scratch note.
+1. Click **Create**.
+2. Open the secret, click the current version, and **copy the Secret Identifier** (it's a URL like `https://kv-onepassword-xxx.vault.azure.net/secrets/OP-SERVICE-ACCOUNT-TOKEN/<version-id>`). You'll use this in step B6.
+3. Delete the token from your scratch note.
 
 ### B4. Create the Function App
 
@@ -141,11 +141,11 @@ A dedicated vault scoped to the service account is the recommended pattern for i
 - **Version:** 3.11 (or latest supported)
 - **Instance size:** 2048 MB is plenty
 
-4. **Storage** tab: accept defaults (a new storage account will be created).
-5. **Networking** tab: accept defaults unless your organization requires private endpoints.
-6. **Monitoring** tab: enable Application Insights (strongly recommended — this is how you'll debug).
-7. **Deployment** tab: skip for now (we'll wire up deployment in Part D).
-8. Click **Review + create** → **Create**. Provisioning takes 2–3 minutes.
+1. **Storage** tab: accept defaults (a new storage account will be created).
+2. **Networking** tab: accept defaults unless your organization requires private endpoints.
+3. **Monitoring** tab: enable Application Insights (strongly recommended — this is how you'll debug).
+4. **Deployment** tab: skip for now (we'll wire up deployment in Part D).
+5. Click **Review + create** → **Create**. Provisioning takes 2–3 minutes.
 
 ### B5. Enable the Function App's system-assigned managed identity
 
@@ -172,6 +172,7 @@ The function code will read `OP_SERVICE_ACCOUNT_TOKEN` from its environment. Azu
 2. In the left blade, go to **Settings** → **Environment variables**.
 3. On the **App settings** tab, click **+ Add** and create the following entries one at a time. For the first, paste the Secret Identifier from B3 inside the Key Vault reference syntax.
 
+
 | Name                       | Value                                                                   |
 | -------------------------- | ----------------------------------------------------------------------- |
 | `OP_SERVICE_ACCOUNT_TOKEN` | `@Microsoft.KeyVault(SecretUri=<paste the Secret Identifier URL here>)` |
@@ -179,8 +180,9 @@ The function code will read `OP_SERVICE_ACCOUNT_TOKEN` from its environment. Azu
 | `OP_INTEGRATION_NAME`      | `Azure Function Integration`                                            |
 | `OP_INTEGRATION_VERSION`   | `v1.0.0`                                                                |
 
-4. Click **Apply** (at the bottom), then **Confirm**. The app will restart.
-5. After ~30 seconds, refresh the page. The `OP_SERVICE_ACCOUNT_TOKEN` entry should show a green check next to it, meaning the Key Vault reference resolved successfully. A red X means the managed identity doesn't have permission yet — give it another minute and refresh.
+
+1. Click **Apply** (at the bottom), then **Confirm**. The app will restart.
+2. After ~30 seconds, refresh the page. The `OP_SERVICE_ACCOUNT_TOKEN` entry should show a green check next to it, meaning the Key Vault reference resolved successfully. A red X means the managed identity doesn't have permission yet — give it another minute and refresh.
 
 ---
 
@@ -198,7 +200,7 @@ You need three small files. Create them locally in a folder (call it `op-share-f
 
 This sets up an Azure-managed GitHub Actions pipeline that performs a **remote build** (running `pip install -r requirements.txt` on Azure). Every push to the repo auto-deploys, and updates take effect within a few minutes of committing a change.
 
-> **Why GitHub Actions specifically:** On the Flex Consumption plan, the Kudu `/ZipDeployUI` page does **not** run `pip install`, and the `SCM_DO_BUILD_DURING_DEPLOYMENT` / `ENABLE_ORYX_BUILD` app settings are ignored. The remote-build trigger has to be passed by the deploy _client_, and the `Azure/functions-action@v1` GitHub Action is the only fully portal-driven path that does this. If you skip the GitHub Actions setup or omit the `remote-build: true` flag, the function will fail at startup with `ModuleNotFoundError: No module named 'onepassword'`.
+> **Why GitHub Actions specifically:** On the Flex Consumption plan, the Kudu `/ZipDeployUI` page does **not** run `pip install`, and the `SCM_DO_BUILD_DURING_DEPLOYMENT` / `ENABLE_ORYX_BUILD` app settings are ignored. The remote-build trigger has to be passed by the deploy *client*, and the `Azure/functions-action@v1` GitHub Action is the only fully portal-driven path that does this. If you skip the GitHub Actions setup or omit the `remote-build: true` flag, the function will fail at startup with `ModuleNotFoundError: No module named 'onepassword'`.
 
 ### D1. Put the code in a new GitHub repository
 
@@ -260,7 +262,7 @@ For changes to **environment variables** (App Settings or Key Vault references) 
 ### E1. Get the function URL and key
 
 1. Open the Function App.
-2. Left blade → **Functions** → click **create_shared_item** (it should appear once deployment is complete; refresh if it doesn't).
+2. Overview → **Functions** → click **create_shared_item** (it should appear once deployment is complete; refresh if it doesn't).
 3. Click **Get Function URL** (top of the page) → copy the URL with the `?code=...` key appended.
 
 ### E2. Smoke test
@@ -283,6 +285,7 @@ Use any HTTP tool. Below are two options that don't require installing anything.
     "oneTimeOnly": false
   }
   ```
+  `website`, `expireAfter`, and `oneTimeOnly` are optional. You can also pass `recipients` (a list of email strings) when your 1Password account policy allows recipient-restricted links; omit it for “anyone with the link” shares.
 
 **Option B — Azure Portal's built-in test pane**
 
@@ -313,7 +316,7 @@ Verify:
 ### E4. When things go wrong
 
 - `**ModuleNotFoundError: No module named 'onepassword'**` → `requirements.txt` didn't run during deploy. On Flex Consumption this almost always means `remote-build: true` is missing from the GitHub Actions workflow. Fix: see Part D, step D3. Verify with the Kudu `api/vfs/...` URL in step D4.
-- `**Error: msg='data did not match any variant of untagged enum Invocation at line 1 column N'**` → you've passed a raw dict where the SDK expects a typed Pydantic model (e.g. assigning `[{"url": "..."}]` to `create_params.websites` instead of a `Website(...)` instance). The Rust core rejects the malformed JSON and surfaces an opaque enum-mismatch error rather than a useful "missing required field" message. Fix: use the typed model, including all required fields like `Website.autofill_behavior`.
+- `**Error: msg='data did not match any variant of untagged enum Invocation at line 1 column N'**` → the SDK received a shape it could not deserialize (often when extending `ItemCreateParams` or share APIs with the wrong types). The Rust core surfaces an opaque enum-mismatch error instead of a clear field message. Fix: match the SDK’s typed models and required fields (for example, if you add `websites`, use the SDK’s `Website` type and include fields such as `autofill_behavior` rather than ad hoc dicts).
 - **401 from 1Password** → service account token is wrong or lacks permissions. Check B6 access and A2 permissions (Share permission must be explicitly added).
 - **Key Vault reference resolution failed** (red X in B7) → managed identity role assignment hasn't propagated, or the Key Vault Secret URI is malformed. Re-check B6 and re-paste the URI in B7.
 - **Function not visible after deploy** → restart the Function App from its **Overview** page, then refresh **Functions**.
@@ -357,13 +360,14 @@ If you later want to switch to PowerShell, the path looks like this:
 3. Create a Function App on the **Container Apps** hosting plan and point it at the image.
 4. Write `run.ps1` that uses `op item create` and `op item share` with the service account token.
 
-This is the "hard mode" path from the call — the Python SDK route above was designed specifically to avoid it. Treat this as the fallback only if a hard constraint forces PowerShell.
+This is the heavier operational path — the Python SDK route above avoids it. Treat this as the fallback only if a hard constraint forces PowerShell.
 
 ---
 
 ## 11. Summary of what this delivers
 
-| Requirement from the call                                        | Addressed by                                      |
+
+| Typical integration requirement                                  | Addressed by                                      |
 | ---------------------------------------------------------------- | ------------------------------------------------- |
 | Serverless, not VM-hosted                                        | Azure Function App, Flex Consumption plan         |
 | Item creation                                                    | `client.items.create(...)`                        |
@@ -374,5 +378,6 @@ This is the "hard mode" path from the call — the Python SDK route above was de
 | Deployable through Azure UI                                      | Deployment Center → GitHub Actions                |
 | Managed-identity auth for the token                              | Key Vault + system-assigned identity, Parts B5–B7 |
 | Return-the-share-link contract so Jira/logic apps can forward it | JSON response body in E3                          |
+
 
 Total clicks to stand it up from scratch, once the code is in a repo: roughly 40. Total time, including the first deploy: under an hour.
