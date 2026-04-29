@@ -86,7 +86,7 @@ A dedicated vault scoped to the service account is the recommended pattern for i
 - **Resource group name:** `rg-onepassword-automation`
 - **Region:** pick one close to your primary webhook source (e.g., `East US`, `Canada Central`)
 
-4. Click **Review + create** → **Create**.
+1. Click **Review + create** → **Create**.
 
 ### B2. Create the Key Vault
 
@@ -98,12 +98,12 @@ A dedicated vault scoped to the service account is the recommended pattern for i
 - **Region:** same as the resource group
 - **Pricing tier:** Standard
 
-3. **Access configuration** tab:
+1. **Access configuration** tab:
 
 - **Permission model:** select **Azure role-based access control** (RBAC). This is the modern default and is easier to reason about than access policies.
 
-4. Leave the other tabs on defaults.
-5. Click **Review + create** → **Create**.
+1. Leave the other tabs on defaults.
+2. Click **Review + create** → **Create**.
 
 ### B3. Store the service account token as a secret
 
@@ -117,16 +117,16 @@ A dedicated vault scoped to the service account is the recommended pattern for i
 - Select your own account.
 - **Review + assign**.
 
-3. Wait ~60 seconds for the role to propagate, then in the Key Vault left blade, click **Secrets** → **Generate/Import**.
-4. Fill in:
+1. Wait ~60 seconds for the role to propagate, then in the Key Vault left blade, click **Secrets** → **Generate/Import**.
+2. Fill in:
 
 - **Upload options:** Manual
 - **Name:** `OP-SERVICE-ACCOUNT-TOKEN` (Key Vault secret names can't contain underscores; use hyphens)
 - **Secret value:** paste the service account token from step A2
 
-5. Click **Create**.
-6. Open the secret, click the current version, and **copy the Secret Identifier** (it's a URL like `https://kv-onepassword-xxx.vault.azure.net/secrets/OP-SERVICE-ACCOUNT-TOKEN/<version-id>`). You'll use this in step B6.
-7. Delete the token from your scratch note.
+1. Click **Create**.
+2. Open the secret, click the current version, and **copy the Secret Identifier** (it's a URL like `https://kv-onepassword-xxx.vault.azure.net/secrets/OP-SERVICE-ACCOUNT-TOKEN/<version-id>`). You'll use this in step B6.
+3. Delete the token from your scratch note.
 
 ### B4. Create the Function App
 
@@ -141,11 +141,11 @@ A dedicated vault scoped to the service account is the recommended pattern for i
 - **Version:** 3.11 (or latest supported)
 - **Instance size:** 2048 MB is plenty
 
-4. **Storage** tab: accept defaults (a new storage account will be created).
-5. **Networking** tab: accept defaults unless your organization requires private endpoints.
-6. **Monitoring** tab: enable Application Insights (strongly recommended — this is how you'll debug).
-7. **Deployment** tab: skip for now (we'll wire up deployment in Part D).
-8. Click **Review + create** → **Create**. Provisioning takes 2–3 minutes.
+1. **Storage** tab: accept defaults (a new storage account will be created).
+2. **Networking** tab: accept defaults unless your organization requires private endpoints.
+3. **Monitoring** tab: enable Application Insights (strongly recommended — this is how you'll debug).
+4. **Deployment** tab: skip for now (we'll wire up deployment in Part D).
+5. Click **Review + create** → **Create**. Provisioning takes 2–3 minutes.
 
 ### B5. Enable the Function App's system-assigned managed identity
 
@@ -172,6 +172,7 @@ The function code will read `OP_SERVICE_ACCOUNT_TOKEN` from its environment. Azu
 2. In the left blade, go to **Settings** → **Environment variables**.
 3. On the **App settings** tab, click **+ Add** and create the following entries one at a time. For the first, paste the Secret Identifier from B3 inside the Key Vault reference syntax.
 
+
 | Name                       | Value                                                                   |
 | -------------------------- | ----------------------------------------------------------------------- |
 | `OP_SERVICE_ACCOUNT_TOKEN` | `@Microsoft.KeyVault(SecretUri=<paste the Secret Identifier URL here>)` |
@@ -179,14 +180,20 @@ The function code will read `OP_SERVICE_ACCOUNT_TOKEN` from its environment. Azu
 | `OP_INTEGRATION_NAME`      | `Azure Function Integration`                                            |
 | `OP_INTEGRATION_VERSION`   | `v1.0.0`                                                                |
 
-4. Click **Apply** (at the bottom), then **Confirm**. The app will restart.
-5. After ~30 seconds, refresh the page. The `OP_SERVICE_ACCOUNT_TOKEN` entry should show a green check next to it, meaning the Key Vault reference resolved successfully. A red X means the managed identity doesn't have permission yet — give it another minute and refresh.
+
+1. Click **Apply** (at the bottom), then **Confirm**. The app will restart.
+2. After ~30 seconds, refresh the page. The `OP_SERVICE_ACCOUNT_TOKEN` entry should show a green check next to it, meaning the Key Vault reference resolved successfully. A red X means the managed identity doesn't have permission yet — give it another minute and refresh.
 
 ---
 
 ## 5. Part C — Prepare the function code
 
-You need three small files. Create them locally in a folder (call it `op-share-function/`) using any editor — Notepad works.
+You'll need three files on your local computer to get started. For each file listed below, either:
+
+- **Download it** directly to a folder on your computer, or
+- **Copy and paste** its contents into a new file with the same name
+
+Files needed:
 
 1. requirements.txt
 2. host.json
@@ -198,7 +205,7 @@ You need three small files. Create them locally in a folder (call it `op-share-f
 
 This sets up an Azure-managed GitHub Actions pipeline that performs a **remote build** (running `pip install -r requirements.txt` on Azure). Every push to the repo auto-deploys, and updates take effect within a few minutes of committing a change.
 
-> **Why GitHub Actions specifically:** On the Flex Consumption plan, the Kudu `/ZipDeployUI` page does **not** run `pip install`, and the `SCM_DO_BUILD_DURING_DEPLOYMENT` / `ENABLE_ORYX_BUILD` app settings are ignored. The remote-build trigger has to be passed by the deploy _client_, and the `Azure/functions-action@v1` GitHub Action is the only fully portal-driven path that does this. If you skip the GitHub Actions setup or omit the `remote-build: true` flag, the function will fail at startup with `ModuleNotFoundError: No module named 'onepassword'`.
+> **Why GitHub Actions specifically:** On the Flex Consumption plan, the Kudu `/ZipDeployUI` page does **not** run `pip install`, and the `SCM_DO_BUILD_DURING_DEPLOYMENT` / `ENABLE_ORYX_BUILD` app settings are ignored. The remote-build trigger has to be passed by the deploy *client*, and the `Azure/functions-action@v1` GitHub Action is the only fully portal-driven path that does this. If you skip the GitHub Actions setup or omit the `remote-build: true` flag, the function will fail at startup with `ModuleNotFoundError: No module named 'onepassword'`.
 
 ### D1. Put the code in a new GitHub repository
 
@@ -231,17 +238,7 @@ This is the critical step. In your GitHub repo, open `.github/workflows/<generat
 
 If `remote-build: true` isn't there, click the pencil icon to edit the YAML, add the line, and commit. The next push triggers a deploy that builds dependencies on the Azure side. Watch the **Actions** tab in your repo — you should see `pip install -r requirements.txt` running during the deploy.
 
-### D4. Verify the install succeeded
-
-Open Kudu (Function App → **Development Tools** → **Advanced Tools** → **Go**) and navigate in the browser to:
-
-```
-https://<your-func-app>.scm.azurewebsites.net/api/vfs/site/wwwroot/.python_packages/lib/site-packages/
-```
-
-You should see an `onepassword/` directory in the listing. If it's missing, the remote build didn't run — revisit step D3.
-
-### D5. Redeploying after code changes
+### D4. Redeploying after code changes
 
 To push an update:
 
@@ -364,16 +361,18 @@ This is the heavier operational path — the Python SDK route above avoids it. T
 
 ## 11. Summary of what this delivers
 
+
 | Typical integration requirement                                  | Addressed by                                      |
 | ---------------------------------------------------------------- | ------------------------------------------------- |
 | Serverless, not VM-hosted                                        | Azure Function App, Flex Consumption plan         |
 | Item creation                                                    | `client.items.create(...)`                        |
 | Share link generation (Connect Server can't do this)             | `client.items.shares.create(...)`                 |
 | Dedicated vault owned only by service account                    | Part A1 + A2                                      |
-| Webhook-triggered (from Jira)                                    | HTTP-triggered function, Part F                   |
+| Webhook-triggered (ie. from Jira)                                | HTTP-triggered function, Part F                   |
 | No container build required                                      | Python SDK via `requirements.txt`                 |
 | Deployable through Azure UI                                      | Deployment Center → GitHub Actions                |
 | Managed-identity auth for the token                              | Key Vault + system-assigned identity, Parts B5–B7 |
 | Return-the-share-link contract so Jira/logic apps can forward it | JSON response body in E3                          |
+
 
 Total clicks to stand it up from scratch, once the code is in a repo: roughly 40. Total time, including the first deploy: under an hour.
