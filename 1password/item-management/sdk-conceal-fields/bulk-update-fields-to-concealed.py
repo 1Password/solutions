@@ -48,11 +48,14 @@ import argparse
 import asyncio
 import datetime
 import json
+import logging
 import os
 import re
 import shlex
 import subprocess
 import sys
+import time
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
@@ -62,6 +65,33 @@ from onepassword.types import ItemFieldType
 
 INTEGRATION_NAME = "conceal-custom-fields"
 INTEGRATION_VERSION = "v1.0.0"
+
+# ---------------------------------------------------------------------------
+# Logging — writes to conceal_custom_fields.log in cwd.
+# NEVER logs field values, passwords, tokens, or any credential material.
+# ---------------------------------------------------------------------------
+RUN_ID = uuid.uuid4().hex[:12]
+_log_fmt = "%(asctime)s %(levelname)-8s run=%(run_id)s %(message)s"
+
+class _RunIdFilter(logging.Filter):
+    def filter(self, record):
+        record.run_id = RUN_ID
+        return True
+
+def _setup_logging():
+    logger = logging.getLogger("ccf")
+    logger.setLevel(logging.DEBUG)
+    logger.addFilter(_RunIdFilter())
+    fh = logging.FileHandler(
+        os.path.join(os.getcwd(), "conceal_custom_fields.log"), encoding="utf-8",
+    )
+    fh.setLevel(logging.DEBUG)
+    fh.setFormatter(logging.Formatter(_log_fmt, datefmt="%Y-%m-%dT%H:%M:%S"))
+    fh.addFilter(_RunIdFilter())
+    logger.addHandler(fh)
+    return logger
+
+log = _setup_logging()
 
 # Built-in 1Password vault names — service accounts cannot be granted access
 # to any of these per the docs, so we skip them up front.
@@ -165,28 +195,39 @@ for _name in (
 
 def run_op_cli(args: list[str]) -> str:
     """Run `op <args>` and return stdout. Raises on non-zero exit."""
+    safe_args = [("***" if a.startswith("ops_") else a) for a in args]
+    log.debug("op cli start: op %s", " ".join(shlex.quote(a) for a in safe_args))
+    t0 = time.monotonic()
     result = subprocess.run(["op", *args], capture_output=True, text=True)
+    elapsed = (time.monotonic() - t0) * 1000
     if result.returncode != 0:
+        log.error("op cli failed: op %s rc=%d elapsed=%.0fms", " ".join(shlex.quote(a) for a in safe_args), result.returncode, elapsed)
         raise RuntimeError(
             f"op {' '.join(shlex.quote(a) for a in args)} failed:\n"
             f"{result.stderr.strip()}"
         )
+    log.debug("op cli ok: op %s elapsed=%.0fms", " ".join(shlex.quote(a) for a in safe_args), elapsed)
     return result.stdout
 
 
 def get_current_user_id() -> str:
     """Return the current user's id from `op whoami`."""
+    log.info("Resolving current user via op whoami")
     data = json.loads(run_op_cli(["whoami", "--format", "json"]))
     for key in ("user_uuid", "user_id", "id", "ID"):
         value = data.get(key)
         if value:
+            log.info("Current user resolved: user_id=%s", value)
             return value
     raise RuntimeError(f"Could not extract user id from `op whoami`: {data}")
 
 
 def list_all_vaults() -> list[dict[str, Any]]:
     """List every vault the current user has access to."""
-    return json.loads(run_op_cli(["vault", "list", "--format", "json"]))
+    log.info("Listing all vaults")
+    result = json.loads(run_op_cli(["vault", "list", "--format", "json"]))
+    log.info("Found %d vault(s)", len(result))
+    return result
 
 
 def extract_user_perms(entry: dict[str, Any]) -> tuple[str | None, list[str]]:
@@ -210,15 +251,18 @@ def extract_user_perms(entry: dict[str, Any]) -> tuple[str | None, list[str]]:
 
 def user_manages_vault(user_id: str, vault_id: str) -> bool:
     """Check whether the current user has Manage permission on this vault."""
+    log.debug("Checking manage permission: user_id=%s vault_id=%s", user_id, vault_id)
     try:
         raw = run_op_cli(["vault", "user", "list", vault_id, "--format", "json"])
     except RuntimeError:
+        log.debug("Permission check failed: vault_id=%s", vault_id)
         return False
     for entry in json.loads(raw):
         entry_user_id, perms = extract_user_perms(entry)
         if entry_user_id != user_id:
             continue
         return any(p in MANAGE_PERMISSIONS for p in perms)
+    log.debug("User not found in vault user list: vault_id=%s", vault_id)
     return False
 
 
@@ -268,6 +312,7 @@ def find_manageable_vaults(
                 print(f"  ✓ [{completed}/{len(candidates)}] {v['name']}")
 
     manageable.sort(key=lambda v: v.get("name", "").lower())
+    log.info("Manageable vault discovery complete: count=%d", len(manageable))
     return manageable
 
 
@@ -329,6 +374,7 @@ def save_token_to_1password(
             f"password={token}",
         ]
     )
+    log.info("SA token saved: vault=%r item_title=%r", vault_name, title)
 
 
 def create_service_account(
@@ -341,6 +387,7 @@ def create_service_account(
     Returns the SA token. The CLI only prints it once, so the caller is
     responsible for using it immediately or storing it.
     """
+    log.info("Creating SA: name=%r vault_count=%d expires_in=%s", name, len(vaults), expires_in)
     args = [
         "service-account",
         "create",
@@ -358,6 +405,7 @@ def create_service_account(
             "Service account was created but the token couldn't be parsed "
             f"from the CLI output:\n{out!r}"
         )
+    log.info("SA created: name=%r token_length=%d", name, len(match.group(0)))
     return match.group(0)
 
 
@@ -389,7 +437,9 @@ async def build_sdk_client(token: str) -> Client:
 
 async def process_item(client: Client, item, apply_changes: bool) -> int:
     """Conceal eligible custom fields on one item. Returns count changed."""
+    log.debug("Processing item: item_id=%s field_count=%d", item.id, len(item.fields or []))
     if item_has_unsupported_field(item):
+        log.info("Skipping item (UNSUPPORTED field): item_id=%s", item.id)
         print(
             f"  · skipping {item.title!r} ({item.id}): contains an UNSUPPORTED "
             "field type; the SDK can't write this item back."
@@ -408,15 +458,19 @@ async def process_item(client: Client, item, apply_changes: bool) -> int:
     if not changed:
         return 0
 
+    log.info("Concealing: item_id=%s fields=%d", item.id, len(changed))
     print(f"\n• {item.title}  [{item.id}]  — {len(changed)} field(s):")
     for name, old_type in changed:
         old = getattr(old_type, "name", str(old_type))
         print(f"    {old:>12} → CONCEALED   {name}")
 
     if apply_changes:
+        t0 = time.monotonic()
         try:
             await client.items.put(item)
+            log.info("put() ok: item_id=%s elapsed=%.0fms", item.id, (time.monotonic() - t0) * 1000)
         except Exception as exc:
+            log.error("put() failed: item_id=%s error=%s", item.id, exc)
             print(f"    ! put() failed: {exc}", file=sys.stderr)
             return 0
 
@@ -433,19 +487,23 @@ async def conceal_with_client(
     total_fields = 0
 
     for vault_id in vault_ids:
+        log.info("Processing vault: vault_id=%s", vault_id)
         try:
             overviews = list(await client.items.list(vault_id))
         except Exception as exc:
+            log.error("Could not list items: vault_id=%s error=%s", vault_id, exc)
             print(
                 f"! could not list items in vault {vault_id}: {exc}",
                 file=sys.stderr,
             )
             continue
 
+        log.info("Vault items listed: vault_id=%s item_count=%d", vault_id, len(overviews))
         for overview in overviews:
             try:
                 item = await client.items.get(vault_id, overview.id)
             except Exception as exc:
+                log.error("Could not fetch item: vault_id=%s item_id=%s error=%s", vault_id, overview.id, exc)
                 print(
                     f"  ! could not fetch {overview.id}: {exc}",
                     file=sys.stderr,
@@ -456,6 +514,7 @@ async def conceal_with_client(
                 total_items += 1
                 total_fields += changed
 
+    log.info("Concealment pass done: items_changed=%d fields_changed=%d apply=%s", total_items, total_fields, apply_changes)
     return total_items, total_fields
 
 
@@ -466,6 +525,7 @@ async def conceal_with_client(
 
 async def run_reuse_mode(token: str, source: str, apply_changes: bool) -> int:
     """Use an existing SA token. Discover vaults via SDK, then process them."""
+    log.info("Reuse mode: source=%s apply=%s", source, apply_changes)
     print(f"Using existing service account token from {source}.")
     client = await build_sdk_client(token)
     vaults = list(await client.vaults.list())
@@ -491,6 +551,7 @@ async def run_reuse_mode(token: str, source: str, apply_changes: bool) -> int:
 
 def run_bootstrap_mode(args: argparse.Namespace) -> int:
     """Discover vaults via CLI, optionally create SA, then run concealment."""
+    log.info("Bootstrap mode: apply=%s sa_expires_in=%s", args.apply, args.sa_expires_in)
     print("Discovering current user...")
     try:
         user_id = get_current_user_id()
@@ -688,6 +749,8 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
 
+    log.info("=== Run started: run_id=%s apply=%s ===", RUN_ID, args.apply)
+
     # Resolve token: explicit --token wins, else env var, else bootstrap.
     token = args.token
     token_source = "--token flag" if token else None
@@ -698,8 +761,14 @@ def main() -> int:
             token_source = "OP_SERVICE_ACCOUNT_TOKEN env var"
 
     if token:
-        return asyncio.run(run_reuse_mode(token, token_source, args.apply))
-    return run_bootstrap_mode(args)
+        log.info("Token resolved: source=%s token_length=%d", token_source, len(token))
+        rc = asyncio.run(run_reuse_mode(token, token_source, args.apply))
+    else:
+        log.info("No token — entering bootstrap mode")
+        rc = run_bootstrap_mode(args)
+
+    log.info("=== Run finished: run_id=%s exit_code=%d ===", RUN_ID, rc)
+    return rc
 
 
 if __name__ == "__main__":
