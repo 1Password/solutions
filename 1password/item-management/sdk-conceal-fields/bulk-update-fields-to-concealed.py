@@ -195,7 +195,7 @@ for _name in (
 
 def run_op_cli(args: list[str]) -> str:
     """Run `op <args>` and return stdout. Raises on non-zero exit."""
-    safe_args = [("***" if a.startswith("ops_") else a) for a in args]
+    safe_args = [("***" if a.startswith("ops_") or a.startswith("password=") else a) for a in args]
     log.debug("op cli start: op %s", " ".join(shlex.quote(a) for a in safe_args))
     t0 = time.monotonic()
     result = subprocess.run(["op", *args], capture_output=True, text=True)
