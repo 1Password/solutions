@@ -353,7 +353,7 @@ def save_token_to_1password(
         f"\n"
         f"To re-run the script within the expiry window:\n"
         f"  OP_SERVICE_ACCOUNT_TOKEN=$(op read "
-        f"'op://{vault_name}/{title}/password') \\\n"
+        f'"op://{vault_name}/{title}/password") \\\n'
         f"      python conceal_custom_fields.py --apply\n"
         f"\n"
         f"Once the SA expires this item is no longer useful — delete it."
@@ -639,7 +639,7 @@ def run_bootstrap_mode(args: argparse.Namespace) -> int:
             print(
                 f"\nTo re-run within the expiry window:\n"
                 f"  OP_SERVICE_ACCOUNT_TOKEN=$(op read "
-                f"'op://{save_vault_name}/{sa_name}/password') \\\n"
+                f'"op://{save_vault_name}/{sa_name}/password") \\\n'
                 f"      python conceal_custom_fields.py --apply"
             )
         except RuntimeError as exc:
