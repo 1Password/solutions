@@ -32,6 +32,9 @@ Scripts provided here are not intended to be run as-is. They are intended as exa
 
 * ✨ **NEW!** [Use 1Password SDKs to perform bulk actions](1password/onepassword_sdks/)
 * [Migrate from another password solution](1password/migration/)
+
+*By accessing or using 1Password Developer Tools, you agree to the [API and SDK Terms of Service](https://1password.com/legal/api-sdk-terms-of-service).*
+
 * [Provision new users from a CSV](1password/scripted-provisioning/)
 * [Scripts for auditing or managing existing users](1password/user-management/)
 * [Scripts for managing your vaults and groups](1password/account-management/)
