@@ -6,6 +6,8 @@ Introducing new item management with 1Password SDKs!
 * [Read all about the 1Password SDKs](https://developer.1password.com/docs/sdks/)
 * [Check out a demo app or script](1password/onepassword_sdks/)
 
+*By accessing or using 1Password Developer Tools, you agree to the [API and SDK Terms of Service](https://1password.com/legal/api-sdk-terms-of-service).*
+
 ## Introduction
 
 The 1Password [Command Line Interface](https://developer.1password.com/docs/cli/) (called `op` from this point forward) allows you to manage some aspects of a 1Password account, use secure secrets references to avoid storing secrets as plaintext environment variables, and perform CRUD actions on items you store in 1Password.
@@ -32,8 +34,6 @@ Scripts provided here are not intended to be run as-is. They are intended as exa
 
 * ✨ **NEW!** [Use 1Password SDKs to perform bulk actions](1password/onepassword_sdks/)
 * [Migrate from another password solution](1password/migration/)
-
-*By accessing or using 1Password Developer Tools, you agree to the [API and SDK Terms of Service](https://1password.com/legal/api-sdk-terms-of-service).*
 
 * [Provision new users from a CSV](1password/scripted-provisioning/)
 * [Scripts for auditing or managing existing users](1password/user-management/)
