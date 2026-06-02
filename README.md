@@ -34,7 +34,6 @@ Scripts provided here are not intended to be run as-is. They are intended as exa
 
 * ✨ **NEW!** [Use 1Password SDKs to perform bulk actions](1password/onepassword_sdks/)
 * [Migrate from another password solution](1password/migration/)
-
 * [Provision new users from a CSV](1password/scripted-provisioning/)
 * [Scripts for auditing or managing existing users](1password/user-management/)
 * [Scripts for managing your vaults and groups](1password/account-management/)
