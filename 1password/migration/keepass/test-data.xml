@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="utf-8"?>
+<KeePassFile>
+    <Meta>
+        <Generator>KeePass</Generator>
+        <DatabaseName>Test Export</DatabaseName>
+        <DatabaseNameChanged>2024-01-01T00:00:00Z</DatabaseNameChanged>
+        <RecycleBinEnabled>True</RecycleBinEnabled>
+        <RecycleBinUUID>AAAAAAAAAAAAAAAAAAAAAA==</RecycleBinUUID>
+        <Binaries>
+            <!-- Attachment pool: "Hello from KeePass" as raw deflate + base64 -->
+            <Binary ID="0" Compressed="True">c8pNLKoEAAVBASI=</Binary>
+            <!-- A tiny valid 1×1 red PNG -->
+            <Binary ID="1" Compressed="False">iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI6QAAAABJRU5ErkJggg==</Binary>
+        </Binaries>
+    </Meta>
+    <Root>
+        <Group>
+            <Name>Test Database</Name>
+            <Notes/>
+
+            <!-- ============================================================
+                 TOP-LEVEL ENTRIES (no group → go to employee-vault fallback)
+                 ============================================================ -->
+
+            <!-- 1. Simple login, no history -->
+            <Entry>
+                <Times>
+                    <CreationTime>2022-03-10T08:00:00Z</CreationTime>
+                    <LastModificationTime>2022-03-10T08:00:00Z</LastModificationTime>
+                </Times>
+                <String><Key>Title</Key><Value>Top-Level Simple Login</Value></String>
+                <String><Key>UserName</Key><Value>alice@example.com</Value></String>
+                <String><Key>Password</Key><Value ProtectInMemory="True">TopSecret1!</Value></String>
+                <String><Key>URL</Key><Value>https://example.com</Value></String>
+                <String><Key>Notes</Key><Value>A top-level entry with no history and no attachments.</Value></String>
+                <History/>
+            </Entry>
+
+            <!-- 2. Login with rich password history -->
+            <Entry>
+                <Times>
+                    <CreationTime>2018-09-19T11:08:09Z</CreationTime>
+                    <LastModificationTime>2024-11-01T09:00:00Z</LastModificationTime>
+                </Times>
+                <String><Key>Title</Key><Value>GitHub</Value></String>
+                <String><Key>UserName</Key><Value>bob</Value></String>
+                <String><Key>Password</Key><Value ProtectInMemory="True">gh-current-token-xyz</Value></String>
+                <String><Key>URL</Key><Value>https://github.com</Value></String>
+                <String><Key>Notes</Key><Value>Personal GitHub account.</Value></String>
+                <History>
+                    <!-- Oldest first (as KeePass stores them) -->
+                    <Entry>
+                        <Times>
+                            <LastModificationTime>2018-09-19T11:08:09Z</LastModificationTime>
+                        </Times>
+                        <String><Key>Password</Key><Value ProtectInMemory="True">password123</Value></String>
+                    </Entry>
+                    <Entry>
+                        <Times>
+                            <LastModificationTime>2020-04-22T14:33:00Z</LastModificationTime>
+                        </Times>
+                        <String><Key>Password</Key><Value ProtectInMemory="True">Passw0rd!2020</Value></String>
+                    </Entry>
+                    <Entry>
+                        <Times>
+                            <LastModificationTime>2022-01-05T09:15:00Z</LastModificationTime>
+                        </Times>
+                        <!-- Duplicate of 2020 password — should be deduplicated -->
+                        <String><Key>Password</Key><Value ProtectInMemory="True">Passw0rd!2020</Value></String>
+                    </Entry>
+                    <Entry>
+                        <Times>
+                            <LastModificationTime>2023-06-30T17:45:00Z</LastModificationTime>
+                        </Times>
+                        <String><Key>Password</Key><Value ProtectInMemory="True">gh-old-token-abc</Value></String>
+                    </Entry>
+                </History>
+            </Entry>
+
+            <!-- 3. Entry with TOTP secret in a custom field -->
+            <Entry>
+                <Times>
+                    <CreationTime>2023-02-14T10:00:00Z</CreationTime>
+                    <LastModificationTime>2023-02-14T10:00:00Z</LastModificationTime>
+                </Times>
+                <String><Key>Title</Key><Value>AWS Console</Value></String>
+                <String><Key>UserName</Key><Value>admin@corp.example</Value></String>
+                <String><Key>Password</Key><Value ProtectInMemory="True">Aws$ecureP@ss99</Value></String>
+                <String><Key>URL</Key><Value>https://console.aws.amazon.com</Value></String>
+                <String><Key>Notes</Key><Value>Production AWS root account. Handle with care.</Value></String>
+                <String><Key>otp</Key><Value>otpauth://totp/AWS%3Aadmin%40corp.example?secret=JBSWY3DPEHPK3PXP&amp;issuer=Amazon</Value></String>
+                <History/>
+            </Entry>
+
+            <!-- 4. Secure Note — no username/password, just content -->
+            <Entry>
+                <Times>
+                    <CreationTime>2021-07-01T00:00:00Z</CreationTime>
+                    <LastModificationTime>2021-07-01T00:00:00Z</LastModificationTime>
+                </Times>
+                <String><Key>Title</Key><Value>Wi-Fi Password</Value></String>
+                <String><Key>UserName</Key><Value></Value></String>
+                <String><Key>Password</Key><Value></Value></String>
+                <String><Key>URL</Key><Value></Value></String>
+                <String><Key>Notes</Key><Value>Network: HomeOffice_5G
+Password: correct-horse-battery-staple
+Security: WPA3</Value></String>
+                <History/>
+            </Entry>
+
+            <!-- 5. Entry with a text attachment (from binary pool, ref 0) -->
+            <Entry>
+                <Times>
+                    <CreationTime>2023-08-15T12:00:00Z</CreationTime>
+                    <LastModificationTime>2023-08-15T12:00:00Z</LastModificationTime>
+                </Times>
+                <String><Key>Title</Key><Value>Server SSH Key</Value></String>
+                <String><Key>UserName</Key><Value>deploy</Value></String>
+                <String><Key>Password</Key><Value ProtectInMemory="True">hunter2</Value></String>
+                <String><Key>URL</Key><Value>ssh://prod.example.com</Value></String>
+                <String><Key>Notes</Key><Value>Production deploy user. Key file attached.</Value></String>
+                <Binary>
+                    <Key>id_rsa.pub</Key>
+                    <Value Ref="0"/>
+                </Binary>
+                <History>
+                    <Entry>
+                        <Times>
+                            <LastModificationTime>2021-01-10T08:00:00Z</LastModificationTime>
+                        </Times>
+                        <String><Key>Password</Key><Value ProtectInMemory="True">old-deploy-pass</Value></String>
+                    </Entry>
+                </History>
+            </Entry>
+
+            <!-- 6. Entry with an image attachment (from binary pool, ref 1) -->
+            <Entry>
+                <Times>
+                    <CreationTime>2024-03-01T09:30:00Z</CreationTime>
+                    <LastModificationTime>2024-03-01T09:30:00Z</LastModificationTime>
+                </Times>
+                <String><Key>Title</Key><Value>Company Badge Photo</Value></String>
+                <String><Key>UserName</Key><Value>charlie</Value></String>
+                <String><Key>Password</Key><Value ProtectInMemory="True">BadgeP@ss!</Value></String>
+                <String><Key>URL</Key><Value></Value></String>
+                <String><Key>Notes</Key><Value>Badge system login. Photo attached for reference.</Value></String>
+                <Binary>
+                    <Key>badge.png</Key>
+                    <Value Ref="1"/>
+                </Binary>
+                <History/>
+            </Entry>
+
+            <!-- ============================================================
+                 EMAIL GROUP
+                 ============================================================ -->
+            <Group>
+                <Name>Email</Name>
+                <Notes>Email accounts</Notes>
+
+                <Entry>
+                    <Times>
+                        <CreationTime>2020-01-15T08:00:00Z</CreationTime>
+                        <LastModificationTime>2024-06-10T11:22:00Z</LastModificationTime>
+                    </Times>
+                    <String><Key>Title</Key><Value>Gmail Personal</Value></String>
+                    <String><Key>UserName</Key><Value>alice.personal@gmail.com</Value></String>
+                    <String><Key>Password</Key><Value ProtectInMemory="True">GmailCurrent#2024</Value></String>
+                    <String><Key>URL</Key><Value>https://mail.google.com</Value></String>
+                    <String><Key>Notes</Key><Value>Personal Gmail. Recovery email: backup@example.com</Value></String>
+                    <History>
+                        <Entry>
+                            <Times><LastModificationTime>2020-01-15T08:00:00Z</LastModificationTime></Times>
+                            <String><Key>Password</Key><Value ProtectInMemory="True">FirstGmailPass!</Value></String>
+                        </Entry>
+                        <Entry>
+                            <Times><LastModificationTime>2022-09-01T07:00:00Z</LastModificationTime></Times>
+                            <String><Key>Password</Key><Value ProtectInMemory="True">GmailOld#2022</Value></String>
+                        </Entry>
+                    </History>
+                </Entry>
+
+                <!-- Sub-group: Work -->
+                <Group>
+                    <Name>Work</Name>
+
+                    <Entry>
+                        <Times>
+                            <CreationTime>2019-06-01T09:00:00Z</CreationTime>
+                            <LastModificationTime>2024-01-20T15:00:00Z</LastModificationTime>
+                        </Times>
+                        <String><Key>Title</Key><Value>Work Outlook</Value></String>
+                        <String><Key>UserName</Key><Value>alice@corp.example.com</Value></String>
+                        <String><Key>Password</Key><Value ProtectInMemory="True">Outl00k$2024</Value></String>
+                        <String><Key>URL</Key><Value>https://outlook.office365.com</Value></String>
+                        <String><Key>Notes</Key><Value>Corporate email. IT managed — reset via helpdesk.</Value></String>
+                        <History>
+                            <Entry>
+                                <Times><LastModificationTime>2019-06-01T09:00:00Z</LastModificationTime></Times>
+                                <String><Key>Password</Key><Value ProtectInMemory="True">Welcome1</Value></String>
+                            </Entry>
+                            <Entry>
+                                <Times><LastModificationTime>2021-03-15T10:00:00Z</LastModificationTime></Times>
+                                <String><Key>Password</Key><Value ProtectInMemory="True">Outl00k$2021</Value></String>
+                            </Entry>
+                            <Entry>
+                                <Times><LastModificationTime>2023-01-10T08:30:00Z</LastModificationTime></Times>
+                                <String><Key>Password</Key><Value ProtectInMemory="True">Outl00k$2023</Value></String>
+                            </Entry>
+                        </History>
+                    </Entry>
+
+                </Group>
+            </Group>
+
+            <!-- ============================================================
+                 FINANCE GROUP
+                 ============================================================ -->
+            <Group>
+                <Name>Finance</Name>
+                <Notes>Banking and financial accounts</Notes>
+
+                <Entry>
+                    <Times>
+                        <CreationTime>2017-11-20T10:00:00Z</CreationTime>
+                        <LastModificationTime>2024-08-05T09:00:00Z</LastModificationTime>
+                    </Times>
+                    <String><Key>Title</Key><Value>Online Banking</Value></String>
+                    <String><Key>UserName</Key><Value>alice.smith</Value></String>
+                    <String><Key>Password</Key><Value ProtectInMemory="True">B@nk$ecure2024!</Value></String>
+                    <String><Key>URL</Key><Value>https://bank.example.com</Value></String>
+                    <String><Key>Notes</Key><Value>Main chequing account. 2FA via SMS to +1-555-0100.</Value></String>
+                    <String><Key>otp</Key><Value>otpauth://totp/Bank%3Aalice.smith?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&amp;issuer=ExampleBank</Value></String>
+                    <History>
+                        <Entry>
+                            <Times><LastModificationTime>2017-11-20T10:00:00Z</LastModificationTime></Times>
+                            <String><Key>Password</Key><Value ProtectInMemory="True">banking2017</Value></String>
+                        </Entry>
+                        <Entry>
+                            <Times><LastModificationTime>2019-04-01T12:00:00Z</LastModificationTime></Times>
+                            <String><Key>Password</Key><Value ProtectInMemory="True">B@nk2019pass</Value></String>
+                        </Entry>
+                        <Entry>
+                            <Times><LastModificationTime>2021-10-10T08:00:00Z</LastModificationTime></Times>
+                            <String><Key>Password</Key><Value ProtectInMemory="True">B@nk$ecure2021</Value></String>
+                        </Entry>
+                    </History>
+                </Entry>
+
+                <Entry>
+                    <Times>
+                        <CreationTime>2023-03-01T00:00:00Z</CreationTime>
+                        <LastModificationTime>2023-03-01T00:00:00Z</LastModificationTime>
+                    </Times>
+                    <String><Key>Title</Key><Value>Investment Account PIN</Value></String>
+                    <String><Key>UserName</Key><Value></Value></String>
+                    <String><Key>Password</Key><Value></Value></String>
+                    <String><Key>URL</Key><Value></Value></String>
+                    <String><Key>Notes</Key><Value>Broker: Acme Investments
+Account #: 00123456
+Phone PIN: 7291
+Advisor: John Smith — john.smith@acmeinvest.example.com</Value></String>
+                    <History/>
+                </Entry>
+
+            </Group>
+
+            <!-- ============================================================
+                 DEVELOPMENT GROUP  (deeper nesting: Development/Cloud)
+                 ============================================================ -->
+            <Group>
+                <Name>Development</Name>
+
+                <Entry>
+                    <Times>
+                        <CreationTime>2022-05-10T14:00:00Z</CreationTime>
+                        <LastModificationTime>2022-05-10T14:00:00Z</LastModificationTime>
+                    </Times>
+                    <String><Key>Title</Key><Value>NPM Registry</Value></String>
+                    <String><Key>UserName</Key><Value>bobdev</Value></String>
+                    <String><Key>Password</Key><Value ProtectInMemory="True">npm_token_abc123XYZ</Value></String>
+                    <String><Key>URL</Key><Value>https://registry.npmjs.org</Value></String>
+                    <String><Key>Notes</Key><Value>Publish token — scoped to @corp packages only.</Value></String>
+                    <History/>
+                </Entry>
+
+                <Group>
+                    <Name>Cloud</Name>
+
+                    <Entry>
+                        <Times>
+                            <CreationTime>2021-09-01T08:00:00Z</CreationTime>
+                            <LastModificationTime>2024-10-15T16:45:00Z</LastModificationTime>
+                        </Times>
+                        <String><Key>Title</Key><Value>GCP Service Account</Value></String>
+                        <String><Key>UserName</Key><Value>sa-deploy@myproject.iam.gserviceaccount.com</Value></String>
+                        <String><Key>Password</Key><Value ProtectInMemory="True">gcp-current-key-2024</Value></String>
+                        <String><Key>URL</Key><Value>https://console.cloud.google.com</Value></String>
+                        <String><Key>Notes</Key><Value>Deployment service account for myproject. Rotate every 90 days.</Value></String>
+                        <History>
+                            <Entry>
+                                <Times><LastModificationTime>2021-09-01T08:00:00Z</LastModificationTime></Times>
+                                <String><Key>Password</Key><Value ProtectInMemory="True">gcp-key-2021</Value></String>
+                            </Entry>
+                            <Entry>
+                                <Times><LastModificationTime>2023-01-20T12:00:00Z</LastModificationTime></Times>
+                                <String><Key>Password</Key><Value ProtectInMemory="True">gcp-key-2023</Value></String>
+                            </Entry>
+                        </History>
+                    </Entry>
+
+                </Group>
+            </Group>
+
+            <!-- ============================================================
+                 RECYCLE BIN — should be skipped by the importer
+                 ============================================================ -->
+            <Group>
+                <Name>Recycle Bin</Name>
+                <Entry>
+                    <Times>
+                        <CreationTime>2020-01-01T00:00:00Z</CreationTime>
+                        <LastModificationTime>2020-01-01T00:00:00Z</LastModificationTime>
+                    </Times>
+                    <String><Key>Title</Key><Value>Old Deleted Entry</Value></String>
+                    <String><Key>UserName</Key><Value>deleted-user</Value></String>
+                    <String><Key>Password</Key><Value ProtectInMemory="True">should-not-import</Value></String>
+                    <String><Key>URL</Key><Value></Value></String>
+                    <String><Key>Notes</Key><Value>This entry is in the Recycle Bin and must be skipped.</Value></String>
+                    <History/>
+                </Entry>
+            </Group>
+
+        </Group>
+    </Root>
+</KeePassFile>
