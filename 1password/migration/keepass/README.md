@@ -6,7 +6,7 @@ Migrates a KeePass XML 2.x export into a single 1Password vault using the [onepa
 
 - **Single vault** — all entries land in one vault; the service account creates it if needed
 - **Group → tag mapping** — KeePass group paths become tags, with one tag per level of hierarchy
-- **Password history** — each entry's historical passwords are appended to the item's Notes field (newest first, duplicates suppressed)
+- **Password history** — KeePass history is replayed as real 1Password item history (viewable via "View password history" in the UI)
 - **Attachments** — binary attachments are imported as 1Password file attachments
 - **TOTP** — `otpauth://` URIs are mapped to a proper OTP field
 - **Recycle Bin** — skipped automatically
@@ -57,17 +57,15 @@ Email/Work          → ["Email", "Email/Work"]
 Development/Cloud   → ["Development", "Development/Cloud"]
 ```
 
-## Password history format
+## Password history
 
-Historical passwords are appended to the item's Notes field:
+KeePass password history is replayed as real 1Password item history, visible in the UI via **View password history**:
 
-```
---- Password History ---
-2024-01-15T09:23:00Z  previous-password
-2022-06-01T14:00:00Z  older-password
-```
+1. The item is created with the **oldest** historical password.
+2. The item is updated (`put()`) once per subsequent password, oldest → newest.
+3. A final `put()` restores the **current** password.
 
-The current password is never repeated in the history block. Exact duplicate historical passwords are suppressed.
+Each `put()` call produces a genuine 1Password history entry. Items without history are bulk-created normally (no extra API calls). Timestamps from KeePass are not preserved — history entries will show the time the import ran.
 
 ## Resuming an interrupted import
 

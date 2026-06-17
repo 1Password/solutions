@@ -15,15 +15,14 @@ FOLDER → TAG MAPPING
   Items at the database root (no group) receive no tags.
 
 PASSWORD HISTORY
-  Each entry's <History> child entries are collected, deduplicated, and appended
-  to the item's Notes field as a human-readable block:
-
-      --- Password History ---
-      2024-01-15T09:23:00Z  hunter2
-      2023-06-01T14:00:00Z  correct-horse
-
-  The most-recent value in <History> that differs from the current password is
-  listed first (newest → oldest). Duplicate passwords are suppressed.
+  KeePass password history is replayed as real 1Password item history:
+    1. The item is created with the oldest historical password.
+    2. The item is updated (put) once per subsequent historical password,
+       oldest → newest, ending with the current password.
+  Each put() call produces a genuine 1Password history entry, visible in the
+  UI via "View password history". Items with no history are bulk-created
+  normally. Dates are not preserved (1Password history timestamps reflect
+  when the import ran).
 
 ATTACHMENTS
   Binary attachments stored in <Binary> elements are imported as 1Password
@@ -597,17 +596,13 @@ def load_keepass_xml(input_path: str) -> List[Record]:
 
 
 # ---------------------------------------------------------------------------
-# Notes field builder — merges original notes + history block
+# Notes field builder
 # ---------------------------------------------------------------------------
 
 
 def _build_notes(rec: Record) -> Optional[str]:
-    parts: List[str] = []
-    if rec.notes:
-        parts.append(rec.notes)
-    if rec.password_history:
-        parts.append(_format_history_block(rec.password_history))
-    return "\n\n".join(parts) if parts else None
+    """Return the item's original notes, unmodified. History is written via put()."""
+    return rec.notes or None
 
 
 # ---------------------------------------------------------------------------
@@ -665,8 +660,13 @@ def _build_login_params(
     rec: Record,
     notes: Optional[str],
     tags: Optional[List[str]],
+    *,
+    password_override: Optional[str] = None,
 ) -> ItemCreateParams:
     fields: List[ItemField] = []
+    password_value = (
+        password_override if password_override is not None else rec.password
+    )
     if rec.login is not None:
         fields.append(
             ItemField(
@@ -676,11 +676,11 @@ def _build_login_params(
                 fieldType=ItemFieldType.TEXT,
             )
         )
-    if rec.password is not None:
+    if password_value is not None:
         fields.append(
             ItemField(
                 id="password",
-                value=rec.password,
+                value=password_value,
                 title="Password",
                 fieldType=ItemFieldType.CONCEALED,
             )
@@ -812,6 +812,66 @@ class _PendingItem:
     rec: Record
 
 
+def _set_password_on_item(item, password: str) -> None:
+    """Mutate a live 1Password item object's password field value in place."""
+    for f in item.fields or []:
+        if getattr(f, "id", None) == "password":
+            f.value = password
+            return
+    # Field not found — nothing to mutate (item has no password field)
+
+
+async def _replay_history(client, item, rec: Record, *, silent: bool) -> bool:
+    """
+    Replay KeePass password history as real 1Password item history.
+
+    Each put() causes 1Password to save the *previous* live value into history.
+    To produce history [A, B, C] with current password D (D not in history):
+
+      create(A)  →  put(B)  →  put(C)  →  put(D)
+                    saves A     saves B     saves C
+                    to hist     to hist     to hist
+
+    The item is already created with the oldest password (A) by the caller,
+    so we just put() each subsequent value in order, ending with the current.
+
+    Returns True on success, False if rate-limited.
+    """
+    if not rec.password_history:
+        return True
+
+    # history is newest-first; reverse to oldest-first, skip the first entry
+    # (oldest) because the item was already created with that value.
+    oldest_first = list(reversed(rec.password_history))
+
+    for h in oldest_first[1:]:
+        _set_password_on_item(item, h.password)
+        try:
+            item = await client.items.put(item)
+        except Exception as e:
+            if _is_rate_limit_error(e):
+                return False
+            print(
+                f"WARN: failed to write history entry for '{rec.title}': {e}",
+                file=sys.stderr,
+            )
+            return True  # non-fatal: skip remaining history for this item
+
+    # Final put() sets the current password as the live value.
+    # This saves the last historical password (C) into history, not D.
+    _set_password_on_item(item, rec.password or "")
+    try:
+        await client.items.put(item)
+    except Exception as e:
+        if _is_rate_limit_error(e):
+            return False
+        print(
+            f"WARN: failed to restore current password for '{rec.title}': {e}",
+            file=sys.stderr,
+        )
+    return True
+
+
 async def plan_and_apply(
     records: List[Record],
     *,
@@ -841,14 +901,17 @@ async def plan_and_apply(
             if rec.otpauth:
                 msg += " +TOTP"
             if hist_count:
-                msg += f" +{hist_count} history entries"
+                msg += f" +{hist_count} history put() calls"
             if att_names:
                 msg += f" +files {att_names}"
             print(msg)
         return
 
-    # Build the batch for this single vault
-    pending_list: List[_PendingItem] = []
+    # Split records into two groups:
+    #   - no_history: eligible for bulk create_all (fast path)
+    #   - with_history: must be created individually then put() N times
+    no_history: List[_PendingItem] = []
+    with_history: List[_PendingItem] = []
     skipped = 0
 
     for rec in records:
@@ -861,29 +924,48 @@ async def plan_and_apply(
         notes = _build_notes(rec)
         category = _categorize(rec)
 
-        if category == "Login":
-            params = _build_login_params(vault_id, rec, notes, tags)
+        if rec.password_history:
+            # Create with the oldest historical password (A). Each subsequent
+            # put() then shifts the window: put(B) saves A, put(C) saves B,
+            # put(D) saves C — so history ends up as [A, B, C] and D is live.
+            oldest_password = rec.password_history[-1].password  # list is newest-first
+            if category == "Login":
+                params = _build_login_params(
+                    vault_id, rec, notes, tags, password_override=oldest_password
+                )
+            else:
+                params = _build_secure_note_params(vault_id, rec, notes, tags)
+            with_history.append(_PendingItem(params=params, fingerprint=fp, rec=rec))
         else:
-            params = _build_secure_note_params(vault_id, rec, notes, tags)
-
-        pending_list.append(_PendingItem(params=params, fingerprint=fp, rec=rec))
+            if category == "Login":
+                params = _build_login_params(vault_id, rec, notes, tags)
+            else:
+                params = _build_secure_note_params(vault_id, rec, notes, tags)
+            no_history.append(_PendingItem(params=params, fingerprint=fp, rec=rec))
 
     if skipped and not silent:
         print(f"⏭  Skipping {skipped} already-completed items")
 
-    if not pending_list:
+    total_remaining = len(no_history) + len(with_history)
+    if total_remaining == 0:
         if not silent:
             print("✔ All items already imported — nothing to do")
         delete_state(input_path, silent=silent)
         return
 
     if not silent:
-        print(f"📦 {len(pending_list)} items to create in vault '{vault_name}'...")
+        print(
+            f"📦 {total_remaining} items to create in vault '{vault_name}'"
+            + (f" ({len(with_history)} with history replay)" if with_history else "")
+        )
 
     rate_limited = False
     total_ok = 0
 
-    for chunk in _chunked(pending_list, BULK_CREATE_MAX):
+    # ── Fast path: bulk create items with no history ──────────────────────────
+    for chunk in _chunked(no_history, BULK_CREATE_MAX):
+        if rate_limited:
+            break
         try:
             resp: ItemsUpdateAllResponse = await client.items.create_all(
                 vault_id, [item.params for item in chunk]
@@ -891,7 +973,7 @@ async def plan_and_apply(
         except Exception as e:
             if _is_rate_limit_error(e):
                 print(
-                    f"\n⚠  Rate limited in vault '{vault_name}'. Saving progress...",
+                    f"\n⚠  Rate limited during bulk create. Saving progress...",
                     file=sys.stderr,
                 )
                 rate_limited = True
@@ -909,19 +991,50 @@ async def plan_and_apply(
                     )
                     rate_limited = True
                     break
-                title = chunk[i].params.title if i < len(chunk) else "?"
-                print(f"ERROR creating '{title}': {ir.error}", file=sys.stderr)
+                print(
+                    f"ERROR creating '{chunk[i].params.title}': {ir.error}",
+                    file=sys.stderr,
+                )
             else:
                 completed.add(chunk[i].fingerprint)
                 total_ok += 1
 
+    # ── Slow path: create + put() for items that have history ─────────────────
+    for pending in with_history:
         if rate_limited:
             break
+        try:
+            item = await client.items.create(pending.params)
+        except Exception as e:
+            if _is_rate_limit_error(e):
+                print(
+                    f"\n⚠  Rate limited creating '{pending.rec.title}'. Saving progress...",
+                    file=sys.stderr,
+                )
+                rate_limited = True
+                break
+            print(f"ERROR creating '{pending.rec.title}': {e}", file=sys.stderr)
+            continue
+
+        ok = await _replay_history(client, item, pending.rec, silent=silent)
+        if not ok:
+            print(
+                f"\n⚠  Rate limited replaying history for '{pending.rec.title}'. Saving progress...",
+                file=sys.stderr,
+            )
+            rate_limited = True
+            break
+
+        completed.add(pending.fingerprint)
+        total_ok += 1
+        if not silent:
+            hist_count = len(pending.rec.password_history)
+            print(
+                f"  ✔ '{pending.rec.title}' created with {hist_count} history entries"
+            )
 
     if not silent:
-        print(
-            f"✔ Bulk created {total_ok}/{len(pending_list)} items in vault '{vault_name}'"
-        )
+        print(f"✔ Created {total_ok}/{total_remaining} items in vault '{vault_name}'")
 
     if rate_limited:
         save_state(input_path, completed, silent=silent)
