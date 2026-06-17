@@ -3,8 +3,16 @@
 KeePass XML → 1Password migration helper — SDK bulk create
 
 Reads a KeePass XML export (.xml, produced via File → Export → KeePass XML 2.x
-in KeePass or compatible apps) and imports every entry into 1Password using the
-onepassword-sdk bulk-create API.
+in KeePass or compatible apps) and imports every entry into a single 1Password
+vault using the onepassword-sdk bulk-create API.
+
+The vault is created by the service account if it does not already exist.
+
+FOLDER → TAG MAPPING
+  KeePass group paths are converted to tags on each item:
+    - Top-level group "Email"         → tag "Email"
+    - Nested group "Email/Work"       → tags "Email" and "Email/Work"
+  Items at the database root (no group) receive no tags.
 
 PASSWORD HISTORY
   Each entry's <History> child entries are collected, deduplicated, and appended
@@ -17,12 +25,6 @@ PASSWORD HISTORY
   The most-recent value in <History> that differs from the current password is
   listed first (newest → oldest). Duplicate passwords are suppressed.
 
-FOLDER → VAULT MAPPING
-  Without --collapse-folders:
-    Each KeePass group path (e.g. "Email/Work") becomes its own vault.
-  With --collapse-folders:
-    All items land in the top-level group vault; sub-group names become tags.
-
 ATTACHMENTS
   Binary attachments stored in <Binary> elements are imported as 1Password
   file attachments. KeePass stores them base64-encoded inside the XML.
@@ -34,17 +36,13 @@ RESUMABILITY
 REQUIREMENTS
   - OP_SERVICE_ACCOUNT_TOKEN env var
   - onepassword-sdk  (auto-installed into .venv-1pw if missing)
-  - `op` CLI in PATH  (only needed for user vault permission grants)
 
 USAGE
   python import-from-keepass-xml.py \\
     --input keepass-export.xml \\
-    --employee-vault "KeePass Import" \\
-    [--private-prefix "Private - "] \\
-    [--collapse-folders] \\
+    --vault "KeePass Import" \\
     [--dry-run] \\
-    [--silent] \\
-    [--user-for-private user@example.com]
+    [--silent]
 """
 from __future__ import annotations
 
@@ -56,13 +54,9 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 import sys
 import xml.etree.ElementTree as ET
-from collections import defaultdict
 from dataclasses import dataclass, field
-from pathlib import Path
-from shutil import which
 from typing import Dict, List, Optional, Set, Tuple
 
 # ---------------------------------------------------------------------------
@@ -73,25 +67,12 @@ try:
     from onepassword import (
         AutofillBehavior,
         FileCreateParams,
-        GroupAccess,
         ItemCategory,
         ItemCreateParams,
         ItemField,
         ItemFieldType,
         ItemSection,
         ItemsUpdateAllResponse,
-        READ_ITEMS,
-        REVEAL_ITEM_PASSWORD,
-        UPDATE_ITEM_HISTORY,
-        CREATE_ITEMS,
-        UPDATE_ITEMS,
-        ARCHIVE_ITEMS,
-        DELETE_ITEMS,
-        IMPORT_ITEMS,
-        EXPORT_ITEMS,
-        SEND_ITEMS,
-        PRINT_ITEMS,
-        MANAGE_VAULT,
         VaultCreateParams,
         VaultListParams,
         Website,
@@ -105,7 +86,10 @@ except ImportError:
     _venv_python = os.path.join(_venv_dir, "bin", "python")
 
     if sys.executable == _venv_python:
-        print("ERROR: onepassword-sdk failed to import even inside the venv.", file=sys.stderr)
+        print(
+            "ERROR: onepassword-sdk failed to import even inside the venv.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     if not os.path.isfile(_venv_python):
@@ -115,10 +99,14 @@ except ImportError:
     _req_file = os.path.join(_script_dir, "requirements.txt")
     if os.path.isfile(_req_file):
         print(f"Installing packages from {_req_file}...")
-        _sp.check_call([_venv_python, "-m", "pip", "install", "--quiet", "-r", _req_file])
+        _sp.check_call(
+            [_venv_python, "-m", "pip", "install", "--quiet", "-r", _req_file]
+        )
     else:
         print("Installing onepassword-sdk...")
-        _sp.check_call([_venv_python, "-m", "pip", "install", "--quiet", "onepassword-sdk"])
+        _sp.check_call(
+            [_venv_python, "-m", "pip", "install", "--quiet", "onepassword-sdk"]
+        )
 
     print("Restarting inside virtual environment...\n")
     os.execv(_venv_python, [_venv_python] + sys.argv)
@@ -127,6 +115,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # 1Password client helpers  (identical pattern to the Keeper migration script)
 # ---------------------------------------------------------------------------
+
 
 async def _get_client() -> Client:
     token = os.getenv("OP_SERVICE_ACCOUNT_TOKEN")
@@ -202,69 +191,16 @@ async def _ensure_vault(
     return created.id
 
 
-# Permission bitmasks
-_PERM_VIEWING  = READ_ITEMS | REVEAL_ITEM_PASSWORD | UPDATE_ITEM_HISTORY
-_PERM_EDITING  = _PERM_VIEWING | CREATE_ITEMS | UPDATE_ITEMS | ARCHIVE_ITEMS | DELETE_ITEMS | IMPORT_ITEMS | EXPORT_ITEMS | SEND_ITEMS | PRINT_ITEMS
-_PERM_MANAGING = _PERM_EDITING | MANAGE_VAULT
-
-
-def _perms_list(manage_users: bool, manage_records: bool) -> List[str]:
-    perms = ["allow_viewing"]
-    if manage_records:
-        perms.append("allow_editing")
-    if manage_users:
-        perms.append("allow_managing")
-    return perms
-
-
-def _run_op(cmd: List[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-
-def _op_exists() -> bool:
-    return which("op") is not None
-
-
-def _grant_user_permissions(
-    vault_name: str,
-    user_name: str,
-    *,
-    manage_users: bool,
-    manage_records: bool,
-    dry: bool,
-    silent: bool,
-) -> None:
-    perms = _perms_list(manage_users, manage_records)
-    if dry:
-        if not silent:
-            print(f"DRY-RUN: would grant user {user_name!r} on {vault_name!r}: {perms}")
-        return
-    if not _op_exists():
-        print(
-            f"WARN: 'op' CLI not found — cannot grant user {user_name!r} on {vault_name!r}. "
-            f"Run manually: op vault user grant --vault {vault_name!r} --user {user_name!r} "
-            f"--permissions {','.join(perms)}",
-            file=sys.stderr,
-        )
-        return
-    cmd = ["op", "vault", "user", "grant", "--no-input",
-           "--vault", vault_name, "--user", user_name,
-           "--permissions", ",".join(perms)]
-    proc = _run_op(cmd)
-    if proc.returncode != 0:
-        print(f"WARN granting user {user_name!r} on {vault_name!r}: {proc.stderr.strip()}", file=sys.stderr)
-    elif not silent:
-        print(f"✔ Granted user {user_name!r} on vault {vault_name!r}: {perms}")
-
-
 # ---------------------------------------------------------------------------
 # Data models
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class PasswordHistoryEntry:
     """A single historical password with its last-modification timestamp."""
-    timestamp: str   # ISO-8601 string from KeePass <LastModificationTime>
+
+    timestamp: str  # ISO-8601 string from KeePass <LastModificationTime>
     password: str
 
 
@@ -282,7 +218,7 @@ class Record:
     login_url: Optional[str]
     notes: Optional[str]
     otpauth: Optional[str]
-    group_path: List[str]          # e.g. ["Email", "Work"]
+    group_path: List[str]  # e.g. ["Email", "Work"]
     attachments: List[InMemoryAttachment] = field(default_factory=list)
     password_history: List[PasswordHistoryEntry] = field(default_factory=list)
 
@@ -290,6 +226,7 @@ class Record:
 # ---------------------------------------------------------------------------
 # Resumable state file
 # ---------------------------------------------------------------------------
+
 
 def _item_fingerprint(vault_id: str, rec: Record) -> str:
     parts = [
@@ -323,7 +260,10 @@ def load_state(input_path: str, *, silent: bool) -> Set[str]:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
     except (json.JSONDecodeError, OSError) as e:
-        print(f"WARN: Could not read state file {path}: {e}. Starting fresh.", file=sys.stderr)
+        print(
+            f"WARN: Could not read state file {path}: {e}. Starting fresh.",
+            file=sys.stderr,
+        )
         return set()
     fingerprints = data.get("completed", [])
     if _compute_checksum(fingerprints) != data.get("checksum", ""):
@@ -337,7 +277,11 @@ def load_state(input_path: str, *, silent: bool) -> Set[str]:
 def save_state(input_path: str, completed: Set[str], *, silent: bool) -> None:
     path = _state_file_path(input_path)
     fingerprints = sorted(completed)
-    data = {"checksum": _compute_checksum(fingerprints), "completed": fingerprints, "count": len(fingerprints)}
+    data = {
+        "checksum": _compute_checksum(fingerprints),
+        "completed": fingerprints,
+        "count": len(fingerprints),
+    }
     tmp_path = path + ".tmp"
     with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
@@ -363,6 +307,7 @@ def _is_rate_limit_error(exc: Exception) -> bool:
 # KeePass XML parser
 # ---------------------------------------------------------------------------
 
+
 def _text(el: Optional[ET.Element], tag: str, default: str = "") -> str:
     """Return stripped text of a direct child element, or default."""
     if el is None:
@@ -387,6 +332,7 @@ def _find_string_value(entry_el: ET.Element, key: str) -> Optional[str]:
 
 _OTPAUTH_RE = re.compile(r"otpauth://[^\s]+")
 
+
 def _extract_otpauth(entry_el: ET.Element) -> Optional[str]:
     """Look for an otpauth:// URI in any String value or the Notes field."""
     for s in entry_el.findall("String"):
@@ -398,7 +344,9 @@ def _extract_otpauth(entry_el: ET.Element) -> Optional[str]:
     return None
 
 
-def _parse_history(entry_el: ET.Element, current_password: Optional[str]) -> List[PasswordHistoryEntry]:
+def _parse_history(
+    entry_el: ET.Element, current_password: Optional[str]
+) -> List[PasswordHistoryEntry]:
     """
     Extract <History><Entry>…</Entry></History> blocks.
 
@@ -445,7 +393,9 @@ def _format_history_block(history: List[PasswordHistoryEntry]) -> str:
     return "\n".join(lines)
 
 
-def _parse_attachments(entry_el: ET.Element, binary_pool: Dict[str, bytes]) -> List[InMemoryAttachment]:
+def _parse_attachments(
+    entry_el: ET.Element, binary_pool: Dict[str, bytes]
+) -> List[InMemoryAttachment]:
     """
     KeePass XML stores attachment content in a global <Meta><Binaries> pool,
     referenced by Ref id from <Entry><Binary><Value Ref="N"/></Binary>.
@@ -463,7 +413,10 @@ def _parse_attachments(entry_el: ET.Element, binary_pool: Dict[str, bytes]) -> L
         if ref is not None:
             content = binary_pool.get(ref)
             if content is None:
-                print(f"WARN: attachment ref {ref!r} ('{name}') not found in binary pool", file=sys.stderr)
+                print(
+                    f"WARN: attachment ref {ref!r} ('{name}') not found in binary pool",
+                    file=sys.stderr,
+                )
                 continue
         else:
             # Inline base64
@@ -473,7 +426,9 @@ def _parse_attachments(entry_el: ET.Element, binary_pool: Dict[str, bytes]) -> L
             try:
                 content = base64.b64decode(raw)
             except Exception as e:
-                print(f"WARN: could not decode attachment '{name}': {e}", file=sys.stderr)
+                print(
+                    f"WARN: could not decode attachment '{name}': {e}", file=sys.stderr
+                )
                 continue
         attachments.append(InMemoryAttachment(name=name, content=content))
     return attachments
@@ -504,10 +459,14 @@ def _build_binary_pool(root: ET.Element) -> Dict[str, bytes]:
             data = base64.b64decode(raw)
             if compressed:
                 import zlib
+
                 data = zlib.decompress(data, wbits=-15)  # raw deflate
             pool[ref_id] = data
         except Exception as e:
-            print(f"WARN: could not decode binary pool entry id={ref_id}: {e}", file=sys.stderr)
+            print(
+                f"WARN: could not decode binary pool entry id={ref_id}: {e}",
+                file=sys.stderr,
+            )
     return pool
 
 
@@ -536,12 +495,12 @@ def _walk_group(
         if entry_el.find("History") is None and entry_el.getparent() is not None:
             pass  # ElementTree doesn't expose getparent; this is always fine
 
-        title    = _find_string_value(entry_el, "Title") or "Untitled"
-        login    = _find_string_value(entry_el, "UserName") or None
+        title = _find_string_value(entry_el, "Title") or "Untitled"
+        login = _find_string_value(entry_el, "UserName") or None
         password = _find_string_value(entry_el, "Password") or None
-        url      = _find_string_value(entry_el, "URL") or None
-        notes    = _find_string_value(entry_el, "Notes") or None
-        otpauth  = _extract_otpauth(entry_el)
+        url = _find_string_value(entry_el, "URL") or None
+        notes = _find_string_value(entry_el, "Notes") or None
+        otpauth = _extract_otpauth(entry_el)
 
         # Suppress the otpauth string from appearing raw in notes
         if notes and otpauth and otpauth in notes:
@@ -550,21 +509,29 @@ def _walk_group(
         history = _parse_history(entry_el, password)
         attachments = _parse_attachments(entry_el, binary_pool)
 
-        records.append(Record(
-            title=title,
-            login=login,
-            password=password,
-            login_url=url,
-            notes=notes,
-            otpauth=otpauth,
-            group_path=current_path,
-            attachments=attachments,
-            password_history=history,
-        ))
+        records.append(
+            Record(
+                title=title,
+                login=login,
+                password=password,
+                login_url=url,
+                notes=notes,
+                otpauth=otpauth,
+                group_path=current_path,
+                attachments=attachments,
+                password_history=history,
+            )
+        )
 
     # Recurse into sub-groups
     for sub_group in group_el.findall("Group"):
-        _walk_group(sub_group, current_path, binary_pool, records, skip_recycle_bin=skip_recycle_bin)
+        _walk_group(
+            sub_group,
+            current_path,
+            binary_pool,
+            records,
+            skip_recycle_bin=skip_recycle_bin,
+        )
 
 
 def load_keepass_xml(input_path: str) -> List[Record]:
@@ -577,8 +544,11 @@ def load_keepass_xml(input_path: str) -> List[Record]:
 
     root = tree.getroot()
     if root.tag != "KeePassFile":
-        print(f"ERROR: Expected root tag <KeePassFile>, got <{root.tag}>. "
-              "Is this a KeePass XML 2.x export?", file=sys.stderr)
+        print(
+            f"ERROR: Expected root tag <KeePassFile>, got <{root.tag}>. "
+            "Is this a KeePass XML 2.x export?",
+            file=sys.stderr,
+        )
         sys.exit(2)
 
     binary_pool = _build_binary_pool(root)
@@ -596,22 +566,29 @@ def load_keepass_xml(input_path: str) -> List[Record]:
 
     # The outermost group is the database name — skip it from path labelling.
     for entry_el in root_group.findall("Entry"):
-        title    = _find_string_value(entry_el, "Title") or "Untitled"
-        login    = _find_string_value(entry_el, "UserName") or None
+        title = _find_string_value(entry_el, "Title") or "Untitled"
+        login = _find_string_value(entry_el, "UserName") or None
         password = _find_string_value(entry_el, "Password") or None
-        url      = _find_string_value(entry_el, "URL") or None
-        notes    = _find_string_value(entry_el, "Notes") or None
-        otpauth  = _extract_otpauth(entry_el)
+        url = _find_string_value(entry_el, "URL") or None
+        notes = _find_string_value(entry_el, "Notes") or None
+        otpauth = _extract_otpauth(entry_el)
         if notes and otpauth and otpauth in notes:
             notes = notes.replace(otpauth, "").strip() or None
         history = _parse_history(entry_el, password)
         attachments = _parse_attachments(entry_el, binary_pool)
-        records.append(Record(
-            title=title, login=login, password=password,
-            login_url=url, notes=notes, otpauth=otpauth,
-            group_path=[],   # top-level items have no group path
-            attachments=attachments, password_history=history,
-        ))
+        records.append(
+            Record(
+                title=title,
+                login=login,
+                password=password,
+                login_url=url,
+                notes=notes,
+                otpauth=otpauth,
+                group_path=[],  # top-level items have no group path
+                attachments=attachments,
+                password_history=history,
+            )
+        )
 
     for sub_group in root_group.findall("Group"):
         _walk_group(sub_group, [], binary_pool, records)
@@ -623,6 +600,7 @@ def load_keepass_xml(input_path: str) -> List[Record]:
 # Notes field builder — merges original notes + history block
 # ---------------------------------------------------------------------------
 
+
 def _build_notes(rec: Record) -> Optional[str]:
     parts: List[str] = []
     if rec.notes:
@@ -633,36 +611,24 @@ def _build_notes(rec: Record) -> Optional[str]:
 
 
 # ---------------------------------------------------------------------------
-# Vault name derivation from group path
+# Tag derivation from group path
 # ---------------------------------------------------------------------------
 
-def _path_to_vault_and_tags(
-    group_path: List[str],
-    *,
-    prefix: str,
-    collapse_folders: bool,
-) -> Tuple[str, List[str]]:
+
+def _group_path_to_tags(group_path: List[str]) -> List[str]:
     """
-    Map a group_path list to (vault_name, tags).
+    Convert a KeePass group path to a list of 1Password tags.
 
-    Without --collapse-folders: vault = prefix + full/path; no tags.
-    With --collapse-folders:   vault = prefix + top-level group;
-                                tag  = "Parent\\Child\\Deeper" for sub-paths.
+    Each level of the hierarchy gets its own tag so items are findable
+    by either the top-level group or the full path:
+      ["Email"]        → ["Email"]
+      ["Email", "Work"] → ["Email", "Email/Work"]
+    Items at the database root (empty path) receive no tags.
     """
-    if not group_path:
-        return "", []  # caller uses employee_vault as fallback
-
-    if not collapse_folders:
-        vault_name = prefix + "/".join(group_path)
-        return vault_name, []
-
-    # collapse: parent vault only
-    vault_name = prefix + group_path[0]
-    if len(group_path) == 1:
-        tags = [group_path[0]]
-    else:
-        tags = ["\\".join(group_path)]
-    return vault_name, tags
+    tags: List[str] = []
+    for i in range(len(group_path)):
+        tags.append("/".join(group_path[: i + 1]))
+    return tags
 
 
 # ---------------------------------------------------------------------------
@@ -671,8 +637,9 @@ def _path_to_vault_and_tags(
 
 BULK_CREATE_MAX = 100
 
+
 def _chunked(items: List, size: int) -> List[List]:
-    return [items[i: i + size] for i in range(0, len(items), size)]
+    return [items[i : i + size] for i in range(0, len(items), size)]
 
 
 def _make_file_params(
@@ -701,20 +668,48 @@ def _build_login_params(
 ) -> ItemCreateParams:
     fields: List[ItemField] = []
     if rec.login is not None:
-        fields.append(ItemField(id="username", value=rec.login, title="Username", fieldType=ItemFieldType.TEXT))
+        fields.append(
+            ItemField(
+                id="username",
+                value=rec.login,
+                title="Username",
+                fieldType=ItemFieldType.TEXT,
+            )
+        )
     if rec.password is not None:
-        fields.append(ItemField(id="password", value=rec.password, title="Password", fieldType=ItemFieldType.CONCEALED))
+        fields.append(
+            ItemField(
+                id="password",
+                value=rec.password,
+                title="Password",
+                fieldType=ItemFieldType.CONCEALED,
+            )
+        )
 
     sections: List[ItemSection] = []
     if rec.otpauth:
         sections.append(ItemSection(id="sec-otp", title="Two-Factor"))
-        fields.append(ItemField(id="otp", title="OTP", fieldType=ItemFieldType.TOTP, value=rec.otpauth, section_id="sec-otp"))
+        fields.append(
+            ItemField(
+                id="otp",
+                title="OTP",
+                fieldType=ItemFieldType.TOTP,
+                value=rec.otpauth,
+                section_id="sec-otp",
+            )
+        )
 
     files = _make_file_params(rec.attachments, sections)
 
     websites: List[Website] = []
     if rec.login_url:
-        websites.append(Website(url=rec.login_url, label="site", autofill_behavior=AutofillBehavior.ANYWHEREONWEBSITE))
+        websites.append(
+            Website(
+                url=rec.login_url,
+                label="site",
+                autofill_behavior=AutofillBehavior.ANYWHEREONWEBSITE,
+            )
+        )
 
     return ItemCreateParams(
         title=rec.title,
@@ -741,14 +736,46 @@ def _build_secure_note_params(
     if rec.login or rec.password or rec.login_url:
         sections.append(ItemSection(id="details", title="Details"))
     if rec.login:
-        fields.append(ItemField(id="username", value=rec.login, title="Username", fieldType=ItemFieldType.TEXT, section_id="details"))
+        fields.append(
+            ItemField(
+                id="username",
+                value=rec.login,
+                title="Username",
+                fieldType=ItemFieldType.TEXT,
+                section_id="details",
+            )
+        )
     if rec.password:
-        fields.append(ItemField(id="password", value=rec.password, title="Password", fieldType=ItemFieldType.CONCEALED, section_id="details"))
+        fields.append(
+            ItemField(
+                id="password",
+                value=rec.password,
+                title="Password",
+                fieldType=ItemFieldType.CONCEALED,
+                section_id="details",
+            )
+        )
     if rec.login_url:
-        fields.append(ItemField(id="url", value=rec.login_url, title="URL", fieldType=ItemFieldType.TEXT, section_id="details"))
+        fields.append(
+            ItemField(
+                id="url",
+                value=rec.login_url,
+                title="URL",
+                fieldType=ItemFieldType.TEXT,
+                section_id="details",
+            )
+        )
     if rec.otpauth:
         sections.append(ItemSection(id="sec-otp", title="Two-Factor"))
-        fields.append(ItemField(id="otp", title="OTP", fieldType=ItemFieldType.TOTP, value=rec.otpauth, section_id="sec-otp"))
+        fields.append(
+            ItemField(
+                id="otp",
+                title="OTP",
+                fieldType=ItemFieldType.TOTP,
+                value=rec.otpauth,
+                section_id="sec-otp",
+            )
+        )
 
     files = _make_file_params(rec.attachments, sections)
 
@@ -777,6 +804,7 @@ def _categorize(rec: Record) -> str:
 # Planner + bulk create
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class _PendingItem:
     params: ItemCreateParams
@@ -788,57 +816,22 @@ async def plan_and_apply(
     records: List[Record],
     *,
     input_path: str,
-    employee_vault: str,
-    private_prefix: str,
-    collapse_folders: bool,
+    vault_name: str,
     dry: bool,
     silent: bool,
-    user_for_private: Optional[str],
 ) -> None:
     client = await _get_client()
     completed = load_state(input_path, silent=silent) if not dry else set()
 
-    # Collect all vault names we'll need
-    vault_set: Set[str] = {employee_vault}
-    for rec in records:
-        vn, _ = _path_to_vault_and_tags(rec.group_path, prefix=private_prefix, collapse_folders=collapse_folders)
-        if vn:
-            vault_set.add(vn)
-
-    if not silent:
-        print(f"Using {len(vault_set)} vault(s): {', '.join(sorted(vault_set))}")
-
-    # Ensure all vaults exist
-    name_to_id, vault_titles = await _vault_name_to_id_map(client)
-    need_create = [v for v in vault_set if v not in name_to_id and _normalize_vault_name(v) not in name_to_id]
-    if need_create and not silent:
-        print(f"Vault(s) to create: {', '.join(sorted(need_create))}")
-    for v in sorted(need_create):
-        await _ensure_vault(client, v, name_to_id, dry=dry, silent=silent)
-    if not dry and need_create:
-        name_to_id, vault_titles = await _vault_name_to_id_map(client)
-
-    resolved: Dict[str, str] = {}
-    for v in vault_set:
-        if dry and v in need_create:
-            resolved[v] = ""
-        else:
-            resolved[v] = _resolve_vault_id(name_to_id, v)
-
-    # Optional user grants on private vaults
-    if user_for_private:
-        for vn in vault_set:
-            _grant_user_permissions(
-                vn, user_for_private,
-                manage_users=(vn == employee_vault),
-                manage_records=True,
-                dry=dry, silent=silent,
-            )
+    # Ensure the single destination vault exists (create if needed)
+    name_to_id, _ = await _vault_name_to_id_map(client)
+    vault_id = await _ensure_vault(
+        client, vault_name, name_to_id, dry=dry, silent=silent
+    )
 
     if dry:
         for rec in records:
-            vn, tags = _path_to_vault_and_tags(rec.group_path, prefix=private_prefix, collapse_folders=collapse_folders)
-            vault_name = vn or employee_vault
+            tags = _group_path_to_tags(rec.group_path)
             category = _categorize(rec)
             hist_count = len(rec.password_history)
             att_names = [a.name for a in rec.attachments]
@@ -854,89 +847,88 @@ async def plan_and_apply(
             print(msg)
         return
 
-    # Build batches per vault_id
-    batches: Dict[str, List[_PendingItem]] = defaultdict(list)
+    # Build the batch for this single vault
+    pending_list: List[_PendingItem] = []
     skipped = 0
 
     for rec in records:
-        vn, tags = _path_to_vault_and_tags(rec.group_path, prefix=private_prefix, collapse_folders=collapse_folders)
-        vault_name = vn or employee_vault
-        vault_id = resolved[vault_name]
         fp = _item_fingerprint(vault_id, rec)
-
         if fp in completed:
             skipped += 1
             continue
 
+        tags = _group_path_to_tags(rec.group_path) or None
         notes = _build_notes(rec)
         category = _categorize(rec)
 
         if category == "Login":
-            params = _build_login_params(vault_id, rec, notes, tags or None)
+            params = _build_login_params(vault_id, rec, notes, tags)
         else:
-            params = _build_secure_note_params(vault_id, rec, notes, tags or None)
+            params = _build_secure_note_params(vault_id, rec, notes, tags)
 
-        batches[vault_id].append(_PendingItem(params=params, fingerprint=fp, rec=rec))
+        pending_list.append(_PendingItem(params=params, fingerprint=fp, rec=rec))
 
     if skipped and not silent:
         print(f"⏭  Skipping {skipped} already-completed items")
 
-    total_remaining = sum(len(v) for v in batches.values())
-    if total_remaining == 0:
+    if not pending_list:
         if not silent:
             print("✔ All items already imported — nothing to do")
         delete_state(input_path, silent=silent)
         return
 
     if not silent:
-        print(f"📦 {total_remaining} items to create")
+        print(f"📦 {len(pending_list)} items to create in vault '{vault_name}'...")
 
     rate_limited = False
-    id_to_name = {vid: name for name, vid in resolved.items()}
+    total_ok = 0
 
-    for vault_id, pending_list in batches.items():
-        if not pending_list or rate_limited:
-            continue
-        vault_title = id_to_name.get(vault_id, vault_id)
-        if not silent:
-            print(f"Creating {len(pending_list)} item(s) in vault '{vault_title}'...")
-        total_ok = 0
-
-        for chunk in _chunked(pending_list, BULK_CREATE_MAX):
-            try:
-                resp: ItemsUpdateAllResponse = await client.items.create_all(
-                    vault_id, [item.params for item in chunk]
+    for chunk in _chunked(pending_list, BULK_CREATE_MAX):
+        try:
+            resp: ItemsUpdateAllResponse = await client.items.create_all(
+                vault_id, [item.params for item in chunk]
+            )
+        except Exception as e:
+            if _is_rate_limit_error(e):
+                print(
+                    f"\n⚠  Rate limited in vault '{vault_name}'. Saving progress...",
+                    file=sys.stderr,
                 )
-            except Exception as e:
-                if _is_rate_limit_error(e):
-                    print(f"\n⚠  Rate limited in vault '{vault_title}'. Saving progress...", file=sys.stderr)
+                rate_limited = True
+                break
+            print(f"ERROR bulk create in vault '{vault_name}': {e}", file=sys.stderr)
+            continue
+
+        for i, ir in enumerate(resp.individual_responses):
+            if ir.error is not None:
+                err_str = str(ir.error).lower()
+                if "429" in err_str or "rate limit" in err_str:
+                    print(
+                        f"\n⚠  Rate limited on item '{chunk[i].rec.title}'. Saving progress...",
+                        file=sys.stderr,
+                    )
                     rate_limited = True
                     break
-                print(f"ERROR bulk create in vault {vault_title}: {e}", file=sys.stderr)
-                continue
+                title = chunk[i].params.title if i < len(chunk) else "?"
+                print(f"ERROR creating '{title}': {ir.error}", file=sys.stderr)
+            else:
+                completed.add(chunk[i].fingerprint)
+                total_ok += 1
 
-            for i, ir in enumerate(resp.individual_responses):
-                if ir.error is not None:
-                    err_str = str(ir.error).lower()
-                    if "429" in err_str or "rate limit" in err_str:
-                        print(f"\n⚠  Rate limited on item '{chunk[i].rec.title}'. Saving progress...", file=sys.stderr)
-                        rate_limited = True
-                        break
-                    title = chunk[i].params.title if i < len(chunk) else "?"
-                    print(f"ERROR creating '{title}': {ir.error}", file=sys.stderr)
-                else:
-                    completed.add(chunk[i].fingerprint)
-                    total_ok += 1
+        if rate_limited:
+            break
 
-            if rate_limited:
-                break
-
-        if not silent:
-            print(f"✔ Bulk created {total_ok}/{len(pending_list)} items in vault '{vault_title}'")
+    if not silent:
+        print(
+            f"✔ Bulk created {total_ok}/{len(pending_list)} items in vault '{vault_name}'"
+        )
 
     if rate_limited:
         save_state(input_path, completed, silent=silent)
-        print("\n🔄 Import paused due to rate limiting. Re-run the same command to resume.", file=sys.stderr)
+        print(
+            "\n🔄 Import paused due to rate limiting. Re-run the same command to resume.",
+            file=sys.stderr,
+        )
         sys.exit(3)
     else:
         delete_state(input_path, silent=silent)
@@ -948,18 +940,25 @@ async def plan_and_apply(
 # Entrypoint
 # ---------------------------------------------------------------------------
 
+
 async def main() -> None:
     ap = argparse.ArgumentParser(
-        description="KeePass XML → 1Password migration (SDK bulk create, password history in notes)"
+        description="KeePass XML → 1Password migration (single vault, group paths as tags)"
     )
-    ap.add_argument("--input", required=True, help="Path to KeePass XML 2.x export (.xml)")
-    ap.add_argument("--employee-vault", required=True, help="Fallback vault for items without a group")
-    ap.add_argument("--private-prefix", default="", help="Prefix for vault names derived from groups (default: none)")
-    ap.add_argument("--collapse-folders", action="store_true",
-                    help="Collapse sub-groups into the parent vault; sub-groups become tags")
-    ap.add_argument("--dry-run", action="store_true", help="Print planned actions without creating anything")
+    ap.add_argument(
+        "--input", required=True, help="Path to KeePass XML 2.x export (.xml)"
+    )
+    ap.add_argument(
+        "--vault",
+        required=True,
+        help="Destination vault name (created if it does not exist)",
+    )
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print planned actions without creating anything",
+    )
     ap.add_argument("--silent", action="store_true", help="Suppress progress output")
-    ap.add_argument("--user-for-private", help="Grant this user (email) edit access to all vaults")
 
     args = ap.parse_args()
 
@@ -979,23 +978,24 @@ async def main() -> None:
         sys.exit(2)
 
     if not args.silent:
-        att_count  = sum(len(r.attachments) for r in records)
+        att_count = sum(len(r.attachments) for r in records)
         hist_count = sum(len(r.password_history) for r in records)
         print(
             f"Loaded {len(records)} entries"
             + (f" ({att_count} attachments)" if att_count else "")
-            + (f" ({hist_count} historical passwords across all entries)" if hist_count else "")
+            + (
+                f" ({hist_count} historical passwords across all entries)"
+                if hist_count
+                else ""
+            )
         )
 
     await plan_and_apply(
         records,
         input_path=os.path.abspath(args.input),
-        employee_vault=args.employee_vault,
-        private_prefix=args.private_prefix,
-        collapse_folders=args.collapse_folders,
+        vault_name=args.vault,
         dry=args.dry_run,
         silent=args.silent,
-        user_for_private=args.user_for_private,
     )
 
 

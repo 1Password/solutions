@@ -1,24 +1,24 @@
 # KeePass XML → 1Password Importer
 
-Migrates a KeePass XML 2.x export into 1Password using the [onepassword-sdk](https://github.com/1Password/onepassword-sdk-python) bulk-create API.
+Migrates a KeePass XML 2.x export into a single 1Password vault using the [onepassword-sdk](https://github.com/1Password/onepassword-sdk-python) bulk-create API. The vault is created by the service account if it does not already exist.
 
 ## Features
 
+- **Single vault** — all entries land in one vault; the service account creates it if needed
+- **Group → tag mapping** — KeePass group paths become tags, with one tag per level of hierarchy
 - **Password history** — each entry's historical passwords are appended to the item's Notes field (newest first, duplicates suppressed)
-- **Attachments** — binary attachments from the KeePass pool are imported as 1Password file attachments
+- **Attachments** — binary attachments are imported as 1Password file attachments
 - **TOTP** — `otpauth://` URIs are mapped to a proper OTP field
-- **Group → Vault mapping** — KeePass groups become 1Password vaults; sub-groups either get their own vault or collapse into the parent as tags (see `--collapse-folders`)
 - **Recycle Bin** — skipped automatically
 - **Resumable** — a state file is written on interruption (e.g. rate limit); re-running the same command picks up where it left off
 
 ## Requirements
 
-| Requirement                | Notes                                                        |
-| -------------------------- | ------------------------------------------------------------ |
-| Python 3.9+                |                                                              |
-| `OP_SERVICE_ACCOUNT_TOKEN` | Set as an environment variable                               |
-| `onepassword-sdk`          | Auto-installed into `.venv-1pw` if missing                   |
-| `op` CLI                   | Only needed for `--user-for-private` vault permission grants |
+| Requirement                | Notes                                      |
+| -------------------------- | ------------------------------------------ |
+| Python 3.9+                |                                            |
+| `OP_SERVICE_ACCOUNT_TOKEN` | Set as an environment variable             |
+| `onepassword-sdk`          | Auto-installed into `.venv-1pw` if missing |
 
 ## Usage
 
@@ -28,59 +28,34 @@ export OP_SERVICE_ACCOUNT_TOKEN=your-token-here
 # Preview — no changes made
 python import-from-keepass-xml.py \
   --input keepass-export.xml \
-  --employee-vault "KeePass Import" \
+  --vault "KeePass Import" \
   --dry-run
 
 # Live import
 python import-from-keepass-xml.py \
   --input keepass-export.xml \
-  --employee-vault "KeePass Import"
-
-# Collapse sub-groups into parent vaults (sub-groups become tags)
-python import-from-keepass-xml.py \
-  --input keepass-export.xml \
-  --employee-vault "KeePass Import" \
-  --collapse-folders
-
-# Grant a user edit access to all imported vaults
-python import-from-keepass-xml.py \
-  --input keepass-export.xml \
-  --employee-vault "KeePass Import" \
-  --user-for-private user@example.com
+  --vault "KeePass Import"
 ```
 
 ## Options
 
-| Flag                 | Default      | Description                                                   |
-| -------------------- | ------------ | ------------------------------------------------------------- |
-| `--input`            | _(required)_ | Path to KeePass XML 2.x export                                |
-| `--employee-vault`   | _(required)_ | Fallback vault for entries with no group                      |
-| `--private-prefix`   | `""`         | String prepended to vault names derived from groups           |
-| `--collapse-folders` | off          | Collapse sub-groups into parent vault; sub-groups become tags |
-| `--user-for-private` | —            | Grant this user (email) edit access to all vaults             |
-| `--dry-run`          | off          | Print planned actions without creating anything               |
-| `--silent`           | off          | Suppress progress output                                      |
+| Flag        | Description                                                      |
+| ----------- | ---------------------------------------------------------------- |
+| `--input`   | Path to KeePass XML 2.x export _(required)_                      |
+| `--vault`   | Destination vault name; created if it doesn't exist _(required)_ |
+| `--dry-run` | Print planned actions without creating anything                  |
+| `--silent`  | Suppress progress output                                         |
 
-## Vault mapping
+## Tag mapping
 
-Without `--collapse-folders`, each unique group path becomes its own vault:
+KeePass group paths are converted to tags, with a tag added for each level of the hierarchy so items remain discoverable by parent group:
 
 ```
-Email          → vault "Email"
-Email/Work     → vault "Email/Work"
-Development    → vault "Development"
-Development/Cloud → vault "Development/Cloud"
+(no group)          → no tags
+Email               → ["Email"]
+Email/Work          → ["Email", "Email/Work"]
+Development/Cloud   → ["Development", "Development/Cloud"]
 ```
-
-With `--collapse-folders`, only the top-level group is a vault; deeper paths become tags:
-
-```
-Email          → vault "Email",  tag "Email"
-Email/Work     → vault "Email",  tag "Email\Work"
-Development/Cloud → vault "Development", tag "Development\Cloud"
-```
-
-Entries with no group go to the `--employee-vault`.
 
 ## Password history format
 
@@ -105,6 +80,6 @@ A test XML file (`keepass-test-export.xml`) is provided. It covers logins, secur
 ```bash
 python import-from-keepass-xml.py \
   --input keepass-test-export.xml \
-  --employee-vault "KeePass Import" \
+  --vault "KeePass Import" \
   --dry-run
 ```
