@@ -3,21 +3,22 @@
 keepass_to_1password.py
 ========================
 
-Parse a KeePass XML export and import it straight into 1Password using the
-official 1Password Python SDK (`onepassword-sdk` on PyPI), in one step.
+Parse a Pleasant Password Server XML export and import it straight into
+1Password using the official 1Password Python SDK (`onepassword-sdk` on PyPI),
+in one step.
 
-- Every KeePass Group that directly contains entries becomes one 1Password
-  vault. The vault is named "<leaf folder> - <parent folder>" (e.g. a KeePass
-  path of .../JAG/Client 1 becomes the vault "Client 1 - JAG"). Top-level
-  groups with no parent just use their own name.
-- Every KeePass Entry is mapped to the closest matching 1Password item
+- Every Pleasant Password Server Group that directly contains entries becomes
+  one 1Password vault. The vault is named "<leaf folder> - <parent folder>"
+  (e.g. a path of .../JAG/Client 1 becomes the vault "Client 1 - JAG").
+  Top-level groups with no parent just use their own name.
+- Every export Entry is mapped to the closest matching 1Password item
   category (Login, Secure Note, Credit Card, Identity, SSH Key, Password,
   Document, etc.) using the entry's field names as signals. See
   README.md for how the classifier works and its limitations.
 
 Setup
 -----
-    pip install onepassword-sdk --break-system-packages
+    pip install -r requirements.txt
 
 Authenticate with either a service account token or your signed-in
 1Password desktop app (Settings → Developer → Integrate with other apps):
@@ -32,9 +33,9 @@ Usage
     python keepass_to_1password.py Export.xml --dry-run
     python keepass_to_1password.py Export.xml --account "My Team"
     python keepass_to_1password.py Sample_Export.xml --dry-run   # try it on the bundled sample first
-    python keepass_to_1password.py Export.xml --log-file Export.keepass-import.json
-    python keepass_to_1password.py --delete-import Export.keepass-import.json
-    python keepass_to_1password.py Export.xml --delete-import   # uses Export.keepass-import.json
+    python keepass_to_1password.py Export.xml --log-file Export.pps-import.json
+    python keepass_to_1password.py --delete-import Export.pps-import.json
+    python keepass_to_1password.py Export.xml --delete-import   # uses ./Export.pps-import.json
 """
 
 from __future__ import annotations
@@ -55,7 +56,7 @@ from typing import Any, Dict, List, Optional
 
 
 # --------------------------------------------------------------------------
-# KeePass XML parsing
+# Pleasant Password Server XML parsing (KeePass XML 2.x format)
 # --------------------------------------------------------------------------
 
 def normalize_key(key: str) -> str:
@@ -72,7 +73,7 @@ def text_of(el, tag, default=""):
 
 def parse_binaries(root) -> Dict[str, bytes]:
     """Return {binary_id: raw bytes} from Meta/Binaries, decompressing gzip
-    payloads when Compressed="True", as KeePass 2.x does."""
+    payloads when Compressed="True", as KeePass XML 2.x exports do."""
     binaries = {}
     for bin_el in root.findall("./Meta/Binaries/Binary"):
         bin_id = bin_el.get("ID")
@@ -108,7 +109,7 @@ def parse_entry(entry_el, binaries: Dict[str, bytes]) -> dict:
             attachments.append({"name": fname, "content": binaries[ref]})
 
     return {
-        "raw_fields": fields,          # original KeePass String key -> value
+        "raw_fields": fields,          # original export String key -> value
         "attachments": attachments,    # [{name, content bytes}]
     }
 
@@ -164,7 +165,7 @@ def disambiguate_titles(vaults: dict):
         depth += 1
 
 
-def parse_keepass_xml(xml_path: str) -> List[dict]:
+def parse_pps_xml(xml_path: str) -> List[dict]:
     tree = ET.parse(xml_path)
     root = tree.getroot()
     root_group = root.find("Root/Group")
@@ -180,12 +181,12 @@ def parse_keepass_xml(xml_path: str) -> List[dict]:
 
 
 # --------------------------------------------------------------------------
-# KeePass entry -> 1Password category classifier
+# Export entry -> 1Password category classifier
 # --------------------------------------------------------------------------
-# KeePass has no native concept of "item type" - every entry is just a bag of
-# Title/UserName/Password/URL/Notes plus arbitrary custom String fields. To
-# recover something like 1Password's item categories, we look for field-name
-# signatures that different tools/users commonly attach to KeePass entries
+# Pleasant Password Server exports have no native concept of "item type" -
+# every entry is just a bag of Title/UserName/Password/URL/Notes plus arbitrary
+# custom String fields. To recover something like 1Password's item categories,
+# we look for field-name signatures commonly attached to export entries
 # (e.g. "Card Number" + "CVV" strongly implies a credit card). This is a
 # best-effort heuristic, not a guarantee - see README.md.
 
@@ -251,7 +252,7 @@ def classify_entry(fields: dict, attachments: list) -> str:
 STANDARD_KEYS = {"Title", "UserName", "Password", "URL", "Notes"}
 TOTP_KEYS = {"otp", "totp", "totpseed", "totpseedbase32"}
 
-# normalized KeePass key -> (field id, display title, ItemFieldType member name, is_date_like)
+# normalized export field key -> (field id, display title, ItemFieldType member name)
 # ItemFieldType member names are resolved against the SDK's actual enum at
 # runtime so this table doubles as documentation of the mapping.
 FIELD_TYPE_HINTS = {
@@ -325,7 +326,7 @@ SECRET_HINT_WORDS = ("password", "secret", "key", "pin", "cvv", "ssn", "private"
 
 
 def build_item(sdk, category_name: str, entry: dict, vault_id: str):
-    """Build an ItemCreateParams for one parsed KeePass entry."""
+    """Build an ItemCreateParams for one parsed export entry."""
     fields_raw = entry["raw_fields"]
     category = getattr(sdk.ItemCategory, category_name.upper())
 
@@ -350,7 +351,7 @@ def build_item(sdk, category_name: str, entry: dict, vault_id: str):
                                               field_type=sdk.ItemFieldType.CONCEALED, value=password))
     elif username or password:
         # Other categories: still preserve username/password as plain fields
-        # rather than dropping them, since KeePass entries can mix a login
+        # rather than dropping them, since export entries can mix a login
         # with category-specific fields.
         if username:
             item_fields.append(sdk.ItemField(id="username", title="username",
@@ -407,7 +408,7 @@ def build_item(sdk, category_name: str, entry: dict, vault_id: str):
             ))
             seen_normalized.add(norm)
 
-    # Anything left over: dump into a "KeePass metadata" section so nothing
+    # Anything left over: dump into an "Export metadata" section so nothing
     # is silently lost, guessing CONCEALED vs TEXT from the key name.
     leftover_added = False
     for i, (key, value) in enumerate(fields_raw.items()):
@@ -415,13 +416,13 @@ def build_item(sdk, category_name: str, entry: dict, vault_id: str):
         if key in STANDARD_KEYS or norm in seen_normalized or not value:
             continue
         if not leftover_added:
-            sections.append(sdk.ItemSection(id="keepass_meta", title="KeePass metadata"))
+            sections.append(sdk.ItemSection(id="pps_meta", title="Export metadata"))
             leftover_added = True
         is_secret = any(w in norm for w in SECRET_HINT_WORDS)
         item_fields.append(sdk.ItemField(
             id=f"kp_{i}", title=key,
             field_type=sdk.ItemFieldType.CONCEALED if is_secret else sdk.ItemFieldType.TEXT,
-            section_id="keepass_meta", value=str(value),
+            section_id="pps_meta", value=str(value),
         ))
 
     websites = None
@@ -440,7 +441,7 @@ def build_item(sdk, category_name: str, entry: dict, vault_id: str):
             document = sdk.DocumentCreateParams(name=att["name"], content=att["content"])
             if len(entry["attachments"]) > 1:
                 extra = ", ".join(a["name"] for a in entry["attachments"][1:])
-                notes = (notes or "") + f"\n\n[Additional KeePass attachments not imported: {extra}]"
+                notes = (notes or "") + f"\n\n[Additional export attachments not imported: {extra}]"
         else:
             notes = (notes or "") + "\n\n[Classified as Document but no attachment was found in the export.]"
             category = sdk.ItemCategory.SECURENOTE
@@ -597,14 +598,20 @@ async def get_or_create_vault(client, sdk, title, dry_run):
         print(f"  [dry-run] would create/reuse vault {title!r}")
         return f"DRY-RUN-VAULT-ID:{title}", True
 
-    params = sdk.VaultCreateParams(title=title, description="Imported from KeePass export")
+    params = sdk.VaultCreateParams(
+        title=title, description="Imported from Pleasant Password Server export",
+    )
     created = await client.vaults.create(params)
     print(f"  created vault {title!r} (id={created.id})")
     return created.id, True
 
 
 def default_log_path(xml_file: str) -> str:
-    return str(Path(xml_file).resolve().with_suffix(".keepass-import.json"))
+    """Default log path in the current working directory, named after the export file."""
+    stem = Path(xml_file).name
+    if stem.lower().endswith(".xml"):
+        stem = stem[:-4]
+    return str(Path.cwd() / f"{stem}.pps-import.json")
 
 
 def resolve_log_path(args) -> str:
@@ -686,7 +693,7 @@ async def delete_import(args):
     print(f"Authenticating via {auth_label}...")
     client = await sdk.Client.authenticate(
         auth=auth,
-        integration_name="KeePass Import Script",
+        integration_name="Pleasant Password Server Import Script",
         integration_version="1.0.0",
     )
 
@@ -734,7 +741,7 @@ async def delete_import(args):
 
 
 async def run(args):
-    vaults_data = parse_keepass_xml(args.xml_file)
+    vaults_data = parse_pps_xml(args.xml_file)
 
     total_entries = sum(len(v["entries"]) for v in vaults_data)
     print(f"Parsed {len(vaults_data)} vault(s) / {total_entries} entrie(s) from {args.xml_file}")
@@ -759,7 +766,7 @@ async def run(args):
         sdk = SdkHandles()
     except ImportError as exc:
         print(f"Could not import onepassword-sdk: {exc}", file=sys.stderr)
-        print("Install or upgrade with: pip install onepassword-sdk --break-system-packages",
+        print("Install or upgrade with: pip install -r requirements.txt",
               file=sys.stderr)
         sys.exit(1)
 
@@ -770,7 +777,7 @@ async def run(args):
         print(f"Authenticating via {auth_label}...")
         client = await sdk.Client.authenticate(
             auth=auth,
-            integration_name="KeePass Import Script",
+            integration_name="Pleasant Password Server Import Script",
             integration_version="1.0.0",
         )
 
@@ -848,7 +855,7 @@ def main():
     parser.add_argument(
         "xml_file",
         nargs="?",
-        help="Path to the KeePass XML export (not required with --delete-import if --log-file is set)",
+        help="Path to the Pleasant Password Server XML export (not required with --delete-import if --log-file is set)",
     )
     parser.add_argument("--dry-run", action="store_true", help="Preview actions without calling the 1Password API")
     parser.add_argument("--list-only", action="store_true", help="Only parse and print the vault/item summary, no SDK calls at all")
@@ -860,7 +867,7 @@ def main():
     parser.add_argument(
         "--log-file",
         metavar="PATH",
-        help="Import log path (default: <xml_file>.keepass-import.json)",
+        help="Import log path (default: ./<export-basename>.pps-import.json in the current directory)",
     )
     parser.add_argument(
         "--delete-import",

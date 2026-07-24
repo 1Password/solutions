@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <KeePassFile>
 	<Meta>
-		<Generator>KeePass</Generator>
+		<Generator>Pleasant Password Server</Generator>
 		<DatabaseName>Sample Export</DatabaseName>
 		<DatabaseDescription>Synthetic test data - no real people, companies, or credentials</DatabaseDescription>
 		<MemoryProtection>
@@ -12,7 +12,7 @@
 			<ProtectNotes>False</ProtectNotes>
 		</MemoryProtection>
 		<Binaries>
-			<Binary ID="0" Compressed="False">U2FtcGxlIGRvY3VtZW50IGF0dGFjaG1lbnQgZm9yIEtlZVBhc3MgdG8gMVBhc3N3b3JkIGltcG9ydCB0ZXN0aW5nLgo=</Binary>
+			<Binary ID="0" Compressed="False">U2FtcGxlIGRvY3VtZW50IGF0dGFjaG1lbnQgZm9yIFBsZWFzYW50IFBhc3N3b3JkIFNlcnZlciB0byAxUGFzc3dvcmQgaW1wb3J0IHRlc3RpbmcuCg==</Binary>
 		</Binaries>
 	</Meta>
 	<Root>

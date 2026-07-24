@@ -1,15 +1,18 @@
-# KeePass → 1Password importer
+# Pleasant Password Server → 1Password importer
 
-A single script, `keepass_to_1password.py`, that reads a KeePass XML export
-and imports it directly into 1Password using the official
+A single script, `keepass_to_1password.py`, that reads a Pleasant Password
+Server XML export and imports it directly into 1Password using the official
 [`onepassword-sdk`](https://pypi.org/project/onepassword-sdk/) Python SDK.
+
+Pleasant Password Server exports use the KeePass XML 2.x file format; the
+script parses that structure as-is.
 
 ## What it does
 
-1. **Parses** the KeePass XML export (`<KeePassFile><Root><Group>...`).
-2. **One vault per subfolder.** Every KeePass `Group` that directly contains
+1. **Parses** the XML export (`<KeePassFile><Root><Group>...`).
+2. **One vault per subfolder.** Every folder `Group` that directly contains
    entries becomes one 1Password vault. The vault title is
-   `"<folder> - <parent folder>"` — e.g. a KeePass path of
+   `"<folder> - <parent folder>"` — e.g. an export path of
    `.../JAG/Client 1` becomes the vault **"Client 1 - JAG"**. A top-level
    folder with no parent just uses its own name. If two different folders
    would otherwise produce the same title, the script automatically extends
@@ -26,6 +29,12 @@ and imports it directly into 1Password using the official
    created or roll it back later.
 
 ## Setup
+
+```bash
+pip install -r requirements.txt
+```
+
+Or install the dependency directly:
 
 ```bash
 pip install onepassword-sdk
@@ -68,7 +77,7 @@ python keepass_to_1password.py Export.xml --list-only
 # Preview the import, including vault existence checks via the SDK
 python keepass_to_1password.py Export.xml --dry-run
 
-# Import (writes Export.keepass-import.json by default)
+# Import (writes ./Export.pps-import.json in the current directory by default)
 python keepass_to_1password.py Export.xml
 
 # Import with desktop app auth
@@ -88,19 +97,19 @@ python keepass_to_1password.py Sample_Export.xml --dry-run
 
 ### Rolling back an import
 
-After a real import, the script writes a JSON log (default:
-`<export-name>.keepass-import.json`) listing every vault and item it created.
-Use `--delete-import` to remove that data:
+After a real import, the script writes a JSON log in the **current working
+directory** (default: `./<export-basename>.pps-import.json`) listing every
+vault and item it created. Use `--delete-import` to remove that data:
 
 ```bash
 # Preview what would be deleted
 python keepass_to_1password.py Export.xml --delete-import --dry-run
 
-# Delete vaults/items recorded in Export.keepass-import.json
+# Delete vaults/items recorded in ./Export.pps-import.json
 python keepass_to_1password.py Export.xml --delete-import
 
 # Or point directly at the log file
-python keepass_to_1password.py --delete-import Export.keepass-import.json
+python keepass_to_1password.py --delete-import Export.pps-import.json
 ```
 
 Cleanup behavior:
@@ -116,17 +125,17 @@ do not commit it to source control.
 
 ## How classification works
 
-Plain KeePass has no built-in concept of "item type" — every entry is just a
-title/username/password/URL/notes plus whatever custom fields you or a tool
-added. There's no universal standard for naming those custom fields, so this
-script uses a **best-effort heuristic**: it looks at the *names* of an
-entry's custom fields (case- and spacing-insensitive) and matches them
-against signatures for each 1Password category. For example, an entry with
-`Card Number` and `CVV` fields is classified as a Credit Card; an entry with
-only `Notes` and nothing else becomes a Secure Note; an entry with
-`SSH Private Key` becomes an SSH Key item.
+Pleasant Password Server exports have no built-in concept of "item type" —
+every entry is just a title/username/password/URL/notes plus whatever custom
+fields you or a tool added. There's no universal standard for naming those
+custom fields, so this script uses a **best-effort heuristic**: it looks at
+the *names* of an entry's custom fields (case- and spacing-insensitive) and
+matches them against signatures for each 1Password category. For example, an
+entry with `Card Number` and `CVV` fields is classified as a Credit Card; an
+entry with only `Notes` and nothing else becomes a Secure Note; an entry
+with `SSH Private Key` becomes an SSH Key item.
 
-**This is not guaranteed to be perfect.** If your KeePass entries use
+**This is not guaranteed to be perfect.** If your export entries use
 different field-naming conventions than the ones listed below, entries will
 fall back to Login (if they have a username/password), Password (password
 only, no username), or Secure Note (notes only). You can always review and
@@ -158,12 +167,12 @@ below).
 | Identity | any two of `First Name`, `Last Name`, `Date of Birth`, `Address`, `City` |
 | Email | `IMAP Server`, `POP3 Server`, `SMTP Server`, `Email Address` |
 | Secure Note (contact) | `Full Name` or `Relationship` — see note below |
-| Document | entry has a KeePass file attachment |
+| Document | entry has a file attachment in the export |
 | Secure Note | only `Notes` is populated (no username/password/URL) |
 | Password | `Password` populated, no `UserName` |
 | Login | default fallback |
 
-**Contact entries:** KeePass entries with `Full Name` / `Relationship` fields
+**Contact entries:** Export entries with `Full Name` / `Relationship` fields
 are classified as contact-style data, but the SDK cannot create native
 **Person** items. They are imported as **Secure Notes** with the contact
 fields preserved in a Details section.
@@ -189,10 +198,10 @@ Failed items are also recorded in the import log under `failures`.
   1Password field (e.g. card number → Credit Card Number field, expiry date
   → Month/Year field, SSN/CVV/API keys → Concealed field) inside a
   **"Details"** section.
-- Any other custom field KeePass had is preserved as a Text or Concealed
+- Any other custom field from the export is preserved as a Text or Concealed
   field (guessed from the field name — anything containing "password",
   "secret", "key", "pin", "cvv", "ssn", "private", or "token" is treated as
-  a secret) inside a **"KeePass metadata"** section, so nothing is silently
+  a secret) inside an **"Export metadata"** section, so nothing is silently
   dropped.
 - `Notes` always carries over as the item's Notes field.
 
@@ -203,7 +212,7 @@ Failed items are also recorded in the import log under `failures`.
 | `--list-only` | Parse and print the vault/item/category plan. No SDK, no network, no auth required. |
 | `--dry-run` | Preview actions via the SDK (vault checks on import; deletion preview on cleanup). Creates nothing. Requires the SDK and valid auth. |
 | `--account NAME` | 1Password account name for desktop app auth (overrides `OP_ACCOUNT_NAME`). |
-| `--log-file PATH` | Import log path (default: `<xml_file>.keepass-import.json`). |
+| `--log-file PATH` | Import log path (default: `./<export-basename>.pps-import.json` in the current directory). |
 | `--delete-import` | Delete vaults/items from a previous import log instead of importing. Use with `--dry-run` to preview. |
 | (no flag) | Run the import and write the log file. |
 
@@ -247,15 +256,15 @@ The log is JSON with this structure:
 - **Vault titles must be unique in a 1Password account.** If a vault with
   the computed title already exists, the script reuses it instead of
   creating a duplicate.
-- **Attachments:** only the first file attached to a KeePass entry is
+- **Attachments:** only the first file attached to an export entry is
   imported, as the item's single Document file, and only for entries
   classified as Document. Attachments on entries of other categories aren't
   currently uploaded as field-level files.
 - **Address fields** are stored as plain text (street/city/etc. as separate
   text fields) rather than 1Password's structured Address field type, to
   keep the mapping simple and predictable.
-- KeePass's `TOTPDigits`/`TOTPPeriod`/etc. settings (as opposed to an actual
-  seed) carry over into the KeePass metadata section if present, since
+- Export `TOTPDigits`/`TOTPPeriod`/etc. settings (as opposed to an actual
+  seed) carry over into the Export metadata section if present, since
   1Password derives digit/period info from the TOTP seed or `otpauth://` URI
   itself.
 - **Re-running an import** against the same export will reuse existing vaults
@@ -266,14 +275,16 @@ The log is JSON with this structure:
 
 - `keepass_to_1password.py` — the importer (parsing, classification,
   1Password import, logging, and cleanup).
-- `Sample_Export.xml` — a synthetic KeePass export with entirely fictional
-  data (fake names, `example.com` addresses, RFC 5737 test IP ranges, the
-  well-known `4111111111111111` test Visa number, etc.) covering every
-  supported item category, for trying the script out safely.
+- `requirements.txt` — Python dependencies (`onepassword-sdk`).
+- `Sample_Export.xml` — a synthetic Pleasant Password Server export with
+  entirely fictional data (fake names, `example.com` addresses, RFC 5737 test
+  IP ranges, the well-known `4111111111111111` test Visa number, etc.)
+  covering every supported item category, for trying the script out safely.
 
 ## Security note
 
-A real KeePass export contains live plaintext passwords once decrypted to
-XML. Treat the export file, import logs, and anything derived from them as
-secrets: avoid committing them to source control, delete them once the import
-is complete, and don't leave copies lying around in shared folders.
+A real Pleasant Password Server export contains live plaintext passwords
+once decrypted to XML. Treat the export file, import logs, and anything
+derived from them as secrets: avoid committing them to source control,
+delete them once the import is complete, and don't leave copies lying around
+in shared folders.
