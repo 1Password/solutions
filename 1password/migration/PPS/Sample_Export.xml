@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<KeePassFile>
+	<Meta>
+		<Generator>KeePass</Generator>
+		<DatabaseName>Sample Export</DatabaseName>
+		<DatabaseDescription>Synthetic test data - no real people, companies, or credentials</DatabaseDescription>
+		<MemoryProtection>
+			<ProtectTitle>False</ProtectTitle>
+			<ProtectUserName>False</ProtectUserName>
+			<ProtectPassword>True</ProtectPassword>
+			<ProtectURL>False</ProtectURL>
+			<ProtectNotes>False</ProtectNotes>
+		</MemoryProtection>
+		<Binaries>
+			<Binary ID="0" Compressed="False">U2FtcGxlIGRvY3VtZW50IGF0dGFjaG1lbnQgZm9yIEtlZVBhc3MgdG8gMVBhc3N3b3JkIGltcG9ydCB0ZXN0aW5nLgo=</Binary>
+		</Binaries>
+	</Meta>
+	<Root>
+		<Group>
+			<Name>Fabrikam Vault Export</Name>
+			<Group>
+				<Name>IT Operations</Name>
+				<Group>
+					<Name>Network Team</Name>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAAAA==</UUID>
+						<Times>
+							<CreationTime>2026-01-05T10:00:00Z</CreationTime>
+							<LastModificationTime>2026-01-05T10:00:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Branch Office Wi-Fi Router</Value></String>
+						<String><Key>UserName</Key><Value>admin</Value></String>
+						<String><Key>Password</Key><Value ProtectInMemory="True">Rtr-Sample-Pw-01</Value></String>
+						<String><Key>URL</Key><Value>https://192.0.2.1/admin</Value></String>
+						<String><Key>Notes</Key><Value>Test router entry for classifier validation.</Value></String>
+						<String><Key>SSID</Key><Value>FABRIKAM-GUEST</Value></String>
+						<String><Key>WiFiPassword</Key><Value ProtectInMemory="True">GuestNetSample123</Value></String>
+						<String><Key>RouterAdminURL</Key><Value>https://192.0.2.1/admin</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAAAQ==</UUID>
+						<Times>
+							<CreationTime>2026-01-05T10:05:00Z</CreationTime>
+							<LastModificationTime>2026-01-05T10:05:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>App Server 01</Value></String>
+						<String><Key>UserName</Key><Value>svc-appserver</Value></String>
+						<String><Key>Password</Key><Value ProtectInMemory="True">Srv-Sample-Pw-02</Value></String>
+						<String><Key>Notes</Key><Value>Test server entry for classifier validation.</Value></String>
+						<String><Key>IPAddress</Key><Value>198.51.100.10</Value></String>
+						<String><Key>OSVersion</Key><Value>Ubuntu 24.04 LTS</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAAAg==</UUID>
+						<Times>
+							<CreationTime>2026-01-05T10:10:00Z</CreationTime>
+							<LastModificationTime>2026-01-05T10:10:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Reporting Database</Value></String>
+						<String><Key>UserName</Key><Value>db_reporting</Value></String>
+						<String><Key>Password</Key><Value ProtectInMemory="True">Db-Sample-Pw-03</Value></String>
+						<String><Key>Notes</Key><Value>Test database entry for classifier validation.</Value></String>
+						<String><Key>Hostname</Key><Value>reporting-db.example.internal</Value></String>
+						<String><Key>DatabaseName</Key><Value>reporting</Value></String>
+						<String><Key>Port</Key><Value>5432</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAAAw==</UUID>
+						<Times>
+							<CreationTime>2026-01-05T10:15:00Z</CreationTime>
+							<LastModificationTime>2026-01-05T10:15:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Deploy Bot SSH Key</Value></String>
+						<String><Key>UserName</Key><Value>deploybot</Value></String>
+						<String><Key>Notes</Key><Value>Test SSH key entry for classifier validation. Key material below is a placeholder, not a real key.</Value></String>
+						<String><Key>SSHPrivateKey</Key><Value ProtectInMemory="True">-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACBmYLT61Pai4KZmiXUXKSnEjcyNTq5cVcGA6v1zi0SQggAAAKB42E6WeNhO
+lgAAAAtzc2gtZWQyNTUxOQAAACBmYLT61Pai4KZmiXUXKSnEjcyNTq5cVcGA6v1zi0SQgg
+AAAEBNEOQCfFCwXJK1ijJK9PPosAOD+GcRtMFESkoN6hKP9mZgtPrU9qLgpmaJdRcpKcSN
+zI1OrlxVwYDq/XOLRJCCAAAAFnNhbXBsZS1vbmx5LWRvLW5vdC11c2UBAgMEBQYH
+-----END OPENSSH PRIVATE KEY-----</Value></String>
+						<String><Key>KeyType</Key><Value>ed25519</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAABA==</UUID>
+						<Times>
+							<CreationTime>2026-01-05T10:20:00Z</CreationTime>
+							<LastModificationTime>2026-01-05T10:20:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Intranet Portal</Value></String>
+						<String><Key>UserName</Key><Value>portal.user</Value></String>
+						<String><Key>Password</Key><Value ProtectInMemory="True">Portal-Sample-Pw-04</Value></String>
+						<String><Key>URL</Key><Value>https://intranet.example.com</Value></String>
+						<String><Key>Notes</Key><Value>Plain generic login entry, no special fields.</Value></String>
+					</Entry>
+				</Group>
+				<Group>
+					<Name>Security Team</Name>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAABQ==</UUID>
+						<Times>
+							<CreationTime>2026-01-06T09:00:00Z</CreationTime>
+							<LastModificationTime>2026-01-06T09:00:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Billing Service API Credentials</Value></String>
+						<String><Key>Notes</Key><Value>Test API credentials entry for classifier validation.</Value></String>
+						<String><Key>APIKey</Key><Value ProtectInMemory="True">sample-api-key-0000000000000000</Value></String>
+						<String><Key>ClientID</Key><Value>sample-client-id-1234</Value></String>
+						<String><Key>ClientSecret</Key><Value ProtectInMemory="True">sample-client-secret-abcd</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAABg==</UUID>
+						<Times>
+							<CreationTime>2026-01-06T09:05:00Z</CreationTime>
+							<LastModificationTime>2026-01-06T09:05:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Server Room Door Code</Value></String>
+						<String><Key>Password</Key><Value ProtectInMemory="True">024681</Value></String>
+						<String><Key>Notes</Key><Value>Password-only entry, no username, for classifier validation.</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAABw==</UUID>
+						<Times>
+							<CreationTime>2026-01-06T09:10:00Z</CreationTime>
+							<LastModificationTime>2026-01-06T09:10:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Incident Response Runbook</Value></String>
+						<String><Key>Notes</Key><Value>1. Identify scope.
+2. Notify on-call.
+3. Contain and eradicate.
+4. Document timeline.
+This is a secure-note-only test entry with no username, password, or URL.</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAACA==</UUID>
+						<Times>
+							<CreationTime>2026-01-06T09:15:00Z</CreationTime>
+							<LastModificationTime>2026-01-06T09:15:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Admin Console Login</Value></String>
+						<String><Key>UserName</Key><Value>console.admin</Value></String>
+						<String><Key>Password</Key><Value ProtectInMemory="True">Console-Sample-Pw-05</Value></String>
+						<String><Key>URL</Key><Value>https://console.example.com</Value></String>
+						<String><Key>Notes</Key><Value>Login entry with a TOTP seed for classifier validation.</Value></String>
+						<String><Key>otp</Key><Value>otpauth://totp/Sample:console.admin?secret=JBSWY3DPEHPK3PXP&amp;issuer=Sample</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAACQ==</UUID>
+						<Times>
+							<CreationTime>2026-01-06T09:20:00Z</CreationTime>
+							<LastModificationTime>2026-01-06T09:20:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Onboarding Checklist</Value></String>
+						<String><Key>Notes</Key><Value>Document item test entry - see attached file.</Value></String>
+						<Binary>
+							<Key>onboarding-checklist.txt</Key>
+							<Value Ref="0" />
+						</Binary>
+					</Entry>
+				</Group>
+			</Group>
+			<Group>
+				<Name>Personal</Name>
+				<Group>
+					<Name>Family Records</Name>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAACg==</UUID>
+						<Times>
+							<CreationTime>2026-01-07T08:00:00Z</CreationTime>
+							<LastModificationTime>2026-01-07T08:00:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Sample Person Identity</Value></String>
+						<String><Key>Notes</Key><Value>Identity test entry for classifier validation.</Value></String>
+						<String><Key>FirstName</Key><Value>Alex</Value></String>
+						<String><Key>LastName</Key><Value>Sampleton</Value></String>
+						<String><Key>DateOfBirth</Key><Value>1990-01-01</Value></String>
+						<String><Key>Address</Key><Value>123 Test Street</Value></String>
+						<String><Key>City</Key><Value>Sampleville</Value></String>
+						<String><Key>EmailAddress</Key><Value>alex.sampleton@example.com</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAACw==</UUID>
+						<Times>
+							<CreationTime>2026-01-07T08:05:00Z</CreationTime>
+							<LastModificationTime>2026-01-07T08:05:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Sample Passport</Value></String>
+						<String><Key>Notes</Key><Value>Passport test entry for classifier validation.</Value></String>
+						<String><Key>PassportNumber</Key><Value ProtectInMemory="True">X0000000</Value></String>
+						<String><Key>Nationality</Key><Value>Testland</Value></String>
+						<String><Key>DateOfIssue</Key><Value>2020-01-01</Value></String>
+						<String><Key>DateOfExpiry</Key><Value>2030-01-01</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAADA==</UUID>
+						<Times>
+							<CreationTime>2026-01-07T08:10:00Z</CreationTime>
+							<LastModificationTime>2026-01-07T08:10:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Sample Driver License</Value></String>
+						<String><Key>Notes</Key><Value>Driver license test entry for classifier validation.</Value></String>
+						<String><Key>LicenseNumber</Key><Value ProtectInMemory="True">D0000-00000-00000</Value></String>
+						<String><Key>LicenseState</Key><Value>Test State</Value></String>
+						<String><Key>LicenseClass</Key><Value>C</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAADQ==</UUID>
+						<Times>
+							<CreationTime>2026-01-07T08:15:00Z</CreationTime>
+							<LastModificationTime>2026-01-07T08:15:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Sample SSN Record</Value></String>
+						<String><Key>Notes</Key><Value>SSN test entry for classifier validation.</Value></String>
+						<String><Key>SocialSecurityNumber</Key><Value ProtectInMemory="True">000-12-3456</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAADg==</UUID>
+						<Times>
+							<CreationTime>2026-01-07T08:20:00Z</CreationTime>
+							<LastModificationTime>2026-01-07T08:20:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Sample Medical Record</Value></String>
+						<String><Key>Notes</Key><Value>Medical record test entry for classifier validation.</Value></String>
+						<String><Key>PolicyNumber</Key><Value>POL-SAMPLE-0001</Value></String>
+						<String><Key>BloodType</Key><Value>O+</Value></String>
+						<String><Key>PhysicianName</Key><Value>Dr. Sample Physician</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAADw==</UUID>
+						<Times>
+							<CreationTime>2026-01-07T08:25:00Z</CreationTime>
+							<LastModificationTime>2026-01-07T08:25:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Sample Emergency Contact</Value></String>
+						<String><Key>Notes</Key><Value>Person/contact test entry for classifier validation.</Value></String>
+						<String><Key>FullName</Key><Value>Jordan Sampleton</Value></String>
+						<String><Key>Relationship</Key><Value>Sibling</Value></String>
+						<String><Key>PhoneNumber</Key><Value>+1-555-0100</Value></String>
+					</Entry>
+				</Group>
+				<Group>
+					<Name>Shopping and Memberships</Name>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAAEA==</UUID>
+						<Times>
+							<CreationTime>2026-01-08T07:00:00Z</CreationTime>
+							<LastModificationTime>2026-01-08T07:00:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Sample Visa Card</Value></String>
+						<String><Key>Notes</Key><Value>Credit card test entry for classifier validation. Uses a well-known test card number.</Value></String>
+						<String><Key>CardholderName</Key><Value>Alex Sampleton</Value></String>
+						<String><Key>CardNumber</Key><Value ProtectInMemory="True">4111111111111111</Value></String>
+						<String><Key>ExpirationDate</Key><Value>01/2030</Value></String>
+						<String><Key>CVV</Key><Value ProtectInMemory="True">123</Value></String>
+						<String><Key>CardType</Key><Value>Visa</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAAEQ==</UUID>
+						<Times>
+							<CreationTime>2026-01-08T07:05:00Z</CreationTime>
+							<LastModificationTime>2026-01-08T07:05:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Sample Checking Account</Value></String>
+						<String><Key>Notes</Key><Value>Bank account test entry for classifier validation.</Value></String>
+						<String><Key>BankName</Key><Value>Sample Test Bank</Value></String>
+						<String><Key>AccountNumber</Key><Value ProtectInMemory="True">000123456789</Value></String>
+						<String><Key>RoutingNumber</Key><Value>011000015</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAAEg==</UUID>
+						<Times>
+							<CreationTime>2026-01-08T07:10:00Z</CreationTime>
+							<LastModificationTime>2026-01-08T07:10:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Sample Crypto Wallet</Value></String>
+						<String><Key>Notes</Key><Value>Crypto wallet test entry for classifier validation.</Value></String>
+						<String><Key>WalletAddress</Key><Value>0x0000000000000000000000000000000000dEaD</Value></String>
+						<String><Key>RecoveryPhrase</Key><Value ProtectInMemory="True">sample test seed phrase words go here only for testing purposes</Value></String>
+						<String><Key>Cryptocurrency</Key><Value>ETH (testnet)</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAAEw==</UUID>
+						<Times>
+							<CreationTime>2026-01-08T07:15:00Z</CreationTime>
+							<LastModificationTime>2026-01-08T07:15:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Sample Email Account</Value></String>
+						<String><Key>UserName</Key><Value>sample.user@example.com</Value></String>
+						<String><Key>Password</Key><Value ProtectInMemory="True">Email-Sample-Pw-06</Value></String>
+						<String><Key>Notes</Key><Value>Email account test entry for classifier validation.</Value></String>
+						<String><Key>IMAPServer</Key><Value>imap.example.com</Value></String>
+						<String><Key>SMTPServer</Key><Value>smtp.example.com</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAAFA==</UUID>
+						<Times>
+							<CreationTime>2026-01-08T07:20:00Z</CreationTime>
+							<LastModificationTime>2026-01-08T07:20:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Sample Gym Membership</Value></String>
+						<String><Key>Notes</Key><Value>Membership test entry for classifier validation.</Value></String>
+						<String><Key>MembershipNumber</Key><Value>MEM-SAMPLE-0002</Value></String>
+						<String><Key>MembershipLevel</Key><Value>Gold</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAAFQ==</UUID>
+						<Times>
+							<CreationTime>2026-01-08T07:25:00Z</CreationTime>
+							<LastModificationTime>2026-01-08T07:25:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Sample Airline Rewards</Value></String>
+						<String><Key>Notes</Key><Value>Rewards test entry for classifier validation.</Value></String>
+						<String><Key>RewardsNumber</Key><Value>RWD-SAMPLE-0003</Value></String>
+						<String><Key>PointsBalance</Key><Value>12345</Value></String>
+						<String><Key>TierStatus</Key><Value>Silver</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAAFg==</UUID>
+						<Times>
+							<CreationTime>2026-01-08T07:30:00Z</CreationTime>
+							<LastModificationTime>2026-01-08T07:30:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Sample Design Software License</Value></String>
+						<String><Key>Notes</Key><Value>Software license test entry for classifier validation.</Value></String>
+						<String><Key>LicenseKey</Key><Value ProtectInMemory="True">SAMPLE-0000-0000-0000</Value></String>
+						<String><Key>SerialNumber</Key><Value>SN-SAMPLE-0004</Value></String>
+						<String><Key>LicensedTo</Key><Value>Alex Sampleton</Value></String>
+					</Entry>
+					<Entry>
+						<UUID>AAAAAAAAAAAAAAAAAAAAFw==</UUID>
+						<Times>
+							<CreationTime>2026-01-08T07:35:00Z</CreationTime>
+							<LastModificationTime>2026-01-08T07:35:00Z</LastModificationTime>
+						</Times>
+						<String><Key>Title</Key><Value>Sample Fishing Permit</Value></String>
+						<String><Key>Notes</Key><Value>Outdoor license test entry for classifier validation.</Value></String>
+						<String><Key>PermitNumber</Key><Value>PERMIT-SAMPLE-0005</Value></String>
+						<String><Key>HuntingSeason</Key><Value>2026</Value></String>
+						<String><Key>GameZone</Key><Value>Zone 7</Value></String>
+					</Entry>
+				</Group>
+			</Group>
+		</Group>
+		<DeletedObjects />
+	</Root>
+</KeePassFile>
