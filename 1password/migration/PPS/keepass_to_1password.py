@@ -52,6 +52,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from collections import defaultdict
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 
@@ -528,6 +529,207 @@ async def create_item(client, sdk, category_name: str, entry: dict, vault_id: st
         return created, "SecureNote"
 
 
+BULK_CREATE_MAX = 50
+
+# Item types that must be created individually (binary payloads or SDK constraints).
+INDIVIDUAL_CREATE_CATEGORIES = frozenset({"Document", "SshKey", "CreditCard"})
+
+
+@dataclass
+class _PendingItem:
+    entry: dict
+    category_name: str
+    item_title: str
+    params: Any
+
+
+def _chunked(items: List, size: int) -> List[List]:
+    return [items[i: i + size] for i in range(0, len(items), size)]
+
+
+def needs_individual_create(category_name: str, params: Any) -> bool:
+    if category_name in INDIVIDUAL_CREATE_CATEGORIES:
+        return True
+    return getattr(params, "document", None) is not None
+
+
+def _record_created_item(
+    created,
+    actual_category: str,
+    planned_category: str,
+    vault_log: Optional[dict],
+    category_counts: dict,
+) -> None:
+    if actual_category != planned_category:
+        category_counts[planned_category] -= 1
+        category_counts[actual_category] += 1
+    print(f"  created {actual_category} item {created.title!r} (id={created.id})")
+    if vault_log is not None:
+        vault_log["items"].append({
+            "title": created.title,
+            "id": created.id,
+            "category": actual_category,
+            "planned_category": planned_category,
+        })
+
+
+async def _create_one_item(
+    client,
+    sdk,
+    pending: _PendingItem,
+    vault_id: str,
+    vault_title: str,
+    vault_log: Optional[dict],
+    import_log: Optional[dict],
+    category_counts: dict,
+) -> bool:
+    try:
+        created, actual_category = await create_item(
+            client, sdk, pending.category_name, pending.entry, vault_id, pending.item_title,
+        )
+        _record_created_item(
+            created, actual_category, pending.category_name, vault_log, category_counts,
+        )
+        return True
+    except Exception as exc:
+        print(
+            f"  failed to create {pending.category_name} item {pending.item_title!r}: {exc}",
+            file=sys.stderr,
+        )
+        if import_log is not None:
+            import_log["failures"].append({
+                "vault_title": vault_title,
+                "vault_id": vault_id,
+                "item_title": pending.item_title,
+                "category": pending.category_name,
+                "error": str(exc),
+            })
+        return False
+
+
+async def prepare_vaults(client, sdk, vault_titles: List[str]) -> Dict[str, tuple[str, bool]]:
+    """Create missing vaults up front. Returns {title: (vault_id, created)}."""
+    existing = await client.vaults.list(sdk.VaultListParams(decrypt_details=True))
+    title_to_id = {v.title: v.id for v in existing}
+    result: Dict[str, tuple[str, bool]] = {}
+
+    for title in vault_titles:
+        if title in title_to_id:
+            print(f"  vault {title!r} already exists (id={title_to_id[title]}); reusing it")
+            result[title] = (title_to_id[title], False)
+            continue
+
+        params = sdk.VaultCreateParams(
+            title=title, description="Imported from Pleasant Password Server export",
+        )
+        created = await client.vaults.create(params)
+        print(f"  created vault {title!r} (id={created.id})")
+        result[title] = (created.id, True)
+        title_to_id[title] = created.id
+
+    return result
+
+
+async def import_vault_entries(
+    client,
+    sdk,
+    vault_id: str,
+    vault_title: str,
+    entries: List[dict],
+    vault_log: Optional[dict],
+    import_log: Optional[dict],
+    category_counts: dict,
+    *,
+    dry_run: bool,
+) -> int:
+    total_items = 0
+
+    if dry_run:
+        for entry in entries:
+            category_name = classify_entry(entry["raw_fields"], entry["attachments"])
+            category_counts[category_name] += 1
+            item_title = entry["raw_fields"].get("Title", "(untitled)")
+            print(f"  [dry-run] would create {category_name} item {item_title!r}")
+            total_items += 1
+        return total_items
+
+    batchable: List[_PendingItem] = []
+    individual: List[_PendingItem] = []
+
+    for entry in entries:
+        category_name = classify_entry(entry["raw_fields"], entry["attachments"])
+        category_counts[category_name] += 1
+        item_title = entry["raw_fields"].get("Title", "(untitled)")
+        try:
+            params = build_item(sdk, category_name, entry, vault_id)
+        except Exception as exc:
+            print(
+                f"  failed to build {category_name} item {item_title!r}: {exc}",
+                file=sys.stderr,
+            )
+            if import_log is not None:
+                import_log["failures"].append({
+                    "vault_title": vault_title,
+                    "vault_id": vault_id,
+                    "item_title": item_title,
+                    "category": category_name,
+                    "error": str(exc),
+                })
+            continue
+
+        pending = _PendingItem(entry, category_name, item_title, params)
+        if needs_individual_create(category_name, params):
+            individual.append(pending)
+        else:
+            batchable.append(pending)
+
+    batch_created = 0
+    for chunk in _chunked(batchable, BULK_CREATE_MAX):
+        try:
+            resp = await client.items.create_all(vault_id, [p.params for p in chunk])
+        except Exception as exc:
+            print(
+                f"  batch create failed ({len(chunk)} item(s)): {exc}; retrying individually",
+                file=sys.stderr,
+            )
+            for pending in chunk:
+                if await _create_one_item(
+                    client, sdk, pending, vault_id, vault_title,
+                    vault_log, import_log, category_counts,
+                ):
+                    total_items += 1
+            continue
+
+        for i, ir in enumerate(resp.individual_responses):
+            pending = chunk[i]
+            if ir.error is not None:
+                if await _create_one_item(
+                    client, sdk, pending, vault_id, vault_title,
+                    vault_log, import_log, category_counts,
+                ):
+                    total_items += 1
+                continue
+
+            _record_created_item(
+                ir.content, pending.category_name, pending.category_name,
+                vault_log, category_counts,
+            )
+            batch_created += 1
+            total_items += 1
+
+    if batchable:
+        print(f"  batch created {batch_created}/{len(batchable)} item(s)")
+
+    for pending in individual:
+        if await _create_one_item(
+            client, sdk, pending, vault_id, vault_title,
+            vault_log, import_log, category_counts,
+        ):
+            total_items += 1
+
+    return total_items
+
+
 # --------------------------------------------------------------------------
 # 1Password import
 # --------------------------------------------------------------------------
@@ -584,26 +786,6 @@ class SdkHandles:
         self.VaultCreateParams = VaultCreateParams
         self.VaultListParams = VaultListParams
         self.Website = Website
-
-
-async def get_or_create_vault(client, sdk, title, dry_run):
-    if not dry_run:
-        existing = await client.vaults.list(sdk.VaultListParams(decrypt_details=True))
-        for v in existing:
-            if v.title == title:
-                print(f"  vault {title!r} already exists (id={v.id}); reusing it")
-                return v.id, False
-
-    if dry_run:
-        print(f"  [dry-run] would create/reuse vault {title!r}")
-        return f"DRY-RUN-VAULT-ID:{title}", True
-
-    params = sdk.VaultCreateParams(
-        title=title, description="Imported from Pleasant Password Server export",
-    )
-    created = await client.vaults.create(params)
-    print(f"  created vault {title!r} (id={created.id})")
-    return created.id, True
 
 
 def default_log_path(xml_file: str) -> str:
@@ -786,57 +968,33 @@ async def run(args):
     import_log = None if args.dry_run else new_import_log(args.xml_file)
     log_path = resolve_log_path(args) if import_log is not None else ""
 
+    vault_titles = [v["vault_title"] for v in vaults_data]
+    vault_map: Dict[str, tuple[str, bool]] = {}
+    if args.dry_run:
+        vault_map = {title: (f"DRY-RUN-VAULT-ID:{title}", True) for title in vault_titles}
+    else:
+        print(f"Preparing {len(vault_titles)} vault(s)...")
+        vault_map = await prepare_vaults(client, sdk, vault_titles)
+
     for vault_entry in vaults_data:
         title = vault_entry["vault_title"]
         entries = vault_entry["entries"]
         print(f"Vault: {title} ({len(entries)} item(s))")
 
-        vault_id, vault_created = await get_or_create_vault(client, sdk, title, args.dry_run)
+        vault_id, vault_created = vault_map[title]
+        if args.dry_run:
+            print(f"  [dry-run] would create/reuse vault {title!r}")
+
         vault_log = None
         if import_log is not None:
             vault_log = append_vault_log(
                 import_log, title=title, vault_id=vault_id, created=vault_created,
             )
 
-        for entry in entries:
-            category_name = classify_entry(entry["raw_fields"], entry["attachments"])
-            category_counts[category_name] += 1
-            item_title = entry["raw_fields"].get("Title", "(untitled)")
-
-            if args.dry_run:
-                print(f"  [dry-run] would create {category_name} item {item_title!r}")
-                total_items += 1
-                continue
-
-            try:
-                created, actual_category = await create_item(
-                    client, sdk, category_name, entry, vault_id, item_title,
-                )
-                if actual_category != category_name:
-                    category_counts[category_name] -= 1
-                    category_counts[actual_category] += 1
-                print(f"  created {actual_category} item {created.title!r} (id={created.id})")
-                total_items += 1
-                if vault_log is not None:
-                    vault_log["items"].append({
-                        "title": created.title,
-                        "id": created.id,
-                        "category": actual_category,
-                        "planned_category": category_name,
-                    })
-            except Exception as exc:
-                print(
-                    f"  failed to create {category_name} item {item_title!r}: {exc}",
-                    file=sys.stderr,
-                )
-                if import_log is not None:
-                    import_log["failures"].append({
-                        "vault_title": title,
-                        "vault_id": vault_id,
-                        "item_title": item_title,
-                        "category": category_name,
-                        "error": str(exc),
-                    })
+        total_items += await import_vault_entries(
+            client, sdk, vault_id, title, entries, vault_log, import_log,
+            category_counts, dry_run=args.dry_run,
+        )
 
     print(f"\nDone. {'Would have processed' if args.dry_run else 'Processed'} "
           f"{len(vaults_data)} vault(s) / {total_items} item(s).")

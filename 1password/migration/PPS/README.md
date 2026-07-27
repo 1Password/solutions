@@ -24,7 +24,9 @@ script parses that structure as-is.
    Server, Social Security Number, Software License) based on the entry's
    field names. See [How classification works](#how-classification-works).
 4. **Creates the vaults and items** in 1Password (or reuses a vault that
-   already has the same title).
+   already has the same title). Vaults are created up front; items are
+   imported in batches of up to 50 per vault via the SDK `create_all` API
+   (Document, SSH Key, and Credit Card items are created individually).
 5. **Writes an import log** after a real import so you can review what was
    created or roll it back later.
 
@@ -68,7 +70,72 @@ Or pass it per run with `--account "My Team"`.
 Do not set both `OP_SERVICE_ACCOUNT_TOKEN` and `OP_ACCOUNT_NAME` at the same
 time.
 
+## Running on Windows
+
+The script runs on Windows the same way as on macOS or Linux. You need
+**Python 3.10+** and the [1Password desktop app](https://1password.com/downloads/)
+(if using desktop auth).
+
+1. Install Python from [python.org](https://www.python.org/downloads/windows/)
+   (check **Add python.exe to PATH** during setup), or use the **`py`**
+   launcher that ships with the Python installer.
+2. Open **PowerShell** or **Command Prompt** and go to this folder:
+
+```powershell
+cd C:\path\to\PPS
+pip install -r requirements.txt
+```
+
+If `python` is not recognized, use `py -3` instead (e.g. `py -3 keepass_to_1password.py ...`).
+
+### Environment variables on Windows
+
+**PowerShell (current session):**
+
+```powershell
+$env:OP_SERVICE_ACCOUNT_TOKEN = "ops_..."
+# or, for desktop app auth:
+$env:OP_ACCOUNT_NAME = "My Team"
+```
+
+**Command Prompt (current session):**
+
+```cmd
+set OP_SERVICE_ACCOUNT_TOKEN=ops_...
+set OP_ACCOUNT_NAME=My Team
+```
+
+You can also pass desktop account name per run with `--account "My Team"` and
+skip setting `OP_ACCOUNT_NAME`.
+
+For desktop auth, install and unlock the 1Password desktop app, then enable
+**Settings → Developer → Integrate with other apps** before running the
+import.
+
+### Example commands (Windows)
+
+```powershell
+# Preview the plan (no auth required)
+py -3 keepass_to_1password.py Export.xml --list-only
+
+# Dry run
+py -3 keepass_to_1password.py Export.xml --dry-run --account "My Team"
+
+# Import (writes .\Export.pps-import.json in the current directory)
+py -3 keepass_to_1password.py C:\Exports\Export.xml --account "My Team"
+
+# Roll back a previous import
+py -3 keepass_to_1password.py --delete-import .\Export.pps-import.json --account "My Team"
+```
+
+Use forward slashes or quoted paths if filenames contain spaces. The import
+log is always written to whatever directory you run the command from (not
+next to the XML file).
+
 ## Usage
+
+Examples below use `python`; on Windows, use `py -3` if `python` is not on
+your PATH (see [Running on Windows](#running-on-windows)).
 
 ```bash
 # See what would happen — no SDK, no network, no auth required
@@ -270,6 +337,11 @@ The log is JSON with this structure:
 - **Re-running an import** against the same export will reuse existing vaults
   by title and may create duplicate items. Use the import log and
   `--delete-import` to clean up test runs.
+- **Batch import:** most items are created with `items.create_all()` in chunks
+  of 50. Document, SSH Key, and Credit Card items are always created one at
+  a time because they carry binary data or need special SDK handling. If a
+  batch call fails for a single item, the script retries that item
+  individually (including Secure Note fallbacks).
 
 ## Files in this folder
 
