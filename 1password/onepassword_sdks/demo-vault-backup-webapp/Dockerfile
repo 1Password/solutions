@@ -1,5 +1,5 @@
 # Use Node.js 18 as the base image for the container
-FROM node:lts-bookworm-slim
+FROM node:lts-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03
 
 # Set the working directory to /app inside the container
 WORKDIR /webapp
