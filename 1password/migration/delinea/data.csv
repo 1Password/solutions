@@ -1,0 +1,10 @@
+Secret Name,Domain,Username,Password,Notes,Location,Server List,URL,Folder,TOTP Key,TOTP Backup Codes
+Sample AD Account,example.com,jdoe,SamplePassword123!,,,,,\Sample Export\Folder 1\Subfolder 1,,
+Secret Name,Username,Password,Description,Host,Location,Notes,File,Folder,TOTP Key,TOTP Backup Codes
+Sample Azure Account,jsmith,AnotherSample456!,,,,,,\Sample Export\Folder 1,,
+Secret Name,Host,Username,Password,Notes,Priviledge Level,DeviceModel,Folder,TOTP Key,TOTP Backup Codes,
+Sample Cisco Account,host01.example.com,mchen,ThirdSample789#,,,,\Sample Export\Folder 1\Subfolder 1\Subfolder 2,,,
+Secret Name,Site ID,Site Name,Username,Password,IP Address,Folder,TOTP Key,TOTP Backup Codes,,
+Sample Eltek Password,100,Primary Site,alee,FourthSample012$,192.168.1.10,\Sample Export,,,,
+Secret Name,Domain,Username,Password,Notes,Folder,TOTP Key,TOTP Backup Codes,,,
+Sample OpenLDAP Account,Example,rbrown,FifthSample345%,,\Sample Export\Folder 2,,,,,

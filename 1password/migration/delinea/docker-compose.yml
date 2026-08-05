@@ -1,0 +1,15 @@
+# One-shot import job. Run with:
+#   OP_SERVICE_ACCOUNT_TOKEN=ops_... docker compose run --rm import --csv /data/secrets-export.csv
+#
+# Or put the token in a local, git-ignored .env file (see README) and just:
+#   docker compose run --rm import --csv /data/secrets-export.csv
+services:
+  import:
+    build: .
+    image: delinea-to-1password:latest
+    environment:
+      - OP_SERVICE_ACCOUNT_TOKEN=${OP_SERVICE_ACCOUNT_TOKEN}
+    volumes:
+      # Mount your export directory read-only into /data. Point --csv at
+      # whatever file inside it you want to import.
+      - ./data:/data:ro
