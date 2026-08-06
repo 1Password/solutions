@@ -5,8 +5,7 @@ bulk-creates one item per secret from a Delinea (Secret Server) CSV export,
 using the official 1Password Python SDK and its batch item-creation API
 (`items.create_all`, up to 100 items per call).
 
-Run it directly on a server with Python, or as a Docker container — both are
-covered below.
+Run it directly on a server with Python, or as a Docker container.
 
 ## 1. Create a service account
 

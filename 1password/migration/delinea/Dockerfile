@@ -11,7 +11,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY delinea_to_1password.py .
+COPY delinea-csv-to-1p-vault.py .
 
 # Run as a non-root user. The script only ever reads a CSV you mount in and
 # talks outbound to 1Password's API -- it doesn't need root.
@@ -22,5 +22,5 @@ USER importer
 VOLUME ["/data"]
 
 # `docker run delinea-to-1password --csv /data/secrets-export.csv [...]`
-ENTRYPOINT ["python", "delinea_to_1password.py"]
+ENTRYPOINT ["python", "delinea-csv-to-1p-vault.py"]
 CMD ["--help"]
