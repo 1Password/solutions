@@ -19,6 +19,6 @@
     "nodemon": "^3.1.11"
   },
   "devDependencies": {
-    "brace-expansion": "^4.0.1"
+    "brace-expansion": "^5.0.7"
   }
 }
