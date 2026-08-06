@@ -19,7 +19,7 @@
   "dependencies": {
     "@1password/sdk": "0.4.0",
     "body-parser": "^2.2.2",
-    "ejs": "^4.0.1",
+    "ejs": "^6.0.1",
     "express": "^5.2.1",
     "selfsigned": "^5.5.0"
   }
