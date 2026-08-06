@@ -18,7 +18,7 @@
   "description": "Professional tool to migrate vaults between 1Password accounts with comprehensive error handling and logging.",
   "dependencies": {
     "@1password/sdk": "0.4.0",
-    "body-parser": "^2.2.2",
+    "body-parser": "^2.3.0",
     "ejs": "^4.0.1",
     "express": "^5.2.1",
     "selfsigned": "^5.5.0"
