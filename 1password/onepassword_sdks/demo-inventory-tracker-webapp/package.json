@@ -16,7 +16,7 @@
     "body-parser": "^2.2.2",
     "ejs": "^3.1.10",
     "express": "^5.2.1",
-    "nodemon": "^3.1.11"
+    "nodemon": "^3.1.14"
   },
   "devDependencies": {
     "brace-expansion": "^4.0.1"
