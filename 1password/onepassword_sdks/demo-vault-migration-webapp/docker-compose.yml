@@ -4,9 +4,24 @@ services:
       context: .
       dockerfile: Dockerfile
     image: demo-vault-migration-webapp:v1.0.6
+    # Rebuild on every start to pick up the newest 1Password CLI.
+    pull_policy: build
     ports:
-      - "3001:3001"
-    environment:
-      - NODE_ENV=development
-    command: npm start
+      # Localhost only, since the app has no login.
+      - "127.0.0.1:3001:3001"
 
+    # Lock the container down. op still needs the two writable folders below.
+    read_only: true
+    tmpfs:
+      - /tmp:mode=1777
+      - /home/node:uid=1000,gid=1000,mode=700
+    volumes:
+      - migration-logs:/webapp/logs
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+
+volumes:
+  migration-logs:

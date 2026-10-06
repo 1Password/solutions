@@ -179,13 +179,13 @@
         <div class="auth-card" id="cardDocker" onclick="selectPath('docker')">
           <span class="auth-card-icon">🐳</span>
           <h3>Docker</h3>
-          <p>Running in a Docker container — you'll enter service account tokens manually in the browser</p>
+          <p>Running in a Docker container. You'll enter service account tokens manually in the browser</p>
           <span class="badge badge-docker">Manual Token Entry</span>
         </div>
         <div class="auth-card" id="cardLocal" onclick="selectPath('local')">
           <span class="auth-card-icon">💻</span>
           <h3>Local Node.js</h3>
-          <p>Running <code>node webapp.js</code> directly — credentials loaded securely from a <code>.env</code> file via 1Password Environments</p>
+          <p>Running <code>node webapp.js</code> directly, with credentials loaded securely from a <code>.env</code> file via 1Password Environments</p>
           <span class="badge badge-local">Secure .env</span>
         </div>
       </div>
@@ -193,9 +193,8 @@
 
     <div class="env-status" id="envStatus"></div>
 
-    <!-- Docker detail panel -->
     <div class="detail-panel detail-docker" id="panelDocker">
-      <h4>🐳 Docker — Manual Token Entry</h4>
+      <h4>🐳 Docker: Manual Token Entry</h4>
       <p>You'll enter your source and destination service account tokens in the browser after the app loads. Tokens are held in the browser session only.</p>
       <ul>
         <li>Create service account tokens in 1Password → Integrations → Service Accounts</li>
@@ -204,10 +203,9 @@
       </ul>
     </div>
 
-    <!-- Local Node.js detail panel -->
     <div class="detail-panel detail-local" id="panelLocal">
-      <h4>💻 Local Node.js — Choose your auth method</h4>
-      <p>Both options use a <code>.env</code> file managed by <a href="https://developer.1password.com/docs/environments/" target="_blank" style="color: var(--accent-success);">1Password Environments</a>. When the app starts and reads the file, 1Password prompts you to authorize — secrets stay in memory only, never on disk.</p>
+      <h4>💻 Local Node.js: Choose your auth method</h4>
+      <p>Both options use a <code>.env</code> file managed by <a href="https://developer.1password.com/docs/environments/" target="_blank" style="color: var(--accent-success);">1Password Environments</a>. When the app starts and reads the file, 1Password prompts you to authorize. Secrets stay in memory only, never on disk.</p>
 
       <div class="env-sub-option" id="subServiceAccount" onclick="selectSubOption('service-account')">
         <h5>🔑 Service Account Tokens</h5>
@@ -219,7 +217,7 @@ DEST_TOKEN=ops_xxxxxxxxxxxxxxxxxxxx</pre>
 
       <div class="env-sub-option" id="subDesktop" onclick="selectSubOption('desktop')">
         <h5>🖥️ Desktop App Auth</h5>
-        <p>Your <code>.env</code> contains account names — the 1Password desktop app and CLI handle authentication</p>
+        <p>Your <code>.env</code> contains account names. The 1Password desktop app and CLI handle authentication</p>
       </div>
       <pre id="preDesktop" style="display: none;">AUTH_MODE=desktop
 SOURCE_ACCOUNT=My Old Team
@@ -227,7 +225,7 @@ DEST_ACCOUNT=My New Team</pre>
 
       <div id="desktopReqs" style="display: none; margin-top: 1rem; padding: 0.75rem 1rem; background: rgba(212, 165, 116, 0.08); border: 1px solid rgba(212, 165, 116, 0.25); border-radius: 8px; font-size: 0.85rem; color: var(--text-secondary);">
         <strong style="color: var(--accent-warning);">Desktop Auth requires:</strong> 1Password desktop app running with app integration enabled, plus the CLI (<code>op</code>) for vault creation.
-        Personal/Private vaults (Employee vaults) are skipped — only shared vaults are migrated with "(Migrated)" appended.
+        Personal/Private vaults (Employee vaults) are skipped. Only shared vaults are migrated with "(Migrated)" appended.
       </div>
     </div>
 
@@ -255,7 +253,7 @@ DEST_ACCOUNT=My New Team</pre>
       <div class="feature-card">
         <span class="feature-icon">🎯</span>
         <h3>Selective Migration</h3>
-        <p>Choose specific vaults — personal vaults are automatically detected and skipped</p>
+        <p>Choose specific vaults. Personal vaults are automatically detected and skipped</p>
       </div>
     </div>
 
@@ -265,7 +263,7 @@ DEST_ACCOUNT=My New Team</pre>
   <script>
     let selectedPath = null;
     let selectedSubOption = null;
-    let envData = null; // Cached env status
+    let envData = null;
 
     async function checkEnvStatus() {
       try {
@@ -276,13 +274,13 @@ DEST_ACCOUNT=My New Team</pre>
         if (envData.loaded && envData.ready) {
           const label = envData.authMode === 'desktop' ? 'desktop auth accounts' : 'service account tokens';
           el.className = 'env-status visible found';
-          el.innerHTML = '<span>✓</span><span><strong>.env loaded</strong> — ' + label + ' detected and ready.</span>' + reloadBtn;
+          el.innerHTML = '<span>✓</span><span><strong>.env loaded</strong>: ' + label + ' detected and ready.</span>' + reloadBtn;
         } else if (envData.loaded && !envData.ready) {
           el.className = 'env-status visible partial';
-          el.innerHTML = '<span>⚠️</span><span>.env found but incomplete — check that all required variables are set.</span>' + reloadBtn;
+          el.innerHTML = '<span>⚠️</span><span>.env found but incomplete. Check that all required variables are set.</span>' + reloadBtn;
         } else {
           el.className = 'env-status visible not-found';
-          el.innerHTML = '<span>○</span><span>No .env file detected — create one and click reload, or use Docker with manual tokens.</span>' + reloadBtn;
+          el.innerHTML = '<span>○</span><span>No .env file detected. Create one and click reload, or use Docker with manual tokens.</span>' + reloadBtn;
         }
       } catch (e) {
         
@@ -300,7 +298,7 @@ DEST_ACCOUNT=My New Team</pre>
       if (btn) { btn.textContent = '↻ Reloading...'; btn.disabled = true; }
       try {
         await fetch('/migration/env-reload', { method: 'POST' });
-      } catch (e) { /* ignore */ }
+      } catch (e) {  }
       await checkEnvStatus();
     }
 
@@ -311,14 +309,11 @@ DEST_ACCOUNT=My New Team</pre>
       document.getElementById('cardLocal').classList.toggle('selected', p === 'local');
       document.getElementById('panelDocker').classList.toggle('visible', p === 'docker');
 
-      // Local Node.js: if .env is ready, skip sub-options and go directly
       const envReady = envData && envData.loaded && envData.ready;
       if (p === 'local' && envReady) {
-        // .env is loaded — no need to pick sub-option, auto-select based on detected mode
         selectedSubOption = envData.authMode || 'service-account';
         document.getElementById('panelLocal').classList.remove('visible');
       } else {
-        // No .env — show setup instructions with sub-options
         document.getElementById('panelLocal').classList.toggle('visible', p === 'local');
       }
 

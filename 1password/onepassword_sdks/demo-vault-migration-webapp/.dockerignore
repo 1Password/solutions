@@ -1,0 +1,10 @@
+# Send Docker only the files the Dockerfile copies. Everything else in this folder (.env tokens,
+# logs, reports, node_modules) never leaves your machine during a build. If you add a source file,
+# add it here and to the Dockerfile's COPY lines.
+*
+!package.json
+!package-lock.json
+!webapp.js
+!rate-limits.js
+!views/
+!public/
