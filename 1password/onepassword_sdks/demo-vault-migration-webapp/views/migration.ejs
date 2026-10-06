@@ -10,23 +10,28 @@
   <style>
     :root {
       --bg-primary: #0f1419;
-      --bg-secondary: #1a1f29;
-      --bg-tertiary: #242b38;
-      --bg-elevated: #2d3548;
+      --bg-secondary: #161c26;
+      --bg-tertiary: #1e2532;
+      --bg-elevated: #273042;
       --accent-primary: #5b9bd5;
       --accent-secondary: #7eb5d6;
       --accent-success: #6ab187;
       --accent-warning: #d4a574;
       --accent-error: #d47a7a;
+      --accent-tint: rgba(91, 155, 213, 0.12);
+      --success-tint: rgba(106, 177, 135, 0.14);
+      --warning-tint: rgba(212, 165, 116, 0.14);
+      --error-tint: rgba(212, 122, 122, 0.14);
       --text-primary: #e4e7ed;
       --text-secondary: #a8afc0;
-      --text-tertiary: #6e7689;
+      --text-tertiary: #737b8f;
       --text-muted: #4d5361;
-      --border-subtle: #2d3548;
-      --border-normal: #3d4658;
-      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+      --border-subtle: #232a37;
+      --border-normal: #2f3747;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.35);
+      --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+      --radius: 14px;
       --space-xs: 0.25rem;
       --space-sm: 0.5rem;
       --space-md: 1rem;
@@ -40,198 +45,258 @@
       font-family: var(--font-sans);
       background: var(--bg-primary);
       color: var(--text-primary);
-      line-height: 1.6;
+      line-height: 1.55;
       min-height: 100vh;
       overflow-x: hidden;
     }
     body::before {
       content: '';
       position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: 
-        radial-gradient(circle at 20% 20%, rgba(91, 155, 213, 0.05) 0%, transparent 50%),
-        radial-gradient(circle at 80% 80%, rgba(107, 177, 135, 0.05) 0%, transparent 50%);
+      inset: 0;
+      background:
+        radial-gradient(900px 500px at 10% -10%, rgba(91, 155, 213, 0.10), transparent 60%),
+        radial-gradient(700px 400px at 100% 110%, rgba(106, 177, 135, 0.06), transparent 60%);
       pointer-events: none;
       z-index: 0;
     }
-    .container { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: var(--space-xl); }
-    .header { margin-bottom: var(--space-xl); padding-bottom: var(--space-lg); border-bottom: 1px solid var(--border-subtle); }
-    .header h1 { font-size: 2rem; font-weight: 600; color: var(--text-primary); margin-bottom: var(--space-sm); letter-spacing: -0.02em; }
-    .header p { color: var(--text-secondary); font-size: 0.95rem; }
+    .container { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: var(--space-xl) var(--space-xl) 0; }
+
+    /* Top bar: title on the left, connection status on the right once connected */
+    .header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); flex-wrap: wrap; margin-bottom: var(--space-xl); }
+    .brand { display: flex; align-items: center; gap: 0.85rem; }
+    .brand-mark {
+      width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-size: 1.3rem;
+      background: linear-gradient(135deg, rgba(91, 155, 213, 0.28), rgba(91, 155, 213, 0.08));
+      border: 1px solid rgba(91, 155, 213, 0.35);
+    }
+    .header h1 { font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
+    .header p { color: var(--text-tertiary); font-size: 0.85rem; }
+
     .status-banner {
-      background: var(--bg-secondary); border: 1px solid var(--border-normal); border-radius: 12px;
-      padding: var(--space-lg); margin-bottom: var(--space-xl); display: none; box-shadow: var(--shadow-sm);
+      display: none; align-items: center; gap: var(--space-md);
+      background: var(--bg-secondary); border: 1px solid var(--border-normal); border-radius: 999px;
+      padding: 6px 6px 6px 14px; box-shadow: var(--shadow-sm);
     }
-    .status-banner.active { display: flex; align-items: center; justify-content: space-between; }
-    .status-banner .status-info { display: flex; align-items: center; gap: var(--space-md); }
-    .status-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: var(--bg-elevated); }
-    .status-icon.connected { background: rgba(107, 177, 135, 0.15); color: var(--accent-success); }
-    .status-text h3 { font-size: 0.9rem; font-weight: 500; color: var(--text-primary); margin-bottom: var(--space-xs); }
-    .status-text p { font-size: 0.85rem; color: var(--text-tertiary); }
+    .status-banner.active { display: flex; }
+    .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-success); box-shadow: 0 0 0 4px var(--success-tint); flex-shrink: 0; }
+    .conn-route { display: flex; align-items: center; gap: var(--space-sm); font-size: 0.82rem; color: var(--text-secondary); min-width: 0; }
+    .conn-route strong { color: var(--text-primary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+    .conn-route .arrow { color: var(--text-tertiary); }
+    .conn-mode { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); border-left: 1px solid var(--border-normal); padding-left: var(--space-md); white-space: nowrap; }
+
+    /* Connection form */
     .card {
-      background: var(--bg-secondary); border: 1px solid var(--border-normal); border-radius: 16px;
-      padding: var(--space-xl); margin-bottom: var(--space-xl); box-shadow: var(--shadow-md); transition: all 0.3s ease;
+      background: var(--bg-secondary); border: 1px solid var(--border-normal); border-radius: var(--radius);
+      padding: var(--space-xl); margin-bottom: var(--space-xl); box-shadow: var(--shadow-md);
+      max-width: 720px;
     }
-    .card:hover { border-color: var(--border-normal); box-shadow: var(--shadow-lg); }
-    .card h2 { font-size: 1.3rem; font-weight: 600; color: var(--text-primary); margin-bottom: var(--space-sm); }
+    .card h2 { font-size: 1.2rem; font-weight: 600; margin-bottom: var(--space-xs); }
     .card .subtitle { color: var(--text-tertiary); font-size: 0.9rem; margin-bottom: var(--space-lg); }
     .form-group { margin-bottom: var(--space-lg); }
-    .form-group label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); margin-bottom: var(--space-sm); text-transform: uppercase; letter-spacing: 0.05em; }
+    .form-group label { display: block; font-size: 0.78rem; font-weight: 500; color: var(--text-secondary); margin-bottom: var(--space-sm); text-transform: uppercase; letter-spacing: 0.05em; }
     .form-group input {
-      width: 100%; padding: var(--space-md); background: var(--bg-tertiary); border: 1px solid var(--border-subtle);
-      border-radius: 8px; color: var(--text-primary); font-family: var(--font-mono); font-size: 0.9rem; transition: all 0.2s ease;
+      width: 100%; padding: 0.8rem var(--space-md); background: var(--bg-tertiary); border: 1px solid var(--border-normal);
+      border-radius: 10px; color: var(--text-primary); font-family: var(--font-mono); font-size: 0.9rem; transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
-    .form-group input:focus { outline: none; border-color: var(--accent-primary); background: var(--bg-elevated); box-shadow: 0 0 0 3px rgba(91, 155, 213, 0.1); }
     .form-group input::placeholder { color: var(--text-muted); }
-    .help-text { font-size: 0.8rem; color: var(--text-tertiary); margin-top: var(--space-xs); font-style: italic; line-height: 1.5; }
+    .help-text { font-size: 0.8rem; color: var(--text-tertiary); line-height: 1.6; margin-bottom: var(--space-lg); }
+    .desktop-note { padding: 12px 16px; background: var(--warning-tint); border: 1px solid rgba(212, 165, 116, 0.4); border-radius: 10px; margin-bottom: var(--space-lg); font-size: 0.85rem; color: var(--text-secondary); }
+
+    input:focus-visible, .btn:focus-visible { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(91, 155, 213, 0.25); }
+
+    /* Buttons */
     .btn {
-      padding: var(--space-md) var(--space-xl); border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 500;
-      font-family: var(--font-sans); cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: var(--space-sm); text-decoration: none;
+      padding: 0.65rem 1.15rem; border: 1px solid transparent; border-radius: 10px; font-size: 0.88rem; font-weight: 500;
+      font-family: var(--font-sans); cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+      display: inline-flex; align-items: center; justify-content: center; gap: var(--space-sm); text-decoration: none; white-space: nowrap; color: var(--text-primary);
     }
-    .btn-primary { background: var(--accent-primary); color: white; }
-    .btn-primary:hover:not(:disabled) { background: var(--accent-secondary); transform: translateY(-1px); box-shadow: var(--shadow-md); }
-    .btn-secondary { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border-normal); }
-    .btn-secondary:hover:not(:disabled) { background: var(--bg-tertiary); border-color: var(--accent-primary); }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .btn-primary { background: var(--accent-primary); color: #0b1220; font-weight: 600; box-shadow: 0 4px 14px rgba(91, 155, 213, 0.25); }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-secondary); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(91, 155, 213, 0.35); }
+    .btn-primary .spinner { border-color: rgba(11, 18, 32, 0.25); border-top-color: #0b1220; }
+    .btn-secondary { background: var(--bg-elevated); border-color: var(--border-normal); }
+    .btn-secondary:hover:not(:disabled) { border-color: var(--accent-primary); }
+    .btn-ghost { background: transparent; border-color: var(--border-normal); color: var(--text-secondary); }
+    .btn-ghost:hover:not(:disabled) { background: var(--bg-tertiary); color: var(--text-primary); }
+    .btn-sm { padding: 0.4rem 0.85rem; font-size: 0.8rem; border-radius: 999px; }
+    .btn-lg { padding: 0.8rem 1.6rem; font-size: 0.95rem; }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
     .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--text-muted); border-top-color: var(--accent-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .progress-container { margin: var(--space-lg) 0; display: none; }
-    .progress-container.active { display: block; }
-    .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-sm); }
-    .progress-label { font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; }
-    .progress-percentage { font-size: 0.85rem; color: var(--accent-primary); font-weight: 600; font-family: var(--font-mono); }
-    .progress-stats { font-size: 0.8rem; color: var(--text-tertiary); margin-top: var(--space-xs); font-family: var(--font-mono); }
-    .progress-bar-outer { width: 100%; height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3); }
-    .progress-bar-inner { height: 100%; background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)); border-radius: 4px; width: 0%; transition: width 0.3s ease; box-shadow: 0 0 10px rgba(91, 155, 213, 0.5); }
-    .vault-container { display: none; }
-    .vault-container.active { display: block; }
-    .vault-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); flex-wrap: wrap; gap: var(--space-md); }
-    .vault-header h2 { font-size: 1.3rem; font-weight: 600; color: var(--text-primary); }
-    .vault-actions { display: flex; gap: var(--space-sm); flex-wrap: wrap; align-items: center; }
-    .search-box { position: relative; flex: 1; min-width: 300px; margin-bottom: var(--space-md); }
-    .search-box input {
-      width: 100%; padding: var(--space-md) var(--space-md) var(--space-md) 40px; background: var(--bg-tertiary);
-      border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem;
-    }
-    .search-box::before { content: '🔍'; position: absolute; left: var(--space-md); top: 50%; transform: translateY(-50%); opacity: 0.5; }
-    .vault-table-container { background: var(--bg-secondary); border: 1px solid var(--border-normal); border-radius: 12px; overflow: hidden; }
-    .vault-table { width: 100%; border-collapse: collapse; }
-    .vault-table thead { background: var(--bg-tertiary); }
-    .vault-table th { padding: var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border-normal); }
-    .vault-table td { padding: var(--space-md); border-bottom: 1px solid var(--border-subtle); font-size: 0.9rem; }
-    .vault-table tr:last-child td { border-bottom: none; }
-    .vault-table tbody tr { transition: background 0.2s ease; }
-    .vault-table tbody tr:hover { background: var(--bg-tertiary); }
-    .vault-name { font-weight: 500; color: var(--text-primary); }
-    .vault-id { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-tertiary); }
-    .item-count { font-family: var(--font-mono); color: var(--accent-secondary); font-weight: 500; }
-    .status-badge { display: inline-flex; align-items: center; gap: var(--space-xs); padding: var(--space-xs) var(--space-sm); border-radius: 6px; font-size: 0.8rem; font-weight: 500; }
-    .status-badge.pending { background: rgba(168, 175, 192, 0.15); color: var(--text-tertiary); }
-    .status-badge.personal { background: rgba(212, 165, 116, 0.15); color: var(--accent-warning); }
-    .status-badge.preparing { background: rgba(212, 165, 116, 0.15); color: var(--accent-warning); }
-    .status-badge.migrating { background: rgba(91, 155, 213, 0.15); color: var(--accent-primary); }
-    .status-badge.success { background: rgba(107, 177, 135, 0.15); color: var(--accent-success); }
-    .status-badge.error { background: rgba(212, 122, 122, 0.15); color: var(--accent-error); }
-    .status-badge.warning { background: rgba(212, 165, 116, 0.15); color: var(--accent-warning); }
-    .status-badge .spinner-small { width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
-    .checkbox-wrapper { display: flex; align-items: center; justify-content: center; }
-    input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-primary); }
-    .alert { padding: var(--space-md); border-radius: 8px; margin: var(--space-md) 0; display: flex; align-items: center; gap: var(--space-sm); font-size: 0.9rem; animation: slideIn 0.3s ease; }
-    @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-    .alert-success { background: rgba(107, 177, 135, 0.15); border: 1px solid var(--accent-success); color: var(--accent-success); }
-    .alert-error { background: rgba(212, 122, 122, 0.15); border: 1px solid var(--accent-error); color: var(--accent-error); }
-    .alert-warning { background: rgba(212, 165, 116, 0.15); border: 1px solid var(--accent-warning); color: var(--accent-warning); }
-    .alert-info { background: rgba(91, 155, 213, 0.15); border: 1px solid var(--accent-primary); color: var(--accent-primary); }
-    .migration-summary { background: var(--bg-tertiary); border-radius: 12px; padding: var(--space-lg); margin-top: var(--space-lg); display: none; }
-    .migration-summary.active { display: block; animation: slideIn 0.3s ease; }
-    .summary-title { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin-bottom: var(--space-md); }
-    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-md); }
-    .summary-item { background: var(--bg-elevated); padding: var(--space-md); border-radius: 8px; border: 1px solid var(--border-subtle); }
-    .summary-item label { display: block; font-size: 0.8rem; color: var(--text-tertiary); margin-bottom: var(--space-xs); text-transform: uppercase; letter-spacing: 0.05em; }
-    .summary-item .value { font-size: 1.5rem; font-weight: 600; font-family: var(--font-mono); }
-    .summary-item.success .value { color: var(--accent-success); }
-    .summary-item.error .value { color: var(--accent-error); }
-    .summary-item.info .value { color: var(--accent-primary); }
 
-    /* Debug toggle styles */
+    /* Connected view */
+    .vault-container { display: none; padding-bottom: 110px; }
+    .vault-container.active { display: block; animation: fadeUp 0.3s ease; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-md); margin-bottom: var(--space-lg); }
+    .stat { background: var(--bg-secondary); border: 1px solid var(--border-normal); border-radius: var(--radius); padding: var(--space-md) var(--space-lg); }
+    .stat-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); }
+    .stat-value { font-size: 1.6rem; font-weight: 600; font-family: var(--font-mono); line-height: 1.3; margin-top: 2px; }
+    .stat-value.accent { color: var(--accent-primary); }
+    .stat-sub { font-size: 0.78rem; color: var(--text-tertiary); }
+
+    .panel { background: var(--bg-secondary); border: 1px solid var(--border-normal); border-radius: var(--radius); box-shadow: var(--shadow-md); overflow: hidden; }
+    .toolbar { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-md); border-bottom: 1px solid var(--border-normal); flex-wrap: wrap; }
+    .field { position: relative; display: flex; align-items: center; }
+    .field svg { position: absolute; left: 12px; width: 16px; height: 16px; color: var(--text-tertiary); pointer-events: none; }
+    .field input {
+      width: 100%; padding: 0.6rem 0.8rem 0.6rem 36px; background: var(--bg-tertiary); border: 1px solid var(--border-normal);
+      border-radius: 10px; color: var(--text-primary); font-size: 0.88rem; font-family: var(--font-sans);
+    }
+    .field input::placeholder { color: var(--text-tertiary); }
+    .field.search { flex: 1 1 260px; }
+    .field.suffix { flex: 0 1 260px; }
+    .toolbar-spacer { flex: 1; }
+
     .debug-toggle {
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
-      padding: 6px 12px;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border-normal);
-      border-radius: 8px;
-      cursor: pointer;
-      user-select: none;
-      transition: all 0.2s ease;
+      display: inline-flex; align-items: center; gap: var(--space-sm); padding: 0.45rem 0.75rem;
+      border: 1px solid var(--border-normal); border-radius: 10px; cursor: pointer; user-select: none; transition: all 0.15s ease;
     }
-    .debug-toggle:hover {
-      border-color: var(--accent-primary);
-      background: var(--bg-tertiary);
-    }
-    .debug-toggle.active {
-      border-color: var(--accent-warning);
-      background: rgba(212, 165, 116, 0.1);
-    }
-    .debug-toggle-label {
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: var(--text-tertiary);
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
-    .debug-toggle.active .debug-toggle-label {
-      color: var(--accent-warning);
-    }
-    .debug-switch {
-      position: relative;
-      width: 32px;
-      height: 18px;
-      flex-shrink: 0;
-    }
-    .debug-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-      position: absolute;
-    }
-    .debug-slider {
-      position: absolute;
-      cursor: pointer;
-      inset: 0;
-      background-color: var(--border-normal);
-      border-radius: 18px;
-      transition: 0.2s;
-    }
-    .debug-slider::before {
-      content: "";
-      position: absolute;
-      height: 12px;
-      width: 12px;
-      left: 3px;
-      bottom: 3px;
-      background-color: var(--text-tertiary);
-      border-radius: 50%;
-      transition: 0.2s;
-    }
-    .debug-switch input:checked + .debug-slider {
-      background-color: var(--accent-warning);
-    }
-    .debug-switch input:checked + .debug-slider::before {
-      transform: translateX(14px);
-      background-color: white;
-    }
+    .debug-toggle:hover { background: var(--bg-tertiary); }
+    .debug-toggle.active { border-color: rgba(212, 165, 116, 0.6); background: var(--warning-tint); }
+    .debug-toggle-label { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); }
+    .debug-toggle.active .debug-toggle-label { color: var(--accent-warning); }
+    .debug-switch { position: relative; width: 30px; height: 17px; flex-shrink: 0; }
+    .debug-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .debug-slider { position: absolute; cursor: pointer; inset: 0; background-color: var(--border-normal); border-radius: 17px; transition: 0.2s; }
+    .debug-slider::before { content: ""; position: absolute; height: 11px; width: 11px; left: 3px; bottom: 3px; background-color: var(--text-tertiary); border-radius: 50%; transition: 0.2s; }
+    .debug-switch input:checked + .debug-slider { background-color: var(--accent-warning); }
+    .debug-switch input:checked + .debug-slider::before { transform: translateX(13px); background-color: white; }
 
-    @media (max-width: 768px) {
-      .container { padding: var(--space-md); }
-      .header h1 { font-size: 1.5rem; }
-      .vault-header { flex-direction: column; align-items: stretch; }
-      .vault-actions { width: 100%; }
-      .btn { width: 100%; justify-content: center; }
-      .debug-toggle { width: 100%; justify-content: center; }
-      .vault-table { font-size: 0.85rem; }
-      .vault-table th, .vault-table td { padding: var(--space-sm); }
+    .vault-table-container { overflow-x: auto; }
+    .vault-table { width: 100%; border-collapse: collapse; }
+    .vault-table th {
+      padding: 0.7rem var(--space-md); text-align: left; font-size: 0.72rem; font-weight: 600; color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.06em; background: var(--bg-tertiary); border-bottom: 1px solid var(--border-normal); white-space: nowrap;
+    }
+    .vault-table td { padding: 0.8rem var(--space-md); border-bottom: 1px solid var(--border-subtle); font-size: 0.9rem; vertical-align: middle; }
+    .vault-table th.num, .vault-table td.num { text-align: right; }
+    .vault-table .cell-check { width: 48px; padding-right: 0; }
+    .vault-table tbody tr:last-child td { border-bottom: none; }
+    .vault-table tbody tr { transition: background 0.15s ease; box-shadow: inset 3px 0 0 transparent; }
+    .vault-table tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+    .vault-table tbody tr.selected { background: var(--accent-tint); box-shadow: inset 3px 0 0 var(--accent-primary); }
+    .vault-table tbody tr.row-disabled { opacity: 0.5; }
+    .vault-name { font-weight: 500; color: var(--text-primary); word-break: break-word; }
+    .vault-id { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-tertiary); margin-top: 1px; }
+    .item-count { font-family: var(--font-mono); color: var(--text-primary); font-weight: 500; }
+    .suffix-input {
+      width: 130px; padding: 0.35rem 0.6rem; background: transparent; border: 1px solid var(--border-normal); border-radius: 8px;
+      color: var(--text-primary); font-size: 0.8rem; font-family: var(--font-sans);
+    }
+    .suffix-input::placeholder { color: var(--text-muted); }
+    .suffix-input:disabled { opacity: 0.5; }
+    .empty-row td { text-align: center; color: var(--text-tertiary); padding: var(--space-xl); }
+
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+      font-size: 0.76rem; font-weight: 500; white-space: nowrap; background: rgba(168, 175, 192, 0.1); color: var(--text-secondary);
+    }
+    .status-badge.pending { background: rgba(168, 175, 192, 0.1); color: var(--text-tertiary); }
+    .status-badge.personal, .status-badge.preparing, .status-badge.warning { background: var(--warning-tint); color: var(--accent-warning); }
+    .status-badge.migrating, .status-badge.type-personal { background: var(--accent-tint); color: var(--accent-primary); }
+    .status-badge.success, .status-badge.type-shared { background: var(--success-tint); color: var(--accent-success); }
+    .status-badge.error { background: var(--error-tint); color: var(--accent-error); }
+    .status-badge .spinner-small { width: 11px; height: 11px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    input[type="checkbox"] { width: 17px; height: 17px; cursor: pointer; accent-color: var(--accent-primary); vertical-align: middle; }
+    input[type="checkbox"]:disabled { cursor: not-allowed; }
+
+    /* Progress */
+    .progress-container { display: none; padding: var(--space-lg); margin-bottom: var(--space-lg); }
+    .progress-container.active { display: block; animation: fadeUp 0.25s ease; }
+    .progress-header { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--space-md); margin-bottom: var(--space-md); }
+    .eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); margin-bottom: 2px; }
+    .progress-label { font-size: 0.92rem; color: var(--text-primary); font-weight: 500; }
+    .progress-percentage { font-size: 1.9rem; line-height: 1; color: var(--accent-primary); font-weight: 600; font-family: var(--font-mono); }
+    .progress-bar-outer { width: 100%; height: 10px; background: var(--bg-tertiary); border-radius: 999px; overflow: hidden; }
+    .progress-bar-inner {
+      position: relative; height: 100%; width: 0%; border-radius: 999px; overflow: hidden;
+      background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)); transition: width 0.4s ease;
+    }
+    .progress-bar-inner::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+      transform: translateX(-100%); animation: shimmer 1.6s ease-in-out infinite;
+    }
+    @keyframes shimmer { to { transform: translateX(100%); } }
+    .progress-stats { display: flex; gap: var(--space-sm); flex-wrap: wrap; margin-top: var(--space-md); font-size: 0.8rem; color: var(--text-tertiary); }
+    .chip { display: inline-flex; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); }
+    .chip b { color: var(--text-primary); font-family: var(--font-mono); font-weight: 500; }
+    .rate-usage { font-size: 0.75rem; color: var(--text-tertiary); margin-top: var(--space-sm); font-family: var(--font-mono); }
+    .rate-usage:empty { display: none; }
+    .rate-usage .near { color: var(--accent-warning); }
+    .rate-pause { margin-top: var(--space-md); padding: var(--space-md); border-radius: 12px; border: 1px solid rgba(212, 165, 116, 0.5); background: var(--warning-tint); }
+    .rate-pause-title { font-weight: 600; color: var(--accent-warning); margin-bottom: var(--space-xs); }
+    .rate-pause-detail { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+    .rate-pause-countdown { font-family: var(--font-mono); font-size: 1.6rem; color: var(--text-primary); margin: var(--space-sm) 0; }
+    .rate-pause-actions { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
+    #rateLimitBanner { border-radius: 12px; }
+
+    /* Messages */
+    #alertContainer:empty { display: none; }
+    #alertContainer { margin-bottom: var(--space-lg); display: grid; gap: var(--space-sm); }
+    .alert {
+      padding: 0.7rem var(--space-md); border-radius: 12px; display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.88rem;
+      background: var(--bg-secondary); border: 1px solid var(--border-normal); color: var(--text-secondary);
+      animation: slideIn 0.25s ease; transition: opacity 0.3s ease;
+    }
+    .alert-icon { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 0.7rem; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+    .alert-success { border-color: rgba(106, 177, 135, 0.45); } .alert-success .alert-icon { background: var(--success-tint); color: var(--accent-success); }
+    .alert-error { border-color: rgba(212, 122, 122, 0.5); color: var(--accent-error); } .alert-error .alert-icon { background: var(--error-tint); color: var(--accent-error); }
+    .alert-warning { border-color: rgba(212, 165, 116, 0.5); } .alert-warning .alert-icon { background: var(--warning-tint); color: var(--accent-warning); }
+    .alert-info { border-color: rgba(91, 155, 213, 0.45); } .alert-info .alert-icon { background: var(--accent-tint); color: var(--accent-primary); }
+
+    /* Summary */
+    .migration-summary { display: none; padding: var(--space-lg); margin-top: var(--space-lg); }
+    .migration-summary.active { display: block; animation: fadeUp 0.3s ease; }
+    .summary-title { font-size: 1rem; font-weight: 600; margin-bottom: var(--space-md); }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--space-md); }
+    .summary-item { background: var(--bg-tertiary); padding: var(--space-md); border-radius: 12px; border: 1px solid var(--border-subtle); border-top: 3px solid var(--border-normal); }
+    .summary-item label { display: block; font-size: 0.72rem; color: var(--text-tertiary); margin-bottom: var(--space-xs); text-transform: uppercase; letter-spacing: 0.06em; }
+    .summary-item .value { font-size: 1.6rem; font-weight: 600; font-family: var(--font-mono); }
+    .summary-item.success { border-top-color: var(--accent-success); } .summary-item.success .value { color: var(--accent-success); }
+    .summary-item.error { border-top-color: var(--accent-error); } .summary-item.error .value { color: var(--accent-error); }
+    .summary-item.info { border-top-color: var(--accent-primary); } .summary-item.info .value { color: var(--accent-primary); }
+
+    /* Sticky bar with the selection and the Migrate Selected button */
+    .action-bar {
+      position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 10;
+      width: min(1200px - 4rem, calc(100% - 2rem)); display: flex; align-items: center; justify-content: space-between; gap: var(--space-md);
+      padding: 0.7rem 0.7rem 0.7rem 1.25rem; border-radius: 16px;
+      background: rgba(22, 28, 38, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-normal); box-shadow: var(--shadow-lg);
+    }
+    .vault-container:not(.active) .action-bar { display: none; }
+    .action-progress { position: absolute; left: 14px; right: 14px; top: 0; height: 3px; border-radius: 0 0 3px 3px; overflow: hidden; display: none; }
+    .action-progress div { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)); transition: width 0.4s ease; }
+    .action-bar.migrating .action-progress { display: block; }
+    .action-bar.migrating .action-hint { max-width: 60ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* the toolbar and column headings stay at the top of the screen while the list scrolls */
+    .panel.vault-panel { overflow: visible; }
+    .vault-panel .toolbar { position: sticky; top: 0; z-index: 5; background: var(--bg-secondary); border-radius: var(--radius) var(--radius) 0 0; }
+    .vault-panel .vault-table th { position: sticky; top: var(--toolbar-h, 0px); z-index: 4; }
+    .vault-panel .vault-table-container { overflow: visible; border-radius: 0 0 var(--radius) var(--radius); }
+    .action-count { font-weight: 600; font-size: 0.95rem; }
+    .action-hint { display: block; font-size: 0.8rem; color: var(--text-tertiary); }
+    .action-buttons { display: flex; gap: var(--space-sm); }
+
+    @media (max-width: 860px) {
+      .container { padding: var(--space-md) var(--space-md) 0; }
+      .stats, .summary-grid { grid-template-columns: repeat(2, 1fr); }
+      .status-banner { border-radius: 14px; flex-wrap: wrap; width: 100%; }
+      .conn-mode { display: none; }
+      .field.search, .field.suffix { flex: 1 1 100%; }
+      .vault-table .col-suffix { display: none; }
+      .vault-panel .vault-table-container { overflow-x: auto; }
+      .vault-panel .toolbar { position: static; }
+      .action-bar { bottom: 10px; padding: 0.75rem; flex-wrap: wrap; gap: var(--space-sm); }
+      .action-buttons { width: 100%; }
+      .action-buttons .btn { flex: 1; }
+      .vault-container { padding-bottom: 150px; }
+      .action-hint { display: none; }
     }
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: var(--bg-primary); }
@@ -241,41 +306,44 @@
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>🔐 Vault Migration Tool</h1>
-      <p>Securely migrate your 1Password vaults between accounts</p>
-    </div>
-
-    <div class="status-banner" id="statusBanner">
-      <div class="status-info">
-        <div class="status-icon connected">✓</div>
-        <div class="status-text">
-          <h3>Connected to 1Password</h3>
-          <p>Source and destination accounts are ready</p>
+    <header class="header">
+      <div class="brand">
+        <div class="brand-mark">🔐</div>
+        <div>
+          <h1>Vault Migration</h1>
+          <p>Copy 1Password vaults from one account to another</p>
         </div>
       </div>
-      <button class="btn btn-secondary" onclick="editConnection()">Edit Connection</button>
-    </div>
+
+      <div class="status-banner" id="statusBanner">
+        <span class="conn-dot" title="Connected"></span>
+        <div class="conn-route">
+          <strong id="connSource">Source</strong>
+          <span class="arrow">→</span>
+          <strong id="connDest">Destination</strong>
+        </div>
+        <span class="conn-mode" id="connMode">Service accounts</span>
+        <button class="btn btn-ghost btn-sm" onclick="editConnection()">Edit connection</button>
+      </div>
+    </header>
 
     <div class="card" id="connectionCard">
       <h2>Connect to 1Password</h2>
       <p class="subtitle" id="connectionSubtitle">Enter your service account tokens to begin migration</p>
-      
-      <!-- Service Account Form -->
+
       <form id="connectionForm">
         <div id="serviceAccountFields">
           <div class="form-group">
             <label for="sourceToken">Source Account Token</label>
             <input type="password" id="sourceToken" name="sourceToken" placeholder="ops_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
           </div>
-          
+
           <div class="form-group">
             <label for="destToken">Destination Account Token</label>
             <input type="password" id="destToken" name="destToken" placeholder="ops_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
           </div>
         </div>
 
-        <!-- Desktop Auth Fields -->
         <div id="desktopAuthFields" style="display: none;">
           <div class="form-group">
             <label for="sourceAccountName">Source Account Name</label>
@@ -287,91 +355,125 @@
             <input type="text" id="destAccountName" name="destAccountName" placeholder="e.g. New Company">
           </div>
 
-          <div style="padding: 12px 16px; background: rgba(212, 165, 116, 0.1); border: 1px solid var(--accent-warning); border-radius: 8px; margin-bottom: var(--space-lg); font-size: 0.85rem; color: var(--text-secondary);">
+          <div class="desktop-note">
             ⚠️ Desktop auth requires the 1Password desktop app running locally. The CLI (<code>op</code>) must be installed for vault creation. Docker is <strong>not supported</strong>.
           </div>
         </div>
 
-        <div class="help-text" style="margin-bottom: var(--space-lg);">
+        <div class="help-text">
           Items with CUSTOM categories will be automatically converted to Login items during migration, preserving all fields and concealed values.
-          Personal/Private vaults (Employee vaults) are skipped when using service accounts — only shared vaults are migrated with "(Migrated)" appended to the name. With desktop auth, personal vault items are migrated to the destination's existing Private vault.
+          Personal/Private vaults (Employee vaults) are skipped when using service accounts. Only shared vaults are migrated with "(Migrated)" appended to the name. With desktop auth, personal vault items are migrated to the destination's existing Private vault.
         </div>
-        </div>
-        
+
         <button type="submit" class="btn btn-primary" id="connectBtn">
           <span id="connectBtnText">Connect Accounts</span>
           <span id="connectSpinner" style="display: none;" class="spinner"></span>
         </button>
       </form>
-      
+
       <div id="connectionError"></div>
     </div>
 
     <div class="vault-container" id="vaultContainer">
-      <div class="vault-header">
-        <h2>Source Vaults (<span id="vaultCount">0</span>)</h2>
-        <div class="vault-actions">
-          <button class="btn btn-primary" onclick="migrateSelected()" id="migrateSelectedBtn">Migrate Selected</button>
-          <button class="btn btn-secondary" onclick="showAllVaults()" id="showAllVaultsBtn" style="display: none;">Show All Vaults</button>
-          <button class="btn btn-secondary" onclick="downloadLogs()" id="downloadLogsBtn">📥 Download Logs</button>
-        </div>
+      <div class="stats">
+        <div class="stat"><div class="stat-label" id="statVaultsLabel">Vaults in source</div><div class="stat-value" id="vaultCount">0</div><div class="stat-sub" id="statVaultsSub"></div></div>
+        <div class="stat"><div class="stat-label" id="statSourceItemsLabel">Items in source</div><div class="stat-value" id="statSourceItems">0</div><div class="stat-sub">across all vaults</div></div>
+        <div class="stat"><div class="stat-label">Selected</div><div class="stat-value accent" id="statSelected">0</div><div class="stat-sub">vaults to migrate</div></div>
+        <div class="stat"><div class="stat-label">Items to copy</div><div class="stat-value accent" id="statItems">0</div><div class="stat-sub">in the selected vaults</div></div>
       </div>
 
-      <div class="search-box" style="display: flex; align-items: center; gap: 1rem;">
-        <input type="text" id="vaultSearch" placeholder="Search vaults by name or ID..." oninput="filterVaults()" style="flex: 1;">
-        <span id="vaultSelectionCount" style="font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;"></span>
-        <input type="text" id="globalSuffix" placeholder="Suffix for all vaults (optional)" style="padding: var(--space-md); background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem; width: 260px;">
-        <div class="debug-toggle" id="debugToggle" onclick="toggleDebug()" title="Enable verbose debug logging for all items in migration logs" style="flex-shrink: 0;">
-          <label class="debug-switch">
-            <input type="checkbox" id="debugCheckbox" onclick="event.stopPropagation()">
-            <span class="debug-slider"></span>
-          </label>
-          <span class="debug-toggle-label">Debug</span>
-        </div>
-      </div>
+      <div id="rateLimitBanner" style="display: none; padding: 0.75rem 1rem; font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.5;"></div>
 
-      <div id="rateLimitBanner" style="display: none; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.5;"></div>
-
-      <div class="progress-container" id="progressContainer">
+      <div class="progress-container panel" id="progressContainer">
         <div class="progress-header">
-          <span class="progress-label" id="progressLabel">Preparing migration...</span>
+          <div>
+            <div class="eyebrow">Migration progress</div>
+            <div class="progress-label" id="progressLabel">Preparing migration...</div>
+          </div>
           <span class="progress-percentage" id="progressPercentage">0%</span>
         </div>
         <div class="progress-bar-outer">
           <div class="progress-bar-inner" id="progressBar"></div>
         </div>
         <div class="progress-stats" id="progressStats">
-          Vaults: <span id="vaultsProgress">0/0</span> | 
-          Items: <span id="itemsProgress">0/0</span>
+          <span class="chip">Vaults <b id="vaultsProgress">0/0</b></span>
+          <span class="chip">Items <b id="itemsProgress">0/0</b></span>
+        </div>
+        <div class="rate-usage" id="rateUsage"></div>
+
+        <div class="rate-pause" id="ratePausePanel" hidden>
+          <div class="rate-pause-title">⏸ Paused to stay under the 1Password rate limit</div>
+          <div class="rate-pause-detail" id="ratePauseDetail"></div>
+          <div class="rate-pause-countdown" id="ratePauseCountdown" aria-live="polite">--:--</div>
+          <div class="rate-pause-actions">
+            <button class="btn btn-primary" id="rateResumeBtn" onclick="resumeMigration()" disabled>Resume</button>
+            <button class="btn btn-secondary" id="rateCancelBtn" onclick="cancelMigration()">Cancel migration</button>
+          </div>
         </div>
       </div>
 
       <div id="alertContainer"></div>
 
-      <div class="vault-table-container">
-        <table class="vault-table">
-          <thead>
-            <tr>
-              <th style="width: 50px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
-              <th>Vault Name</th>
-              <th>Vault ID</th>
-              <th>Type</th>
-              <th>Items</th>
-              <th>Suffix</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="vaultTableBody"></tbody>
-        </table>
+      <div class="panel vault-panel">
+        <div class="toolbar">
+          <label class="field search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input type="text" id="vaultSearch" placeholder="Search vaults by name or ID" oninput="filterVaults()" aria-label="Search vaults">
+          </label>
+          <label class="field suffix" title="Added to the name of every new vault that doesn't have its own suffix">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+            <input type="text" id="globalSuffix" placeholder="Suffix for all vaults (optional)" aria-label="Suffix for all vaults">
+          </label>
+          <div class="toolbar-spacer"></div>
+          <div class="debug-toggle" id="debugToggle" onclick="toggleDebug()" title="Enable verbose debug logging for all items in migration logs">
+            <label class="debug-switch">
+              <input type="checkbox" id="debugCheckbox" onclick="event.stopPropagation()">
+              <span class="debug-slider"></span>
+            </label>
+            <span class="debug-toggle-label">Debug logging</span>
+          </div>
+          <button class="btn btn-ghost" onclick="downloadLogs()" id="downloadLogsBtn" title="Download the migration log">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
+            Logs
+          </button>
+        </div>
+
+        <div class="vault-table-container">
+          <table class="vault-table">
+            <thead>
+              <tr>
+                <th class="cell-check"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()" aria-label="Select all vaults"></th>
+                <th>Vault</th>
+                <th>Type</th>
+                <th class="num">Items</th>
+                <th class="col-suffix">Suffix</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="vaultTableBody"></tbody>
+          </table>
+        </div>
       </div>
 
-      <div class="migration-summary" id="migrationSummary">
-        <h3 class="summary-title">Migration Summary</h3>
+      <div class="migration-summary panel" id="migrationSummary">
+        <h3 class="summary-title">Migration summary</h3>
         <div class="summary-grid">
-          <div class="summary-item success"><label>Successful</label><div class="value" id="successCount">0</div></div>
-          <div class="summary-item error"><label>Failed</label><div class="value" id="failureCount">0</div></div>
-          <div class="summary-item info"><label>Total Items</label><div class="value" id="totalItems">0</div></div>
-          <div class="summary-item info"><label>Total Vaults</label><div class="value" id="totalVaults">0</div></div>
+          <div class="summary-item success"><label>Items copied</label><div class="value" id="successCount">0</div></div>
+          <div class="summary-item error"><label>Items failed</label><div class="value" id="failureCount">0</div></div>
+          <div class="summary-item info"><label>Total items</label><div class="value" id="totalItems">0</div></div>
+          <div class="summary-item info"><label>Vaults</label><div class="value" id="totalVaults">0</div></div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <div class="action-progress"><div id="actionProgressBar"></div></div>
+        <div>
+          <span class="action-count" id="vaultSelectionCount">No vaults selected</span>
+          <span class="action-hint" id="selectionHint">Pick the vaults to copy to the destination</span>
+        </div>
+        <div class="action-buttons">
+          <button class="btn btn-ghost" onclick="showAllVaults()" id="showAllVaultsBtn" style="display: none;">Show all vaults</button>
+          <button class="btn btn-primary btn-lg" onclick="migrateSelected()" id="migrateSelectedBtn">Migrate Selected</button>
         </div>
       </div>
     </div>
@@ -392,29 +494,30 @@
     let processedItems = 0;
     let completedItemsFromPriorVaults = 0;
     let migratedVaultIds = new Set();
+    let currentMigrationId = null;
+    let pauseCountdownTimer = null;
+    const rateUsageByLabel = {};
 
-    // Warn before page refresh/close during active migration
-    window.addEventListener('beforeunload', (e) => {
-      if (isMigrating) {
-        e.preventDefault();
-        e.returnValue = 'A migration is in progress. Refreshing will disconnect from the progress stream, but the migration will continue on the server. Are you sure?';
-        return e.returnValue;
-      }
-    });
+    // Set when the page picked up a migration after a refresh: it has no tokens, so it has to connect
+    // again before it can start another migration.
+    let needsReconnect = false;
 
     
     const urlParams = new URLSearchParams(window.location.search);
     authMode = urlParams.get('authMode') || 'service-account';
     const useEnv = urlParams.get('useEnv') === 'true';
+    // Switches off if the user ends up typing tokens in by hand.
+    let usingEnv = useEnv;
 
     
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      initStickyToolbar();
+      const reattached = await reattachToRunningMigration();
       if (useEnv) {
-        // Local Node.js with .env — auto-connect (works for both service-account and desktop modes)
         document.getElementById('serviceAccountFields').style.display = 'none';
         document.getElementById('desktopAuthFields').style.display = 'none';
         document.getElementById('connectionSubtitle').textContent = 'Connecting from .env...';
-        autoConnectWithEnv();
+        if (!reattached) autoConnectWithEnv();
       } else if (authMode === 'desktop') {
         document.getElementById('serviceAccountFields').style.display = 'none';
         document.getElementById('desktopAuthFields').style.display = 'block';
@@ -443,9 +546,9 @@
         const envData = await envRes.json();
 
         if (!envData.loaded || !envData.ready) {
-          
+          usingEnv = false;
           document.getElementById('serviceAccountFields').style.display = 'block';
-          if (subtitle) subtitle.textContent = '.env not found or incomplete — enter tokens manually';
+          if (subtitle) subtitle.textContent = '.env not found or incomplete. Enter tokens manually';
           connectBtnText.textContent = 'Connect Accounts';
           connectBtn.disabled = false;
           connectSpinner.style.display = 'none';
@@ -458,12 +561,10 @@
           authMode = 'desktop';
         }
 
-        // Step 2: Connected — now gathering vault details
         const modeLabel = envData.authMode === 'desktop' ? 'desktop auth' : 'service account';
         connectBtnText.textContent = 'Gathering vault details...';
-        if (subtitle) subtitle.textContent = `✓ Connected via ${modeLabel} — collecting vault information`;
+        if (subtitle) subtitle.textContent = `✓ Connected via ${modeLabel}, collecting vault information`;
 
-        // Force DOM repaint before the slow network call
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
         const response = await fetch('/migration/list-vaults', {
@@ -483,17 +584,18 @@
           const displayLabel = envData.authMode === 'desktop' ? 'desktop auth' : '1Password Environments';
           let msg = `✓ Connected via ${displayLabel}! Found ${vaults.length} vaults`;
           if (personalCount > 0 && authMode === 'desktop') {
-            msg += ` (${sharedCount} shared, ${personalCount} personal — personal vault items will migrate to existing Private vault)`;
+            msg += ` (${sharedCount} shared, ${personalCount} personal; personal vault items will go into the existing Private vault)`;
           } else if (personalCount > 0) {
-            msg += ` (${sharedCount} shared, ${personalCount} personal — personal vaults will be skipped)`;
+            msg += ` (${sharedCount} shared, ${personalCount} personal; personal vaults will be skipped)`;
           }
           showAlert('success', msg);
         } else {
           throw new Error(result.error || 'Failed to connect');
         }
       } catch (error) {
+        usingEnv = false;
         document.getElementById('serviceAccountFields').style.display = 'block';
-        if (subtitle) subtitle.textContent = 'Auto-connect failed — enter tokens manually';
+        if (subtitle) subtitle.textContent = 'Auto-connect failed. Enter tokens manually';
         connectBtnText.textContent = 'Connect Accounts';
         connectBtn.disabled = false;
         connectSpinner.style.display = 'none';
@@ -547,6 +649,7 @@
     
     async function handleConnect(e) {
       e.preventDefault();
+      usingEnv = false;
       const connectBtn = document.getElementById('connectBtn');
       const connectBtnText = document.getElementById('connectBtnText');
       const connectSpinner = document.getElementById('connectSpinner');
@@ -576,10 +679,8 @@
           ? { authMode: 'desktop', sourceAccountName }
           : { serviceToken: sourceToken };
 
-        // Update status before the potentially slow list-vaults call
-        if (subtitle) subtitle.textContent = 'Connected — collecting vault details...';
+        if (subtitle) subtitle.textContent = 'Connected, collecting vault details...';
 
-        // Force DOM repaint before the slow network call
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
         const response = await fetch('/migration/list-vaults', {
@@ -595,7 +696,7 @@
           const sharedCount = vaults.length - personalCount;
           let msg = `✓ Successfully connected! Found ${vaults.length} vaults`;
           if (personalCount > 0) {
-            msg += ` (${sharedCount} shared, ${personalCount} personal — personal vaults will be skipped)`;
+            msg += ` (${sharedCount} shared, ${personalCount} personal; personal vaults will be skipped)`;
           }
           showAlert('success', msg);
         } else {
@@ -603,7 +704,7 @@
         }
       } catch (error) {
         const errEl2 = document.createElement('div'); errEl2.className = 'alert alert-error'; errEl2.textContent = '⚠️ Failed to connect: ' + error.message; errorDiv.innerHTML = ''; errorDiv.appendChild(errEl2);
-        if (subtitle) subtitle.textContent = 'Connection failed — check credentials and try again';
+        if (subtitle) subtitle.textContent = 'Connection failed. Check your credentials and try again';
       } finally {
         connectBtn.disabled = false;
         connectBtnText.style.display = 'inline';
@@ -612,15 +713,44 @@
     }
     
     function showVaultList() {
+      needsReconnect = false;
+      resetVaultView();
       document.getElementById('connectionCard').style.display = 'none';
       document.getElementById('statusBanner').classList.add('active');
       document.getElementById('vaultContainer').classList.add('active');
       document.getElementById('vaultCount').textContent = vaults.length;
+      const personal = vaults.filter(v => v.vaultType === 'personal').length;
+      document.getElementById('statVaultsSub').textContent = personal === 0 ? 'all shared'
+        : `${vaults.length - personal} shared, ${personal} personal${authMode === 'desktop' ? '' : ' (skipped)'}`;
+      document.getElementById('statSourceItems').textContent = vaults.reduce((n, v) => n + (v.itemCount || 0), 0).toLocaleString();
+      document.getElementById('statVaultsLabel').textContent = 'Vaults in source';
+      document.getElementById('statSourceItemsLabel').textContent = 'Items in source';
+      const desktop = authMode === 'desktop';
+      document.getElementById('connSource').textContent = desktop ? (sourceAccountName || 'Source account') : 'Source';
+      document.getElementById('connDest').textContent = desktop ? (destAccountName || 'Destination account') : 'Destination';
+      document.getElementById('connMode').textContent = desktop ? 'Desktop app' : 'Service accounts';
       renderVaults();
       updateSelectionCount();
     }
     
+    // New connection, new vaults, so clear the old selection and filters.
+    function resetVaultView() {
+      selectedVaultIds.clear();
+      totalItemsToMigrate = 0;
+      showSelectedOnly = false;
+      document.getElementById('showAllVaultsBtn').style.display = 'none';
+      document.getElementById('vaultSearch').value = '';
+      const selectAll = document.getElementById('selectAll');
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+      document.getElementById('vaultTableBody').innerHTML = '';
+    }
+
     function editConnection() {
+      if (isMigrating) {
+        showAlert('warning', '⚠️ Wait for the migration to finish (or cancel it) before changing the connection');
+        return;
+      }
       document.getElementById('connectionCard').style.display = 'block';
       document.getElementById('statusBanner').classList.remove('active');
       document.getElementById('vaultContainer').classList.remove('active');
@@ -633,11 +763,9 @@
       const searchTerm = document.getElementById('vaultSearch').value.toLowerCase();
       let filteredVaults = vaults.filter(v => v.name.toLowerCase().includes(searchTerm) || v.id.toLowerCase().includes(searchTerm));
       
-      // During migration, only show selected vaults
       if (showSelectedOnly) {
         filteredVaults = filteredVaults.filter(v => selectedVaultIds.has(v.id));
       } else {
-        // Sort: selected first, then migrated, then the rest — each group alphabetical
         filteredVaults.sort((a, b) => {
           const aSelected = selectedVaultIds.has(a.id) ? 0 : 1;
           const bSelected = selectedVaultIds.has(b.id) ? 0 : 1;
@@ -655,32 +783,32 @@
         const personalDisabled = isPersonal && !isDesktop;
         const wasMigrated = migratedVaultIds.has(vault.id);
         const statusId = `status-${vault.id}`;
-        // Preserve current status if it was set during migration (success/error/etc)
         const existingStatus = document.getElementById(statusId);
         const currentStatusHtml = existingStatus && existingStatus.innerHTML !== 'Pending'
           ? existingStatus.outerHTML
           : `<span class="status-badge ${personalDisabled ? 'personal' : (wasMigrated ? 'success' : 'pending')}" id="${statusId}">${personalDisabled ? 'Skipped' : (wasMigrated ? '✓ Migrated' : 'Pending')}</span>`;
 
+        const rowClass = [selectedVaultIds.has(vault.id) ? 'selected' : '', personalDisabled ? 'row-disabled' : ''].join(' ').trim();
+        const typeBadge = isPersonal
+          ? `<span class="status-badge ${isDesktop ? 'type-personal' : 'personal'}">Personal</span>`
+          : '<span class="status-badge type-shared">Shared</span>';
+
         return `
-          <tr data-vault-id="${vault.id}" style="${personalDisabled ? 'opacity: 0.5;' : ''}">
-            <td class="checkbox-wrapper">
+          <tr data-vault-id="${vault.id}" class="${rowClass}">
+            <td class="cell-check">
               <input type="checkbox" class="vault-checkbox" value="${vault.id}" data-item-count="${vault.itemCount}"
-                onchange="handleVaultSelection('${vault.id}', ${vault.itemCount})"
+                onchange="handleVaultSelection('${vault.id}', ${vault.itemCount})" aria-label="Select ${escapeHtml(vault.name)}"
                 ${selectedVaultIds.has(vault.id) ? 'checked' : ''} ${isMigrating || personalDisabled ? 'disabled' : ''}
-                title="${personalDisabled ? 'Personal vaults cannot be migrated with service accounts' : (wasMigrated ? 'Already migrated this session — selecting will create duplicates' : '')}">
+                title="${personalDisabled ? 'Personal vaults cannot be migrated with service accounts' : (wasMigrated ? 'Already migrated this session. Migrating it again will create duplicates' : '')}">
             </td>
-            <td class="vault-name">${escapeHtml(vault.name)}</td>
-            <td class="vault-id">${vault.id}</td>
-            <td>${isPersonal
-              ? (isDesktop
-                ? '<span class="status-badge" style="background: rgba(91, 155, 213, 0.15); color: var(--accent-primary);">Personal</span>'
-                : '<span class="status-badge personal">Personal</span>')
-              : '<span class="status-badge" style="background: rgba(107, 177, 135, 0.15); color: var(--accent-success);">Shared</span>'
-            }</td>
-            <td class="item-count">${vault.itemCount}</td>
             <td>
-              <input type="text" placeholder="optional"
-                style="width:120px; padding:4px 8px; background:var(--bg-tertiary); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-primary); font-size:0.8rem;"
+              <div class="vault-name">${escapeHtml(vault.name)}</div>
+              <div class="vault-id">${vault.id}</div>
+            </td>
+            <td>${typeBadge}</td>
+            <td class="item-count num">${Number(vault.itemCount).toLocaleString()}</td>
+            <td class="col-suffix">
+              <input type="text" class="suffix-input" placeholder="optional" aria-label="Suffix for ${escapeHtml(vault.name)}"
                 value="${escapeHtml(vault.suffix || '')}"
                 onchange="vaults.find(v=>v.id==='${vault.id}').suffix = this.value.trim()"
                 ${isMigrating || personalDisabled ? 'disabled' : ''}>
@@ -688,7 +816,7 @@
             <td>${currentStatusHtml}</td>
           </tr>
         `;
-      }).join('');
+      }).join('') || '<tr class="empty-row"><td colspan="6">No vaults match your search</td></tr>';
     }
     
     function filterVaults() { renderVaults(); updateSelectionCount(); }
@@ -707,11 +835,18 @@
       const searchTerm = document.getElementById('vaultSearch').value.toLowerCase();
       const visibleCount = vaults.filter(v => v.name.toLowerCase().includes(searchTerm) || v.id.toLowerCase().includes(searchTerm)).length;
       const selectedCount = selectedVaultIds.size;
-      if (searchTerm) {
-        el.textContent = `${selectedCount} selected · ${visibleCount}/${vaults.length} shown`;
-      } else {
-        el.textContent = `${selectedCount} of ${vaults.length} selected`;
-      }
+      const items = vaults.filter(v => selectedVaultIds.has(v.id)).reduce((n, v) => n + (v.itemCount || 0), 0);
+      document.querySelector('.action-bar').classList.toggle('migrating', isMigrating);
+      document.getElementById('statSelected').textContent = selectedCount;
+      document.getElementById('statItems').textContent = items.toLocaleString();
+      if (isMigrating) return;
+      el.textContent = selectedCount === 0 ? 'No vaults selected'
+        : `${selectedCount} of ${vaults.length} vault${vaults.length === 1 ? '' : 's'} selected`;
+      document.getElementById('selectionHint').textContent =
+        (selectedCount === 0 ? 'Pick the vaults to copy to the destination' : `${items.toLocaleString()} item${items === 1 ? '' : 's'} will be copied`) +
+        (searchTerm ? ` · ${visibleCount} of ${vaults.length} shown` : '');
+      document.querySelectorAll('#vaultTableBody tr[data-vault-id]').forEach(row =>
+        row.classList.toggle('selected', selectedVaultIds.has(row.dataset.vaultId)));
     }
     
     function handleVaultSelection(vaultId, itemCount) {
@@ -761,7 +896,13 @@
       const statusBadge = document.getElementById(`status-${vaultId}`);
       if (!statusBadge) return;
       statusBadge.className = `status-badge ${status}`;
-      statusBadge.innerHTML = showSpinner ? `<span class="spinner-small"></span> ${message}` : message;
+      // textContent, so an error message can't inject HTML.
+      statusBadge.textContent = showSpinner ? ` ${message}` : message;
+      if (showSpinner) {
+        const spinner = document.createElement('span');
+        spinner.className = 'spinner-small';
+        statusBadge.prepend(spinner);
+      }
     }
     
     function resetMigrationUI() {
@@ -774,9 +915,17 @@
       document.getElementById('migrationSummary').classList.remove('active');
       document.getElementById('alertContainer').innerHTML = '';
       document.getElementById('rateLimitBanner').style.display = 'none';
+      hideRatePause();
+      Object.keys(rateUsageByLabel).forEach(k => delete rateUsageByLabel[k]);
+      document.getElementById('rateUsage').textContent = '';
     }
     
     async function migrateSelected() {
+      if (needsReconnect) {
+        showAlert('info', 'Connect your accounts again to start another migration.');
+        if (usingEnv) autoConnectWithEnv(); else editConnection();
+        return;
+      }
       if (selectedVaultIds.size === 0) { showAlert('warning', '⚠️ Please select at least one vault to migrate'); return; }
       if (isMigrating) { showAlert('warning', '⚠️ Migration already in progress'); return; }
 
@@ -797,50 +946,51 @@
         if (!proceed) return;
       }
 
-      
+      // Show straight away that the click registered: the rate limit check below can take a second.
+      setMigrateButtonBusy(true);
       resetMigrationUI();
+      showStarting(authMode !== 'desktop' ? 'Checking rate limits...' : 'Starting migration...');
 
-      // --- Rate limit check (service account only) ---
       if (authMode !== 'desktop') {
         const selectedVaultList = vaults.filter(v => selectedVaultIds.has(v.id));
-        const vaultItemCounts = selectedVaultList.map(v => v.itemCount);
+        const checkBody = { vaultItemCounts: selectedVaultList.map(v => v.itemCount), authMode };
+        if (usingEnv) checkBody.useEnv = true;
+        else checkBody.destToken = destToken;
         try {
           const rlRes = await fetch('/migration/rate-limit-check', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ vaultItemCounts })
+            body: JSON.stringify(checkBody)
           });
           const rl = await rlRes.json();
-          if (rl.success) {
+          if (rl.success && rl.supported) {
             const banner = document.getElementById('rateLimitBanner');
-            if (rl.willExceed) {
+            const resetText = rl.resetAt ? ` (resets in ${formatDuration(rl.resetAt - Date.now())})` : '';
+            if (rl.willPause) {
               const proceed = confirm(
-                `⚠️ Rate Limit Warning\n\n` +
-                `This migration is estimated to use ~${rl.estimatedCalls} API write calls.\n` +
-                `You have approximately ${rl.remaining} calls remaining in the current hour ` +
-                `(${rl.used} already used).\n\n` +
-                `This migration will likely hit the 1Password rate limit (1,000 writes/hour). ` +
-                `If that happens, you may need to contact 1Password support or wait an hour before retrying.\n\n` +
-                (rl.minutesUntilReset > 0 ? `Your rate limit window should reset in ~${rl.minutesUntilReset} minutes.\n\n` : '') +
-                `Do you want to proceed anyway?`
+                `⏸ This migration will pause for rate limits\n\n` +
+                `It needs up to ~${rl.estimatedWrites.toLocaleString()} writes on the destination service account, ` +
+                `and ${rl.available.toLocaleString()} are available right now${resetText}.\n\n` +
+                `The migration will pause on its own before it reaches the limit, show a countdown until the limit resets, ` +
+                `and continue when you click Resume. Nothing is lost while it's paused.\n\n` +
+                `Start the migration?`
               );
-              if (!proceed) return;
+              if (!proceed) { stopStarting(); return; }
               banner.style.display = 'block';
               banner.style.background = 'rgba(212, 165, 116, 0.12)';
               banner.style.border = '1px solid var(--accent-warning)';
               banner.style.color = 'var(--accent-warning)';
-              banner.textContent = `⚠️ Estimated ~${rl.estimatedCalls} API calls (${rl.remaining} remaining this hour). This may hit the rate limit. If rate limited, contact 1Password support or wait an hour.`;
+              banner.textContent = `⏸ Needs up to ~${rl.estimatedWrites.toLocaleString()} destination writes; ${rl.available.toLocaleString()} available now${resetText}. Expect at least one pause.`;
             } else {
               banner.style.display = 'block';
               banner.style.background = 'rgba(91, 155, 213, 0.1)';
               banner.style.border = '1px solid var(--accent-primary)';
               banner.style.color = 'var(--accent-primary)';
-              banner.textContent = `📊 Estimated ~${rl.estimatedCalls} API calls (~${rl.remaining} remaining this hour). This should not hit the rate limit.` +
-                (rl.used > 0 ? ` If you do experience rate limiting, wait an hour or contact 1Password support.` : '');
+              banner.textContent = `📊 Needs up to ~${rl.estimatedWrites.toLocaleString()} destination writes; ${rl.available.toLocaleString()} available now. This should not need a pause.`;
             }
           }
         } catch (e) {
-          showAlert('info', '📊 Could not estimate rate limit usage. Proceeding with migration.');
+          showAlert('info', '📊 Could not read the rate limits up front. The migration will still pause if it gets close.');
         }
       }
       
@@ -861,26 +1011,20 @@
       vaults.forEach(v => { if (selectedVaultIds.has(v.id)) totalItemsToMigrate += v.itemCount; });
       
       const globalSuffix = document.getElementById('globalSuffix').value.trim();
-      const selectedVaults = vaults.filter(v => selectedVaultIds.has(v.id)).map(v => ({ vaultId: v.id, vaultName: v.name, vaultType: v.vaultType || 'shared', suffix: v.suffix || globalSuffix }));
+      const selectedVaults = vaults.filter(v => selectedVaultIds.has(v.id)).map(v => ({ vaultId: v.id, vaultName: v.name, vaultType: v.vaultType || 'shared', itemCount: v.itemCount || 0, suffix: v.suffix || globalSuffix }));
       
       const progressContainer = document.getElementById('progressContainer');
       progressContainer.classList.add('active');
-      document.getElementById('progressLabel').textContent = 'Preparing migration...';
+      document.getElementById('progressLabel').textContent = 'Starting migration...';
       document.getElementById('progressPercentage').textContent = '0%';
       document.getElementById('progressBar').style.width = '0%';
       updateProgressStats();
-      document.getElementById('migrateSelectedBtn').disabled = true;
       
-      let successCount = 0;
-      let failureCount = 0;
-      let totalItems = 0;
-
-      // POST credentials to get a session ID — tokens never appear in URLs
       const startPayload = {
         authMode,
         vaults: selectedVaults
       };
-      if (useEnv) {
+      if (usingEnv) {
         startPayload.useEnv = true;
       } else if (authMode === 'desktop') {
         startPayload.sourceAccountName = sourceAccountName;
@@ -900,27 +1044,50 @@
         const startData = await startRes.json();
         if (!startData.success) {
           showAlert('error', '✗ Failed to start migration session');
-          document.getElementById('migrateSelectedBtn').disabled = false;
           isMigrating = false;
+          stopStarting();
           return;
         }
         sessionId = startData.sessionId;
+        currentMigrationId = sessionId;
       } catch (e) {
         showAlert('error', '✗ Failed to start migration: ' + e.message);
-        document.getElementById('migrateSelectedBtn').disabled = false;
         isMigrating = false;
+        stopStarting();
         return;
       }
 
-      const eventSource = new EventSource(`/migration/migrate-all-vaults?sessionId=${sessionId}`);
-      
+      watchMigration(`/migration/migrate-all-vaults?sessionId=${sessionId}`, selectedVaults.length, { fresh: true });
+    }
+
+    // Follows a migration's events: a new one (fresh), or one that was already running when the page loaded.
+    // Each connection starts its counts from zero, because a reattached stream replays the current state.
+    function watchMigration(url, vaultCount, { fresh = false, retries = 3 } = {}) {
+      const progressContainer = document.getElementById('progressContainer');
+      const migrationId = currentMigrationId;
+      let successCount = 0;
+      let failureCount = 0;
+      let totalItems = 0;
+      completedVaults = 0;
+      processedItems = 0;
+      completedItemsFromPriorVaults = 0;
+      setMigrateButtonBusy(true, 'Migrating...');
+
+      const eventSource = new EventSource(url);
       eventSource.onopen = () => {
+        if (!fresh) return;
         document.getElementById('progressLabel').textContent = `Migrating ${totalVaultsToMigrate} vaults with ${totalItemsToMigrate} items...`;
         showAlert('info', `🚀 Starting migration of ${totalVaultsToMigrate} vaults...`);
       };
       
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
+
+        if (data.attached) return;
+        if (data.rateLimitEvent) {
+          handleRateLimitEvent(data);
+          return;
+        }
         
         if (data.progress !== undefined && data.outcome) {
           const vaultId = data.outcome.vaultId;
@@ -936,12 +1103,24 @@
           } else if (phase === 'preparing') {
             document.getElementById('progressLabel').textContent = `Preparing vault "${data.outcome.vaultName}"...`;
             updateVaultStatus(vaultId, 'preparing', 'Preparing...', true);
+          } else if (phase === 'reading') {
+            const read = data.outcome.itemsRead || 0;
+            const total = data.outcome.totalItems || 0;
+            // the next vault is read while the current one is written: show that on its row only
+            if (data.outcome.ahead) {
+              updateVaultStatus(vaultId, 'preparing', `Reading ahead (${read}/${total})`, true);
+            } else {
+              document.getElementById('progressLabel').textContent = `Reading "${data.outcome.vaultName}" from the source (${read}/${total} items)...`;
+              updateVaultStatus(vaultId, 'preparing', `Reading (${read}/${total})`, true);
+            }
           } else if (phase === 'migrating') {
             const ip = data.outcome.itemsProcessed || 0;
             const ti = data.outcome.totalItems || 0;
-            document.getElementById('progressLabel').textContent = `Migrating "${data.outcome.vaultName}" (${ip}/${ti} items)...`;
+            document.getElementById('progressLabel').textContent = data.outcome.activity
+              ? `Migrating "${data.outcome.vaultName}" (${ip}/${ti} items): ${data.outcome.activity}`
+              : `Migrating "${data.outcome.vaultName}" (${ip}/${ti} items)...`;
             processedItems = completedItemsFromPriorVaults + ip;
-            updateVaultStatus(vaultId, 'migrating', `Migrating (${ip}/${ti})`, false);
+            updateVaultStatus(vaultId, 'migrating', `Migrating (${ip}/${ti})`, true);
             updateProgressStats();
           } else if (phase === 'completed') {
             completedVaults++;
@@ -975,49 +1154,260 @@
         if (data.finished) {
           eventSource.close();
           isMigrating = false;
-          // Keep showSelectedOnly true — user can click "Show All Vaults" to see everything
+          currentMigrationId = null;
+          hideRatePause();
           
           updateProgress(100);
-          document.getElementById('migrateSelectedBtn').disabled = false;
+          setMigrateButtonBusy(false);
           document.getElementById('successCount').textContent = successCount;
           document.getElementById('failureCount').textContent = failureCount;
           document.getElementById('totalItems').textContent = totalItems;
-          document.getElementById('totalVaults').textContent = selectedVaults.length;
+          document.getElementById('totalVaults').textContent = vaultCount;
           document.getElementById('migrationSummary').classList.add('active');
           document.getElementById('progressLabel').textContent = 'Migration complete!';
           
           
-          if (data.rateLimit) {
+          const writes = data.rateLimit?.limits?.find(l => l.scope === 'token' && l.action === 'write');
+          if (writes) {
             const banner = document.getElementById('rateLimitBanner');
-            const rl = data.rateLimit;
             banner.style.display = 'block';
             banner.style.background = 'rgba(107, 177, 135, 0.1)';
             banner.style.border = '1px solid var(--accent-success)';
             banner.style.color = 'var(--accent-success)';
-            banner.textContent = `✓ Migration used ${rl.used} API calls this hour. ~${rl.remaining} calls remaining.` +
-              (rl.remaining < 200 ? ` If you need to run another migration and hit a rate limit, wait an hour or contact 1Password support.` : '');
+            banner.textContent = `✓ Destination service account: ${writes.used.toLocaleString()} of ${writes.limit.toLocaleString()} writes used this hour, ${writes.remaining.toLocaleString()} left` +
+              (writes.resetAt ? ` (resets in ${formatDuration(writes.resetAt - Date.now())}).` : '.');
           }
 
-          showAlert(data.success ? 'success' : 'warning', `${data.success ? '✓' : '⚠️'} ${data.message}`);
+          if (data.gone) {
+            showAlert('warning', 'That migration is no longer on the server. Download the logs to see how it went.');
+            document.getElementById('migrationSummary').classList.remove('active');
+          } else {
+            showAlert(data.success ? 'success' : 'warning', `${data.success ? '✓' : '⚠️'} ${data.message}`);
+          }
           setTimeout(() => { progressContainer.classList.remove('active'); }, 1500);
           updateSelectionCount();
         }
       };
       
-      eventSource.onerror = () => {
+      eventSource.onerror = async () => {
         eventSource.close();
+        // Usually a dropped connection, not a failed migration: if the server still has it, follow it again.
+        if (retries > 0 && migrationId) {
+          await new Promise(r => setTimeout(r, 1000));
+          const active = await fetchActiveMigration();
+          if (active && active.id === migrationId) {
+            watchMigration(`/migration/watch?id=${encodeURIComponent(migrationId)}`, vaultCount, { retries: retries - 1 });
+            return;
+          }
+        }
         isMigrating = false;
+        currentMigrationId = null;
+        hideRatePause();
         showSelectedOnly = false;
-        document.getElementById('migrateSelectedBtn').disabled = false;
+        setMigrateButtonBusy(false);
         showAlert('error', '✗ Migration failed. Please check the logs for details.');
         progressContainer.classList.remove('active');
         renderVaults();
+        updateSelectionCount();
       };
     }
+
+    async function fetchActiveMigration() {
+      try {
+        const res = await fetch('/migration/active');
+        return (await res.json()).migration || null;
+      } catch { return null; }
+    }
+
+    // After a refresh: if the server is still running a migration (or finished one nobody saw), show it.
+    async function reattachToRunningMigration() {
+      const m = await fetchActiveMigration();
+      if (!m) return false;
+
+      authMode = m.authMode || authMode;
+      sourceAccountName = m.sourceAccountName || '';
+      destAccountName = m.destAccountName || '';
+      vaults = m.vaults.map(v => ({ ...v, suffix: '' }));
+      showVaultList();
+      needsReconnect = true;
+      // this page only knows the vaults in this migration, not everything in the source
+      document.getElementById('statVaultsLabel').textContent = 'Vaults in this migration';
+      document.getElementById('statSourceItemsLabel').textContent = 'Items in this migration';
+      vaults.forEach(v => selectedVaultIds.add(v.id));
+      showSelectedOnly = true;
+      renderVaults();
+      updateSelectionCount();
+
+      isMigrating = m.running;
+      currentMigrationId = m.id;
+      totalVaultsToMigrate = vaults.length;
+      totalItemsToMigrate = vaults.reduce((n, v) => n + (v.itemCount || 0), 0);
+      const progressContainer = document.getElementById('progressContainer');
+      progressContainer.classList.add('active');
+      document.getElementById('progressLabel').textContent = 'Catching up with the migration...';
+      updateProgressStats();
+      showAlert('info', m.running
+        ? 'This migration was already running, so the page picked it up again. You can watch, pause or cancel it as before.'
+        : 'This migration finished while the page was closed. Here is how it went.');
+      watchMigration(`/migration/watch?id=${encodeURIComponent(m.id)}`, vaults.length);
+      return true;
+    }
     
+    
+    function formatDuration(ms) {
+      const total = Math.max(0, Math.ceil(ms / 1000));
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const sec = total % 60;
+      const pad = n => String(n).padStart(2, '0');
+      return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
+    }
+
+    function handleRateLimitEvent(data) {
+      if (data.rateLimitEvent === 'usage') {
+        rateUsageByLabel[data.usage.label] = data.usage;
+        renderRateUsage();
+      } else if (data.rateLimitEvent === 'paused') {
+        showRatePause(data.pause);
+      } else if (data.rateLimitEvent === 'checking') {
+        document.getElementById('ratePauseCountdown').textContent = 'Checking limits…';
+        document.getElementById('rateResumeBtn').disabled = true;
+      } else if (data.rateLimitEvent === 'resumed') {
+        hideRatePause();
+        showAlert('info', '▶ Enough room under the rate limit, migration resumed');
+      }
+    }
+
+    function renderRateUsage() {
+      const el = document.getElementById('rateUsage');
+      el.textContent = '';
+      for (const usage of Object.values(rateUsageByLabel)) {
+        for (const l of usage.limits) {
+          const relevant = l.scope === 'account' || (usage.label === 'destination' ? l.action === 'write' : l.action === 'read');
+          if (!relevant) continue;
+          const span = document.createElement('span');
+          const what = l.scope === 'account' ? `${usage.label} account today` : `${usage.label} ${l.action}s this hour`;
+          span.textContent = `${what}: ${l.used.toLocaleString()}/${l.limit.toLocaleString()}`;
+          if (l.limit > 0 && l.remaining / l.limit < 0.1) span.className = 'near';
+          if (el.childNodes.length) el.appendChild(document.createTextNode('  ·  '));
+          el.appendChild(span);
+        }
+      }
+    }
+
+    function showRatePause(pause) {
+      const panel = document.getElementById('ratePausePanel');
+      const detail = document.getElementById('ratePauseDetail');
+      const countdown = document.getElementById('ratePauseCountdown');
+      const resumeBtn = document.getElementById('rateResumeBtn');
+
+      const windowLabel = pause.scope === 'account' ? 'daily account' : 'hourly';
+      const why = pause.reason === 'hit'
+        ? `1Password reported the ${pause.label} service account's ${windowLabel} ${pause.kind} limit as reached.`
+        : `The ${pause.label} service account is close to its ${windowLabel} ${pause.kind} limit` +
+          (pause.limit ? ` (${(pause.limit - (pause.remaining ?? 0)).toLocaleString()} of ${pause.limit.toLocaleString()} used)` : '') + '.';
+      detail.textContent = `${why} Nothing has been lost. When the countdown ends, click Resume; the limits are checked again before anything else is sent.`;
+
+      // Count down using the server's clock in case this computer's clock is off.
+      const endsAt = Date.now() + (pause.resumeAt - pause.serverTime);
+      clearInterval(pauseCountdownTimer);
+      resumeBtn.disabled = true;
+      resumeBtn.textContent = 'Resume';
+      const tick = () => {
+        const left = endsAt - Date.now();
+        if (left <= 0) {
+          clearInterval(pauseCountdownTimer);
+          pauseCountdownTimer = null;
+          countdown.textContent = 'Ready to resume';
+          resumeBtn.disabled = false;
+        } else {
+          countdown.textContent = `Resume in ${formatDuration(left)}`;
+        }
+      };
+      tick();
+      pauseCountdownTimer = setInterval(tick, 1000);
+
+      document.getElementById('progressLabel').textContent = `Paused for rate limits (${pause.label} ${pause.kind}s)`;
+      panel.hidden = false;
+    }
+
+    function hideRatePause() {
+      clearInterval(pauseCountdownTimer);
+      pauseCountdownTimer = null;
+      document.getElementById('ratePausePanel').hidden = true;
+    }
+
+    async function resumeMigration() {
+      if (!currentMigrationId) return;
+      const resumeBtn = document.getElementById('rateResumeBtn');
+      resumeBtn.disabled = true;
+      resumeBtn.textContent = 'Checking…';
+      try {
+        await fetch('/migration/resume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ migrationId: currentMigrationId })
+        });
+      } catch (e) {
+        resumeBtn.disabled = false;
+        resumeBtn.textContent = 'Resume';
+        showAlert('error', '✗ Could not reach the server to resume: ' + e.message);
+      }
+    }
+
+    async function cancelMigration() {
+      if (!confirm('Cancel the migration? Items already created in the destination stay there.')) return;
+      document.getElementById('rateCancelBtn').disabled = true;
+      try {
+        await fetch('/migration/cancel', { method: 'POST' });
+      } finally {
+        document.getElementById('rateCancelBtn').disabled = false;
+      }
+    }
+
+    // The Migrate Selected button: busy (disabled, with a spinner) from the click until the migration ends.
+    function setMigrateButtonBusy(busy, text = 'Starting...') {
+      const btn = document.getElementById('migrateSelectedBtn');
+      btn.disabled = busy;
+      btn.textContent = busy ? ` ${text}` : 'Migrate Selected';
+      if (busy) {
+        const spinner = document.createElement('span');
+        spinner.className = 'spinner';
+        spinner.style.cssText = 'width:14px;height:14px;vertical-align:-2px;';
+        btn.prepend(spinner);
+      }
+    }
+
+    function showStarting(message) {
+      document.getElementById('progressContainer').classList.add('active');
+      document.getElementById('progressLabel').textContent = message;
+      updateProgress(0);
+    }
+
+    // The migration didn't start after all (cancelled at a prompt, or the server said no).
+    function stopStarting() {
+      setMigrateButtonBusy(false);
+      document.getElementById('progressContainer').classList.remove('active');
+    }
+
     function updateProgress(percentage) {
       document.getElementById('progressBar').style.width = `${percentage}%`;
       document.getElementById('progressPercentage').textContent = `${Math.round(percentage)}%`;
+      document.getElementById('actionProgressBar').style.width = `${percentage}%`;
+      if (isMigrating) {
+        document.getElementById('vaultSelectionCount').textContent =
+          `Migrating ${totalVaultsToMigrate} vault${totalVaultsToMigrate === 1 ? '' : 's'} · ${Math.round(percentage)}%`;
+      }
+    }
+
+    // Keeps the search bar and column headings on screen while a long vault list scrolls, and shows
+    // the progress text in the bottom bar so it's visible from anywhere on the page.
+    function initStickyToolbar() {
+      const toolbar = document.querySelector('.toolbar');
+      new ResizeObserver(() => document.documentElement.style.setProperty('--toolbar-h', `${toolbar.offsetHeight}px`)).observe(toolbar);
+      new MutationObserver(() => {
+        if (isMigrating) document.getElementById('selectionHint').textContent = document.getElementById('progressLabel').textContent;
+      }).observe(document.getElementById('progressLabel'), { childList: true, characterData: true, subtree: true });
     }
     
     function updateProgressStats() {
@@ -1034,11 +1424,12 @@
       const container = document.getElementById('alertContainer');
       const alertDiv = document.createElement('div');
       alertDiv.className = `alert alert-${type}`;
-      const icon = type === 'success' ? '✓' : type === 'error' ? '✗' : type === 'warning' ? '⚠️' : 'ℹ️';
+      const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : type === 'warning' ? '!' : 'i';
       const iconSpan = document.createElement('span');
+      iconSpan.className = 'alert-icon';
       iconSpan.textContent = icon;
       const msgSpan = document.createElement('span');
-      msgSpan.textContent = message;
+      msgSpan.textContent = String(message).replace(/^[^\p{L}\p{N}"'(<]+/u, '');
       alertDiv.appendChild(iconSpan);
       alertDiv.appendChild(msgSpan);
       container.appendChild(alertDiv);
@@ -1046,7 +1437,9 @@
       setTimeout(() => { alertDiv.style.opacity = '0'; setTimeout(() => alertDiv.remove(), 300); }, timeout);
     }
     
-    function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+    function escapeHtml(text) {
+      return String(text ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
   </script>
 </body>
 </html>
