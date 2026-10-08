@@ -202,6 +202,15 @@ function Write-Failure {
 }
 
 
+# Manual sign-in prints the session instead of saving it, so this saves it for the op commands we run
+function Save-Session {
+    param([string]$SigninOutput)
+    foreach ($m in [regex]::Matches($SigninOutput, '(OP_SESSION_\w+)\s*=\s*["'']?([^"''\s]+)')) {
+        [Environment]::SetEnvironmentVariable($m.Groups[1].Value, $m.Groups[2].Value)
+    }
+}
+
+
 # Reuses the CLI's session if it's signed in, otherwise signs in and passes --account from then on
 function Connect-Account {
     $r = Invoke-Op -Arguments @("whoami", "--format=json") -What "whoami" -Config @{ MaxRetries = 0; TimeoutSeconds = 15; PermanentErrors = @() }
@@ -211,8 +220,9 @@ function Connect-Account {
         (Read-Host "1Password account (sign-in address or shorthand)").Trim()
     }
     Write-Host "Not signed in, running op signin for $acct..."
-    & op signin --account $acct
+    $signinOutput = & op signin --account $acct
     if ($LASTEXITCODE -ne 0) { Stop-Script "op signin failed." }
+    Save-Session ($signinOutput -join "`n")
     $OpConfig.Account = $acct
     $r = Invoke-Op -Arguments @("whoami", "--format=json") -What "whoami" -Config $OpConfig
     if (-not $r.Ok) { Stop-Script "Still not signed in: $($r.Err)" }
