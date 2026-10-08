@@ -188,6 +188,12 @@ def parse_json(text: str) -> list:
     return json.loads(text) if text and text.strip() else []
 
 
+# Manual sign-in prints the session instead of saving it, so this saves it for the op commands we run
+def keep_session(signin_output: str) -> None:
+    for name, value in re.findall(r"(OP_SESSION_\w+)\s*=\s*[\"']?([^\"'\s]+)", signin_output):
+        os.environ[name] = value
+
+
 # Reuses the CLI's session if it's signed in, otherwise signs in and passes --account from then on
 def connect_account(account_arg: Optional[str]) -> dict:
     global _account
@@ -199,8 +205,10 @@ def connect_account(account_arg: Optional[str]) -> dict:
     if not account:
         account = input("1Password account (sign-in address or shorthand): ").strip()
     print(f"Not signed in, running op signin for {account}...")
-    if subprocess.run(["op", "signin", "--account", account]).returncode != 0:
+    result = subprocess.run(["op", "signin", "--account", account], stdout=subprocess.PIPE, text=True)
+    if result.returncode != 0:
         stop("op signin failed.")
+    keep_session(result.stdout)
     _account = account
     ok, stdout, err = run_op(["whoami", "--format=json"], "whoami")
     if not ok:

@@ -8,3 +8,6 @@
 !rate-limits.js
 !views/
 !public/
+
+# The admin scripts are run by hand, never inside the container.
+scripts/
