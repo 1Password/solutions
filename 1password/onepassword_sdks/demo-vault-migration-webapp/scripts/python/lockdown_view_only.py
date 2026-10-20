@@ -1,9 +1,21 @@
 #!/usr/bin/env python3
 """Brings every user and group on your vaults down to view only.
 
-Checks every vault you can manage. Anyone assigned directly, and any group
-assigned, ends up with allow_viewing and nothing else. allow_viewing is granted
-first, then everything else is revoked, so nobody loses access in between.
+Checks every vault you can manage, or only the vaults in a CSV with --file.
+Anyone assigned directly, and any group assigned, ends up with view access and
+nothing else. Which permission that is depends on the account, and the script
+checks the account type before changing anything:
+
+  Business  view_items. They can see the items, but can't reveal or copy
+            passwords, see item history, or change anything.
+  Teams     allow_viewing, since Teams only has allow_viewing, allow_editing
+            and allow_managing. They can see the items and can reveal and copy
+            passwords, but can't change anything or manage the vault.
+
+Everything else is revoked first, then the view permission is granted. The view
+permission itself is never revoked, so anyone who already has it keeps access
+throughout. Anyone who didn't have it is off the vault briefly between the two
+steps, and a failed grant there is reported as a failure.
 
 Left alone on purpose: the Recovery, Administrators, Owners, Provision Managers
 and Security groups, since changing them would get in the way of running the
@@ -17,6 +29,17 @@ Every change, retry and failure goes in logs/<timestamp>/errors.log, and
 failures also go in failed_changes.jsonl.
 
 Options:
+  --file     A CSV of the vaults to lock down. Leave it out to lock down every
+             vault you can manage. It's the same format
+             create_read_service_account.py uses: a vaultName or vaultUUID
+             column (name, vault, id and uuid work too, in any case), and if
+             there's an include column, only rows set to yes are used. Rows
+             that don't match a vault you can manage are listed and skipped.
+             If the CSV also lists who was assigned (an email column, plus
+             assignment and groupName, as in vault_access_report.csv), anyone
+             listed who's no longer on the vault is added back with the view
+             permission: users assigned directly as users, and groups as
+             groups. The groups this script leaves alone are skipped here too.
   --account  The 1Password account to sign in to, only used if the CLI isn't
              already signed in. Falls back to the OP_ACCOUNT environment
              variable, then asks.
@@ -24,13 +47,16 @@ Options:
 
 Examples:
   python3 lockdown_view_only.py --dry-run
+  python3 lockdown_view_only.py --file service_account_vaults.csv --dry-run
   python3 lockdown_view_only.py --account mycompany
 
-Written for 1Password Teams, which has three permission levels: allow_viewing,
-allow_editing and allow_managing.
+Works on 1Password Business and Teams. The account type comes from op account
+get, and if that doesn't say, from whether the vault list works with
+manage_vault (Business) or only allow_managing (Teams).
 Requires Python 3.9 or later and the 1Password CLI.
 """
 import argparse
+import csv
 import json
 import os
 import re
@@ -47,9 +73,28 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 THREADS = 5
 MAX_ATTEMPTS = 5
 OP_TIMEOUT_SECONDS = 30
-TARGET_PERMISSION = "allow_viewing"
+# What everyone ends up with, by account type
+VIEW_PERMISSIONS = {"Business": "view_items", "Teams": "allow_viewing"}
+# Business accounts can report a whole level instead of the permissions in it, so levels are
+# expanded there and revoking "everything else" never takes view_items away with a level. Teams
+# only has the levels, so any granular names are folded back into their level instead.
+PERMISSION_LEVELS = {
+    "allow_viewing": ["view_items", "view_and_copy_passwords", "view_item_history"],
+    "allow_editing": ["create_items", "edit_items", "archive_items", "delete_items", "import_items",
+                      "export_items", "copy_and_share_items", "print_items"],
+    "allow_managing": ["manage_vault"],
+}
 IGNORED_VAULT_NAME = "employee"
 IGNORED_GROUP_NAMES = {"recovery", "administrators", "owners", "provision managers", "security"}
+YES_VALUES = {"yes", "y", "true", "1", "x"}
+COLUMN_NAMES = {
+    "include": {"include"},
+    "vaultName": {"vaultname", "name", "vault"},
+    "vaultUUID": {"vaultuuid", "vaultid", "uuid", "id"},
+    "email": {"email", "useremail"},
+    "assignment": {"assignment"},
+    "groupName": {"groupname"},
+}
 
 PERMANENT_ERRORS = [
     "does not have access",
@@ -76,6 +121,7 @@ _errors_log_path = _logs_dir / "errors.log"
 _log_lock = threading.Lock()
 _progress = {"label": "", "done": 0, "total": 0}
 _account: Optional[str] = None
+_listed_with = "manage_vault"
 
 
 # Draws the progress bar on the current line, only when running in a terminal
@@ -228,6 +274,7 @@ def show_header(me: dict, mode: str) -> None:
 
 # Lists the vaults we can manage, trying manage_vault first and allow_managing for Teams accounts
 def get_manageable_vaults() -> list:
+    global _listed_with
     ok, stdout, err = run_op_once(["vault", "list", "--permission=manage_vault", "--format=json"])
     if not ok:
         write_log(f"manage_vault didn't work as a vault list filter ({err}), trying allow_managing instead")
@@ -235,7 +282,144 @@ def get_manageable_vaults() -> list:
         ok, stdout, err = run_op_once(["vault", "list", "--permission=allow_managing", "--format=json"])
         if not ok:
             stop(f"Couldn't list the vaults you manage.\n  manage_vault: {first}\n  allow_managing: {err}")
+        _listed_with = "allow_managing"
     return [v for v in parse_json(stdout) if v.get("name", "").strip().lower() != IGNORED_VAULT_NAME]
+
+
+# Works out whether this is a Business or Teams account: op account get first, then falls back to
+# which permission the vault list worked with. Returns the type and where it came from.
+def get_account_type() -> tuple:
+    ok, stdout, err = run_op(["account", "get", "--format=json"], "account get")
+    kind = ""
+    if ok:
+        try:
+            kind = str(json.loads(stdout).get("type") or "").upper()
+        except (ValueError, AttributeError):
+            kind = ""
+    if kind == "BUSINESS":
+        return "Business", "op account get"
+    if kind in ("TEAM", "TEAMS"):
+        return "Teams", "op account get"
+    write_log(f"op account get didn't say Business or Teams ({f'type {kind!r}' if ok else err}), going by the vault list instead")
+    if _listed_with == "allow_managing":
+        return "Teams", "vault list needed allow_managing"
+    return "Business", "vault list worked with manage_vault"
+
+
+def normalize_header(header: str) -> str:
+    return re.sub(r"[\s_-]", "", (header or "").lower())
+
+
+# Works out which CSV column is which, ignoring case, spaces and underscores
+def find_columns(fieldnames: list) -> dict:
+    found = {}
+    for header in fieldnames:
+        key = normalize_header(header)
+        for column, names in COLUMN_NAMES.items():
+            if key in names and column not in found:
+                found[column] = header
+    return found
+
+
+# Reads the CSV and returns the rows to use, which is every row unless there's an include column
+def read_vault_csv(path: Path) -> dict:
+    if not path.exists():
+        stop(f"Can't find {path}. Point --file at your CSV of vaults.")
+    with path.open(newline="", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        columns = find_columns(reader.fieldnames or [])
+        if "vaultName" not in columns and "vaultUUID" not in columns:
+            stop(f"{path.name} needs a vaultName or vaultUUID column (name, vault, id or uuid work too).\n"
+                 f"Found: {', '.join(reader.fieldnames or []) or 'no header row'}")
+        rows = [{c: (row.get(columns[c]) or "").strip() if c in columns else "" for c in COLUMN_NAMES}
+                for row in reader]
+    has_include = "include" in columns
+    picked = [r for r in rows if (r["vaultUUID"] or r["vaultName"])
+              and (not has_include or r["include"].lower() in YES_VALUES)]
+    return {"picked": picked, "total": len(rows), "has_include": has_include,
+            "has_assignments": "email" in columns and "assignment" in columns}
+
+
+# Matches each picked row to a live vault by ID, or by name when the ID is blank
+def match_rows(rows: list, vaults: list) -> tuple:
+    by_id = {v["id"]: v for v in vaults}
+    by_name = {}
+    for v in vaults:
+        by_name.setdefault(v["name"].lower(), []).append(v)
+    matched, issues, seen = {}, [], set()
+    for r in rows:
+        key = (r["vaultUUID"], r["vaultName"].lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        label = r["vaultName"] or r["vaultUUID"]
+        if r["vaultUUID"]:
+            if r["vaultUUID"] in by_id:
+                matched[r["vaultUUID"]] = by_id[r["vaultUUID"]]
+            else:
+                issues.append((label, f"no vault with ID {r['vaultUUID']}"))
+            continue
+        found = by_name.get(r["vaultName"].lower(), [])
+        if len(found) == 1:
+            matched[found[0]["id"]] = found[0]
+        elif len(found) > 1:
+            issues.append((label, f"{len(found)} vaults have this name, add the vaultUUID"))
+        else:
+            issues.append((label, "no vault with this name"))
+    return sorted(matched.values(), key=lambda v: v["name"].lower()), issues
+
+
+# Lists the users and groups the CSV says were on each vault, as (vault, "user" or "group", email or name)
+def csv_assignments(rows: list, vaults: list) -> list:
+    by_id = {v["id"]: v for v in vaults}
+    by_name = {}
+    for v in vaults:
+        key = v["name"].lower()
+        by_name[key] = None if key in by_name else v   # None when the name isn't unique
+    wanted = {}
+    for r in rows:
+        vault = by_id.get(r["vaultUUID"]) if r["vaultUUID"] else by_name.get(r["vaultName"].lower())
+        assignment = r["assignment"].strip()
+        if not vault or not assignment:
+            continue
+        if assignment == "Direct":
+            if r["email"]:
+                wanted[(vault["id"], "user", r["email"].lower())] = (vault, "user", r["email"].lower())
+            continue
+        m = re.match(r"^Group \((.*)\)$", assignment)
+        group = r["groupName"] or (m.group(1) if m else "")
+        if not group or group.lower() in IGNORED_GROUP_NAMES:
+            continue
+        wanted[(vault["id"], "group", group.lower())] = (vault, "group", group.lower())
+    return list(wanted.values())
+
+
+# Adds an entry with no permissions for everyone the CSV lists who isn't on the vault now, so they're granted the view permission
+def add_missing_assignments(wanted: list, entries: list) -> tuple:
+    added, not_found = 0, []
+    if not wanted:
+        return added, not_found
+    ok_u, users, err_u = run_op(["user", "list", "--format=json"], "list users")
+    ok_g, groups, err_g = run_op(["group", "list", "--format=json"], "list groups")
+    if not ok_u or not ok_g:
+        stop(f"Couldn't list users and groups: {err_u}{err_g}")
+    index = {"user": {u["email"].strip().lower(): u for u in parse_json(users) if u.get("email")},
+             "group": {g["name"].strip().lower(): g for g in parse_json(groups) if g.get("name")}}
+    present = {(e["vault_id"], e["target_id"]) for e in entries}
+    for vault, kind, key in wanted:
+        target = index[kind].get(key)
+        if not target:
+            not_found.append(f"{vault['name']} / {kind}: {key}")
+            write_log(f"not found, can't add back: {vault['name']} / {kind}:{key}")
+            continue
+        if (vault["id"], target["id"]) in present:
+            continue
+        present.add((vault["id"], target["id"]))
+        entries.append({"vault_id": vault["id"], "vault_name": vault["name"], "target_type": kind,
+                        "target_id": target["id"], "target_label": target.get("email" if kind == "user" else "name") or key,
+                        "permissions": [], "added_back": True})
+        added += 1
+    return added, not_found
 
 
 # Lists the users and groups on one vault
@@ -279,18 +463,29 @@ def read_assignments(vaults: list) -> tuple:
     return entries, failed
 
 
-# Grants allow_viewing first so nobody loses access for a moment, then revokes everything else
-def apply_change(entry: dict, dry_run: bool) -> tuple:
-    current = set(entry["permissions"])
-    to_revoke = sorted(p for p in current if p and p != TARGET_PERMISSION)
-    to_grant = [] if TARGET_PERMISSION in current else [TARGET_PERMISSION]
+# Puts permissions in the account's terms: individual permissions for Business, levels for Teams
+def normalize_permissions(permissions: list, account_type: str) -> set:
+    current = set()
+    for p in filter(None, permissions):
+        if account_type == "Teams":
+            current.add(next((level for level, parts in PERMISSION_LEVELS.items() if p in parts), p))
+        else:
+            current.update(PERMISSION_LEVELS.get(p, [p]))
+    return current
+
+
+# Revokes everything but the view permission first, then grants it to anyone who didn't have it
+def apply_change(entry: dict, target: str, account_type: str, dry_run: bool) -> tuple:
+    current = normalize_permissions(entry["permissions"], account_type)
+    to_revoke = sorted(p for p in current if p != target)
+    to_grant = [] if target in current else [target]
     if not to_grant and not to_revoke:
         return entry, to_grant, to_revoke, False, ""
     if dry_run:
         return entry, to_grant, to_revoke, True, ""
 
     kind = entry["target_type"]
-    for action, perms in (("grant", to_grant), ("revoke", to_revoke)):
+    for action, perms in (("revoke", to_revoke), ("grant", to_grant)):
         if not perms:
             continue
         ok, _, err = run_op(["vault", kind, action, "--vault", entry["vault_id"], f"--{kind}", entry["target_id"],
@@ -302,11 +497,11 @@ def apply_change(entry: dict, dry_run: bool) -> tuple:
 
 
 # Brings everyone who isn't view only down to view only, 5 at a time, and returns the counts
-def set_view_only(entries: list, dry_run: bool) -> dict:
+def set_view_only(entries: list, target: str, account_type: str, dry_run: bool) -> dict:
     results = {"changed": 0, "unchanged": 0, "failed": 0}
     start_progress("Updating", len(entries))
     with ThreadPoolExecutor(max_workers=THREADS) as pool:
-        for future in as_completed([pool.submit(apply_change, e, dry_run) for e in entries]):
+        for future in as_completed([pool.submit(apply_change, e, target, account_type, dry_run) for e in entries]):
             e, to_grant, to_revoke, changed, err = future.result()
             step_progress()
             if err:
@@ -318,27 +513,29 @@ def set_view_only(entries: list, dry_run: bool) -> dict:
                 continue
             results["changed"] += 1
             mark = f"{YELLOW}•{RESET}" if dry_run else f"{GREEN}✓{RESET}"
-            lines = [f"  {mark} {BOLD}{e['vault_name']}{RESET}  {DIM}{e['target_type']}: {e['target_label']}{RESET}"]
+            back = f"  {YELLOW}(added back from the CSV){RESET}" if e.get("added_back") else ""
+            lines = [f"  {mark} {BOLD}{e['vault_name']}{RESET}  {DIM}{e['target_type']}: {e['target_label']}{RESET}{back}"]
             if to_grant:
                 lines.append(f"      {GREEN}{'would add' if dry_run else 'added':<13}{RESET}{', '.join(to_grant)}")
             if to_revoke:
                 lines.append(f"      {YELLOW}{'would remove' if dry_run else 'removed':<13}{RESET}{', '.join(to_revoke)}")
             say("\n".join(lines))
-            target = f"{e['target_type']}:{e['target_label']}"
+            who = f"{e['target_type']}:{e['target_label']}"
             if dry_run:
-                parts = (["grant allow_viewing"] if to_grant else []) + ([f"revoke {','.join(to_revoke)}"] if to_revoke else [])
-                write_log(f"DRY-RUN: {e['vault_name']} -> {target}: {' and '.join(parts)}")
+                parts = ([f"grant {target}"] if to_grant else []) + ([f"revoke {','.join(to_revoke)}"] if to_revoke else [])
+                write_log(f"DRY-RUN: {e['vault_name']} -> {who}: {' and '.join(parts)}")
             else:
-                write_log(f"locked down {e['vault_name']} -> {target} to view only")
+                write_log(f"locked down {e['vault_name']} -> {who} to {target} only")
     end_progress()
     if not results["changed"] and not results["failed"]:
-        print(f"  {DIM}Everyone's already view only{RESET}")
+        print(f"  {DIM}Everyone already has {target} only{RESET}")
     return results
 
 
 # Reads the options and runs the whole thing
 def main() -> None:
     ap = argparse.ArgumentParser(description="Lock down vault access to view only, leaving the admin groups untouched.")
+    ap.add_argument("--file", type=Path, help="CSV of the vaults to lock down, instead of every vault you can manage")
     ap.add_argument("--account", help="1Password account shorthand, only used if the CLI isn't signed in")
     ap.add_argument("--dry-run", action="store_true", help="Show what would change without granting or revoking anything")
     args = ap.parse_args()
@@ -352,20 +549,41 @@ def main() -> None:
     heading("Checking")
     vaults = get_manageable_vaults()
     print(f"  {'Vaults found':<22} {len(vaults)} {DIM}(Employee vault excluded){RESET}")
+    account_type, source = get_account_type()
+    target = VIEW_PERMISSIONS[account_type]
+    print(f"  {'Account type':<22} {account_type} {DIM}(locking down to {target}){RESET}")
+    write_log(f"Account type {account_type} (from {source}), locking down to {target}")
+    sheet = None
+    if args.file:
+        sheet = read_vault_csv(args.file)
+        vaults, issues = match_rows(sheet["picked"], vaults)
+        picked = f"{len(sheet['picked'])} set to include" if sheet["has_include"] else f"{len(sheet['picked'])} with a vault"
+        print(f"  {'From CSV':<22} {len(vaults)} matched {DIM}({sheet['total']} rows, {picked}){RESET}")
+        write_log(f"Read {sheet['total']} rows from {args.file}, {len(sheet['picked'])} picked, {len(vaults)} matched")
+        for label, reason in issues:
+            write_log(f"not matched: {label}: {reason}")
+            print(f"  {YELLOW}!{RESET} {label}  {DIM}{reason}, skipped{RESET}")
+        if not vaults:
+            stop(f"None of the vaults in {args.file.name} matched a vault you can manage.")
     entries, read_failed = read_assignments(vaults)
+    if sheet and sheet["has_assignments"]:
+        added, not_found = add_missing_assignments(csv_assignments(sheet["picked"], vaults), entries)
+        print(f"  {'Not on vault any more':<22} {added} in the CSV {DIM}(will be added back with {target}){RESET}")
+        if not_found:
+            print(f"  {'Not in this account':<22} {YELLOW}{len(not_found)}, listed in errors.log{RESET}")
 
     heading("Would change" if args.dry_run else "Changes")
-    results = set_view_only(entries, args.dry_run)
+    results = set_view_only(entries, target, account_type, args.dry_run)
     failed = results["failed"] + read_failed
     took = (datetime.now() - _run_started).total_seconds()
 
     heading("Summary")
     print(f"  {GREEN}✓{RESET} {'Would change' if args.dry_run else 'Changed':<26}{results['changed']:>5}")
-    print(f"  {DIM}·{RESET} {'Already view only':<26}{results['unchanged']:>5}")
+    print(f"  {DIM}·{RESET} {f'Already {target} only':<26}{results['unchanged']:>5}")
     print(f"  {RED if failed else DIM}✗{RESET} {'Failed':<26}{failed:>5}")
     print(f"  {DIM}Took {took:.1f}s{RESET}")
     verb = "would be changed" if args.dry_run else "changed"
-    write_log(f"Done. {results['changed']} {verb}, {results['unchanged']} already view-only, {failed} failed.")
+    write_log(f"Done. {results['changed']} {verb}, {results['unchanged']} already {target} only, {failed} failed.")
 
     heading("Logs")
     print(f"  {os.path.relpath(_logs_dir)}/")
