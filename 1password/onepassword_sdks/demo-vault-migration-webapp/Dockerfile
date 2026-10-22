@@ -3,13 +3,13 @@
 # Newest stable 1Password CLI by default. Set a version number to pin one.
 ARG OP_VERSION=latest
 
-FROM node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS deps
+FROM node:24-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS deps
 WORKDIR /webapp
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 RUN mkdir logs
 
-FROM alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8 AS op-cli
+FROM alpine:3.22@sha256:d406446bc05b82480756ce8f1287964d28768c23955fa9480d2a74a2eae7a654 AS op-cli
 ARG OP_VERSION
 ARG TARGETARCH
 # Fingerprint of 1Password's public release signing key. It's public, but Docker's
@@ -29,7 +29,7 @@ RUN version="${OP_VERSION}" \
  && gpg --batch --status-fd 1 --verify op.sig op | grep -q "VALIDSIG ${OP_SIGNER_FINGERPRINT}" \
  && ./op --version
 
-FROM node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1
+FROM node:24-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53
 
 # Remove npm, the package manager and the shell. The app doesn't need them.
 # The CA certificates are kept because op needs them.

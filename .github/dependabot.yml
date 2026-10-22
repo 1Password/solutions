@@ -47,3 +47,14 @@ updates:
       semver-major-days: 30
       semver-minor-days: 14
       semver-patch-days: 7
+
+  - package-ecosystem: docker
+    directories:
+      - /1password/onepassword_sdks/demo-vault-migration-webapp
+      - /1password/onepassword_sdks/demo-vault-backup-webapp
+      - /1password/onepassword_sdks/demo-reverse-sharing
+      - /1password/connect/reverse-sharing
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
