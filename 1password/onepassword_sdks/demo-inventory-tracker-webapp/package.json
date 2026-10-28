@@ -15,7 +15,7 @@
     "@1password/sdk": "^0.3.1",
     "body-parser": "^2.2.2",
     "ejs": "^3.1.10",
-    "express": "^5.2.1",
+    "express": "^5.3.0",
     "nodemon": "^3.1.14"
   },
   "devDependencies": {
