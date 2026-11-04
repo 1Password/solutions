@@ -133,7 +133,7 @@ function Invoke-Op {
 function ConvertFrom-OpJson {
     param([string]$Text)
     if ([string]::IsNullOrWhiteSpace($Text)) { return @() }
-    return @($Text | ConvertFrom-Json)
+    return @($Text | ConvertFrom-Json | Where-Object { $null -ne $_ })   # op prints null for an empty list
 }
 
 

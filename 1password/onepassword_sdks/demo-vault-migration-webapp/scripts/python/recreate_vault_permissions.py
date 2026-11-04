@@ -185,7 +185,7 @@ def must_op(cmd: list, what: str) -> list:
     if not ok:
         print(f"\n{RED}Couldn't {what}: {err}{RESET}", file=sys.stderr)
         sys.exit(1)
-    return json.loads(stdout or "[]")
+    return json.loads(stdout or "[]") or []   # op prints null for an empty list
 
 
 # Turns the permissions column, written as a Python list, back into a list

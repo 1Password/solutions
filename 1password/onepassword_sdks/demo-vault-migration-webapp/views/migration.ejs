@@ -782,7 +782,7 @@
         const isDesktop = authMode === 'desktop';
         const personalDisabled = isPersonal && !isDesktop;
         const wasMigrated = migratedVaultIds.has(vault.id);
-        const statusId = `status-${vault.id}`;
+        const statusId = `status-${escapeHtml(vault.id)}`;
         const existingStatus = document.getElementById(statusId);
         const currentStatusHtml = existingStatus && existingStatus.innerHTML !== 'Pending'
           ? existingStatus.outerHTML
@@ -794,23 +794,23 @@
           : '<span class="status-badge type-shared">Shared</span>';
 
         return `
-          <tr data-vault-id="${vault.id}" class="${rowClass}">
+          <tr data-vault-id="${escapeHtml(vault.id)}" class="${rowClass}">
             <td class="cell-check">
-              <input type="checkbox" class="vault-checkbox" value="${vault.id}" data-item-count="${vault.itemCount}"
-                onchange="handleVaultSelection('${vault.id}', ${vault.itemCount})" aria-label="Select ${escapeHtml(vault.name)}"
+              <input type="checkbox" class="vault-checkbox" value="${escapeHtml(vault.id)}" data-item-count="${Number(vault.itemCount) || 0}"
+                onchange="handleVaultSelection(this.value, Number(this.dataset.itemCount))" aria-label="Select ${escapeHtml(vault.name)}"
                 ${selectedVaultIds.has(vault.id) ? 'checked' : ''} ${isMigrating || personalDisabled ? 'disabled' : ''}
                 title="${personalDisabled ? 'Personal vaults cannot be migrated with service accounts' : (wasMigrated ? 'Already migrated this session. Migrating it again will create duplicates' : '')}">
             </td>
             <td>
               <div class="vault-name">${escapeHtml(vault.name)}</div>
-              <div class="vault-id">${vault.id}</div>
+              <div class="vault-id">${escapeHtml(vault.id)}</div>
             </td>
             <td>${typeBadge}</td>
             <td class="item-count num">${Number(vault.itemCount).toLocaleString()}</td>
             <td class="col-suffix">
               <input type="text" class="suffix-input" placeholder="optional" aria-label="Suffix for ${escapeHtml(vault.name)}"
                 value="${escapeHtml(vault.suffix || '')}"
-                onchange="vaults.find(v=>v.id==='${vault.id}').suffix = this.value.trim()"
+                onchange="vaults.find(v=>v.id===this.closest('tr').dataset.vaultId).suffix = this.value.trim()"
                 ${isMigrating || personalDisabled ? 'disabled' : ''}>
             </td>
             <td>${currentStatusHtml}</td>
@@ -981,6 +981,13 @@
               banner.style.border = '1px solid var(--accent-warning)';
               banner.style.color = 'var(--accent-warning)';
               banner.textContent = `⏸ Needs up to ~${rl.estimatedWrites.toLocaleString()} destination writes; ${rl.available.toLocaleString()} available now${resetText}. Expect at least one pause.`;
+            } else if (rl.mightPause) {
+              banner.style.display = 'block';
+              banner.style.background = 'rgba(91, 155, 213, 0.1)';
+              banner.style.border = '1px solid var(--accent-primary)';
+              banner.style.color = 'var(--accent-primary)';
+              banner.textContent = `📊 Needs about ${rl.estimatedWrites.toLocaleString()} destination writes, since each batch usually counts once; ${rl.available.toLocaleString()} available now. ` +
+                `If this account counts every item in a batch it could need up to ~${rl.worstCaseWrites.toLocaleString()}, and the migration will pause if it gets close.`;
             } else {
               banner.style.display = 'block';
               banner.style.background = 'rgba(91, 155, 213, 0.1)';

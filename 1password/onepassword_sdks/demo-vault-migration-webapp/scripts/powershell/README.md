@@ -1,6 +1,6 @@
 # Vault permission scripts (PowerShell)
 
-These three scripts help you copy vault access from one 1Password account to another, and lock vaults down to view only. They don't touch anything stored in the vaults. They only look at, or change, who has access and what they can do.
+These scripts help you copy vault access from one 1Password account to another and lock vaults down to view only. They don't touch anything stored in the vaults. They only look at, or change, who has access and what they can do.
 
 These are the ones to use on Windows. There are Python versions in `../python`, but those are only for macOS and Linux. Both versions work the same way and make the same CSV.
 
@@ -116,22 +116,31 @@ Always do a `-DryRun` first.
 
 ## lockdown_view_only.ps1
 
-Brings everyone on your vaults down to view only.
+Brings everyone on your vaults down to view only access. It checks the account type first and uses the view permission that account has:
+
+| Account | Everyone ends up with | What they can do |
+| --- | --- | --- |
+| Business | `view_items` | See items, but not reveal or copy passwords, see item history, or change anything |
+| Teams | `allow_viewing` | See items and reveal or copy passwords, but not change anything or manage the vault |
+
+The type comes from `op account get`. If that doesn't say, the script goes by the vault list: if listing works with `manage_vault` it's Business, and if it only works with `allow_managing` it's Teams. The type it picked is shown under Checking and written to `errors.log`.
 
 ```powershell
 ./lockdown_view_only.ps1 -DryRun
 ./lockdown_view_only.ps1 -Account mycompany
+./lockdown_view_only.ps1 -File ./vaults.csv -DryRun   # only the vaults in the CSV
 ```
 
-- Anyone added straight to a vault, and any group on a vault, ends up with `allow_viewing` and nothing else.
-- It gives view access first and then removes the rest, so nobody gets locked out in between.
+- Without `-File` it works on every vault you can manage. With `-File` it only works on the vaults in the CSV. It needs a `vaultName` or `vaultUUID` column, and only rows set to `yes` if there's an `include` column. Rows that don't match a vault you can manage are listed and skipped.
+- If the CSV also lists who was assigned, as `vault_access_report.csv` does with its `email`, `assignment` and `groupName` columns, anyone listed who's no longer on the vault is added back with the view permission. Users assigned directly are added as users and groups as groups. Members of a group aren't added one by one, since they get access through the group. Anyone not found in the account is listed in `errors.log`.
+
+- Anyone added straight to a vault, and any group on a vault, ends up with the view permission and nothing else.
+- It removes everything else first, then grants the view permission. The view permission is never removed, so anyone who already has it keeps access throughout. Anyone who didn't have it is off the vault for a moment in between.
 - It leaves the Recovery, Administrators, Owners, Provision Managers and Security groups alone, plus the Employee vault, so you can still run the account.
-- Anyone who's already view only gets skipped, so you can run it again safely.
+- Anyone who already has only the view permission gets skipped, so you can run it again safely.
 - If the CLI isn't signed in, it signs you in using `-Account`, then the `OP_ACCOUNT` environment variable, then asks you. This works with the manual sign-in too, and the session stays in the window afterwards. The other two scripts don't do this, so for those, sign in first as shown in [Signing in on Windows](#signing-in-on-windows).
 
 Every change, retry and failure goes in `logs/<timestamp>/errors.log`. Anything that still failed also goes in `failed_changes.jsonl`.
-
-This is written for 1Password Teams, which has three permission levels: view, edit and manage.
 
 ## How they run
 
