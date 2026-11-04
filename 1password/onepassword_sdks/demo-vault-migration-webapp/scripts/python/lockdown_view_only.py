@@ -30,10 +30,9 @@ failures also go in failed_changes.jsonl.
 
 Options:
   --file     A CSV of the vaults to lock down. Leave it out to lock down every
-             vault you can manage. It's the same format
-             create_read_service_account.py uses: a vaultName or vaultUUID
-             column (name, vault, id and uuid work too, in any case), and if
-             there's an include column, only rows set to yes are used. Rows
+             vault you can manage. It needs a vaultName or vaultUUID column
+             (name, vault, id and uuid work too, in any case), and if there's
+             an include column, only rows set to yes are used. Rows
              that don't match a vault you can manage are listed and skipped.
              If the CSV also lists who was assigned (an email column, plus
              assignment and groupName, as in vault_access_report.csv), anyone
@@ -47,7 +46,7 @@ Options:
 
 Examples:
   python3 lockdown_view_only.py --dry-run
-  python3 lockdown_view_only.py --file service_account_vaults.csv --dry-run
+  python3 lockdown_view_only.py --file vaults.csv --dry-run
   python3 lockdown_view_only.py --account mycompany
 
 Works on 1Password Business and Teams. The account type comes from op account
@@ -231,7 +230,7 @@ def run_op(args: list, what: str) -> tuple:
 
 # Turns op's JSON output into a list, treating empty output as an empty list
 def parse_json(text: str) -> list:
-    return json.loads(text) if text and text.strip() else []
+    return (json.loads(text) or []) if text and text.strip() else []   # op prints null for an empty list
 
 
 # Manual sign-in prints the session instead of saving it, so this saves it for the op commands we run

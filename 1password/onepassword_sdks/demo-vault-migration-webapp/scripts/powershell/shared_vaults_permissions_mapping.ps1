@@ -83,7 +83,8 @@ function Invoke-Op {
         try {
             $psi = [System.Diagnostics.ProcessStartInfo]::new("op")
             foreach ($arg in $Arguments) { $psi.ArgumentList.Add($arg) }
-            if ($Config.Account) { $psi.ArgumentList.Add("--account"); $psi.ArgumentList.Add($Config.Account) }
+            # op --version doesn't take --account, and fails with "unknown command" if it's given one
+            if ($Config.Account -and $Arguments[0] -ne "--version") { $psi.ArgumentList.Add("--account"); $psi.ArgumentList.Add($Config.Account) }
             $psi.RedirectStandardOutput = $true
             $psi.RedirectStandardError = $true
             $psi.UseShellExecute = $false
@@ -114,7 +115,7 @@ function Invoke-Op {
 function ConvertFrom-OpJson {
     param([string]$Text)
     if ([string]::IsNullOrWhiteSpace($Text)) { return @() }
-    return @($Text | ConvertFrom-Json)
+    return @($Text | ConvertFrom-Json | Where-Object { $null -ne $_ })   # op prints null for an empty list
 }
 
 

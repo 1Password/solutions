@@ -10,7 +10,7 @@ import selfsigned from 'selfsigned';
 import fs from 'fs';
 import { createInterface } from 'readline';
 import {
-  RateLimitMonitor, MigrationControl, MigrationCancelledError, acquire, waitOutRateLimit,
+  RateLimitMonitor, MigrationControl, MigrationCancelledError, acquire, finished, waitOutRateLimit,
 } from './rate-limits.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -512,15 +512,19 @@ async function runOpCliLimited(args, opAuth, limits, kind, requests = 1) {
   if (!limits) return runOpCli(args, opAuth);
   for (let attempt = 0; ; attempt++) {
     await acquire(limits, kind, { requests });
+    let error;
     try {
       return await runOpCli(args, opAuth);
-    } catch (error) {
-      if (attempt < 5 && isRateLimitError(error)) {
-        await waitOutRateLimit(limits, kind, error);
-        continue;
-      }
-      throw error;
+    } catch (caught) {
+      error = caught;
+    } finally {
+      finished(limits, kind, { requests });
     }
+    if (attempt < 5 && isRateLimitError(error)) {
+      await waitOutRateLimit(limits, kind, error);
+      continue;
+    }
+    throw error;
   }
 }
 
@@ -588,15 +592,10 @@ function buildMigratedField(field) {
     newField.value = field.details.content.privateKey || field.value || "";
   }
   else if (field.fieldType === sdk.ItemFieldType.Totp) {
-    const totpValue = field.value || field.details?.content?.totp || "";
-    const isValidTotpUri = totpValue.startsWith("otpauth://totp/");
-    const isPotentialTotpSeed = /^[A-Z2-7]{16,32}$/i.test(totpValue);
-    if (isValidTotpUri || isPotentialTotpSeed) {
-      newField.value = totpValue;
-    } else {
-      newField.fieldType = sdk.ItemFieldType.Text;
-      newField.value = totpValue;
-    }
+    newField.value = otpValue(field);
+    // The source account already accepted this as a one-time password, so it stays one, whatever
+    // form the seed was typed in. Only one the source couldn't make codes from becomes text.
+    if (otpSourceError(field)) newField.fieldType = sdk.ItemFieldType.Text;
   }
   else if (field.fieldType === sdk.ItemFieldType.Reference) {
     newField.fieldType = sdk.ItemFieldType.Reference;
@@ -606,6 +605,22 @@ function buildMigratedField(field) {
   }
 
   return newField;
+}
+
+function otpValue(field) {
+  return String(field.value || "").trim();
+}
+
+// The SDK works out the current code when it reads an OTP field, and says why if it can't.
+function otpSourceError(field) {
+  return field.details?.content?.errorMessage || null;
+}
+
+// For Custom items, where an OTP may only be recognisable by its label. Seeds are often typed with
+// spaces or dashes, in either case, and with = padding.
+function looksLikeOtp(value) {
+  const v = String(value || "").trim();
+  return /^otpauth:\/\//i.test(v) || /^[A-Z2-7]{8,}=*$/i.test(v.replace(/[\s-]/g, ""));
 }
 
 function buildCreditCardFields(fields, vaultId = null) {
@@ -754,15 +769,18 @@ function buildCustomAsLogin(item, vaultId) {
         continue;
       }
 
-      if (fieldType === sdk.ItemFieldType.Totp || label === 'otp' ||
-          label === 'one-time password' || label === 'totp' ||
-          fieldId === 'totp' || fieldId === 'otp') {
-        const totpValue = field.value || field.details?.content?.totp || "";
+      const otpLabel = label === 'otp' || label === 'one-time password' || label === 'totp' ||
+          fieldId === 'totp' || fieldId === 'otp';
+      // A field labelled like an OTP only becomes one if it holds a seed, not a backup code or a note
+      const isOtp = fieldType === sdk.ItemFieldType.Totp
+        ? !otpSourceError(field)
+        : otpLabel && looksLikeOtp(field.value);
+      if (isOtp) {
         builtInFields.push({
           id: "onetimepassword",
           title: field.title || field.label || "one-time password",
           fieldType: sdk.ItemFieldType.Totp,
-          value: totpValue,
+          value: otpValue(field),
         });
         continue;
       }
@@ -843,7 +861,7 @@ function buildNewItem(item, newVaultId, vaultId) {
   if (isCustomCategory(item.category)) {
     const newItem = buildCustomAsLogin(item, vaultId);
     newItem.vaultId = newVaultId;
-    return newItem;
+    return withUniqueFieldIds(newItem, vaultId);
   }
 
   const newItem = {
@@ -1031,6 +1049,55 @@ function buildNewItem(item, newVaultId, vaultId) {
     }));
   }
 
+  return withUniqueFieldIds(newItem, vaultId);
+}
+
+// 1Password apps keep items with two fields sharing an ID (a passkey saved onto an existing login can
+// add a second "username"), but the SDK refuses to create them. Exact copies are dropped, and anything
+// else sharing an ID gets a new one so no data is lost.
+function withUniqueFieldIds(newItem, vaultId) {
+  const taken = new Set();
+  const kept = new Map();
+  const uniqueId = (id) => {
+    let n = 2;
+    while (taken.has(`${id}_${n}`)) n++;
+    return `${id}_${n}`;
+  };
+  const sameContent = (a, b) => a.fieldType === b.fieldType && a.value === b.value
+    && JSON.stringify(a.details ?? null) === JSON.stringify(b.details ?? null);
+
+  if (newItem.fields) {
+    const fields = [];
+    for (const field of newItem.fields) {
+      if (!taken.has(field.id)) {
+        taken.add(field.id);
+        kept.set(field.id, field);
+        fields.push(field);
+        continue;
+      }
+      if (kept.has(field.id) && sameContent(kept.get(field.id), field)) {
+        logger.info(vaultId, `"${newItem.title}" has two identical "${field.id}" fields. Keeping one`);
+        continue;
+      }
+      const newId = uniqueId(field.id);
+      logger.warning(vaultId, `"${newItem.title}" has two different "${field.id}" fields. Keeping the second as "${newId}"`);
+      taken.add(newId);
+      // Only the first can be the built-in field, so the other goes in a section like any custom field
+      fields.push({ ...field, id: newId, sectionId: field.sectionId || "add more" });
+    }
+    newItem.fields = fields;
+  }
+
+  for (const file of newItem.files || []) {
+    if (taken.has(file.fieldId)) file.fieldId = uniqueId(file.fieldId);
+    taken.add(file.fieldId);
+  }
+
+  const usedSections = [...(newItem.fields || []), ...(newItem.files || [])].map(f => f.sectionId);
+  if (usedSections.includes("add more")) {
+    if (!newItem.sections) newItem.sections = [];
+    if (!newItem.sections.some(s => s.id === "add more")) newItem.sections.push({ id: "add more", title: "" });
+  }
   return newItem;
 }
 
@@ -1276,22 +1343,33 @@ app.post('/migration/rate-limit-check', async (req, res) => {
 
   const counts = vaultItemCounts.map(n => typeof n === 'number' && isFinite(n) ? Math.max(0, Math.floor(n)) : 0);
   const monitor = rateLimitMonitorFor(token, 'destination');
-  await monitor.exclusive(() => monitor.refresh());
+  try {
+    await monitor.exclusive(() => monitor.refresh());
+  } finally {
+    RateLimitMonitor.release(monitor);
+  }
   const limiting = monitor.limiting('write');
   if (!limiting) return res.json({ success: true, supported: false });
 
   const estimate = estimateWrites(counts);
-  const estimatedWrites = monitor.countsPerItem.write === false ? estimate.perBatch : estimate.perItem;
+  // Until a migration has shown how this account counts batches, only the batched estimate is
+  // certain to be needed. The per-item one is a worst case the migration learns its way out of.
+  const countsPerItem = monitor.countsPerItem.write;
+  const estimatedWrites = countsPerItem === true ? estimate.perItem : estimate.perBatch;
+  const worstCaseWrites = countsPerItem === false ? estimate.perBatch : estimate.perItem;
   const available = Math.max(0, limiting.available - monitor.reserve('write'));
-  logger.info(null, `Rate limit check: destination has ${available} writes available (${limiting.scope} limit ${limiting.limit}), migration needs up to ${estimatedWrites}`);
+  const willPause = estimatedWrites > available;
+  logger.info(null, `Rate limit check: destination has ${available} writes available (${limiting.scope} limit ${limiting.limit}), migration needs about ${estimatedWrites}, at most ${worstCaseWrites}`);
   res.json({
     success: true,
     supported: true,
     usage: monitor.snapshot(),
     available,
     estimatedWrites,
+    worstCaseWrites,
     estimatedWritesIfBatched: estimate.perBatch,
-    willPause: estimatedWrites > available,
+    willPause,
+    mightPause: !willPause && worstCaseWrites > available,
     limitingScope: limiting.scope,
     limit: limiting.limit,
     resetAt: limiting.resetAt,
@@ -1566,10 +1644,16 @@ async function writeItemsToVault({ vaultId, vaultName, items, newVaultId, destSD
   };
 
   const recordSuccess = (entry, createdItem, how) => {
-    processedItems++;
-    successCount++;
     idMap.set(entry.sourceId, createdItem.id);
     logger.info(vaultId, `${how} item [${entry.sourceId}] "${entry.sourceTitle}" → ${createdItem.id}`, { itemId: entry.sourceId });
+    // The item exists, but without files that couldn't be read from the source, so it counts as failed.
+    if (entry.unreadFiles.length > 0) {
+      recordFailure(entry.sourceId, entry.sourceTitle, new Error(
+        `Created without ${entry.unreadFiles.length} file(s) that couldn't be read from the source: ${entry.unreadFiles.join(', ')}`));
+    } else {
+      processedItems++;
+      successCount++;
+    }
     if (entry.refFields.length > 0) {
       itemsWithRefs.push({ sourceItemId: entry.sourceId, destItemId: createdItem.id, createdItem, refFields: entry.refFields });
     }
@@ -1620,7 +1704,7 @@ async function writeItemsToVault({ vaultId, vaultName, items, newVaultId, destSD
       // Attachments, documents and credit cards go in batches too: a batch counts as one write
       // against the rate limit however many items it holds.
       const bytes = binaryBytes(newItem);
-      const entry = { sourceId: item.id, sourceTitle: item.title, newItem, refFields, bytes };
+      const entry = { sourceId: item.id, sourceTitle: item.title, newItem, refFields, bytes, unreadFiles: item.unreadFiles || [] };
 
       if (bytes > BATCH_MAX_BYTES) {
         individualItems.push(entry);
@@ -1677,6 +1761,7 @@ async function writeItemsToVault({ vaultId, vaultName, items, newVaultId, destSD
           : await destSDK.retry(createBatch);
       } finally {
         estimate?.stop(!!batchResponse);
+        if (destSDK.limits) finished(destSDK.limits, 'write', { units: size });
       }
 
       refusedBatches = 0;
@@ -1926,8 +2011,9 @@ app.post('/migration/start', (req, res) => {
   const { sourceToken, destToken, authMode, sourceAccountName, destAccountName, useEnv, vaults } = req.body;
 
   const validatedMode = VALID_AUTH_MODES_SERVER.includes(authMode) ? authMode : 'service-account';
+  // Vault IDs are shown again on any page that reattaches, so only real-looking IDs get through.
   const validatedVaults = Array.isArray(vaults) ? vaults.filter(v =>
-    v && typeof v.vaultId === 'string' && typeof v.vaultName === 'string'
+    v && typeof v.vaultId === 'string' && /^[A-Za-z0-9]{1,64}$/.test(v.vaultId) && typeof v.vaultName === 'string'
   ).map(v => ({ ...v, itemCount: Number.isFinite(v.itemCount) ? v.itemCount : 0 })) : null;
 
   const sessionId = crypto.randomUUID();
@@ -2012,8 +2098,11 @@ app.get('/migration/migrate-all-vaults', async (req, res) => {
     control.clientDisconnected();
     logger.info(null, 'No page is watching the migration. It will continue on the server');
   } });
+  // Released when the migration ends, so the rate limit monitors stop holding its tokens
+  const monitorsInUse = [];
   function finish(payload) {
     activeMigrations.delete(sessionId);
+    for (const monitor of monitorsInUse.splice(0)) RateLimitMonitor.release(monitor);
     sseWrite(payload);
     feed.end();
   }
@@ -2159,8 +2248,10 @@ app.get('/migration/migrate-all-vaults', async (req, res) => {
     const destSDK = createSDKInstance('service-account', resolvedDestToken);
     await destSDK.initializeClient();
 
+    const sourceMonitor = rateLimitMonitorFor(resolvedSourceToken, 'source');
     const destMonitor = rateLimitMonitorFor(resolvedDestToken, 'destination');
-    sourceSDK.attachRateLimits({ monitor: rateLimitMonitorFor(resolvedSourceToken, 'source'), control });
+    monitorsInUse.push(sourceMonitor, destMonitor);
+    sourceSDK.attachRateLimits({ monitor: sourceMonitor, control });
     destSDK.attachRateLimits({ monitor: destMonitor, control });
     if (await destMonitor.exclusive(() => destMonitor.refresh())) control.reportUsage(destMonitor);
 
@@ -2450,15 +2541,19 @@ class OnePasswordSDK {
     }
     for (let attempt = 0; ; attempt++) {
       await acquire(this.limits, kind, { units });
+      let error;
       try {
         return await retryWithBackoff(fn, { retryRateLimits: false });
-      } catch (error) {
-        if (attempt < 5 && isRateLimitError(error)) {
-          await waitOutRateLimit(this.limits, kind, error);
-          continue;
-        }
-        throw error;
+      } catch (caught) {
+        error = caught;
+      } finally {
+        finished(this.limits, kind, { units });
       }
+      if (attempt < 5 && isRateLimitError(error)) {
+        await waitOutRateLimit(this.limits, kind, error);
+        continue;
+      }
+      throw error;
     }
   }
 
@@ -2521,6 +2616,7 @@ class OnePasswordSDK {
       return { items, sourceItemCount: itemOverviews.length };
 
     } catch (error) {
+      if (error instanceof MigrationCancelledError) throw error;
       logger.error(vaultId, `Failed to list items: ${error.message}`);
       throw new Error(`Failed to list items for vault ${vaultId}: ${error.message}`);
     }
@@ -2545,11 +2641,13 @@ class OnePasswordSDK {
         }
       }
     } catch (batchError) {
+      if (batchError instanceof MigrationCancelledError) throw batchError;
       logger.warning(vaultId, `Batch getAll failed, falling back to individual gets: ${batchError.message}`);
       for (const id of chunkIds) {
         try {
           fullItems.push(await this.retry(() => this.client.items.get(vaultId, id)));
         } catch (itemError) {
+          if (itemError instanceof MigrationCancelledError) throw itemError;
           logger.error(vaultId, `Failed to get item ${id}: ${formatErrorForLog(itemError)}`);
         }
       }
@@ -2584,11 +2682,15 @@ class OnePasswordSDK {
               fieldId: file.fieldId
             }))
             .catch(err => {
+              if (err instanceof MigrationCancelledError) throw err;
               logger.warning(vaultId, `Failed to read file ${file.attributes.name}: ${err.message}`);
               return null;
             })
         );
         itemData.files = files.filter(f => f !== null);
+        // Remembered so the item is reported as failed once it's created without them.
+        const unread = fullItem.files.filter((_, idx) => files[idx] === null).map(f => f.attributes.name);
+        if (unread.length > 0) itemData.unreadFiles = unread;
       }
 
       if (fullItem.category === sdk.ItemCategory.Document && fullItem.document) {
@@ -2601,12 +2703,15 @@ class OnePasswordSDK {
             content: documentContent instanceof Uint8Array ? documentContent : new Uint8Array(documentContent)
           };
         } catch (docError) {
+          if (docError instanceof MigrationCancelledError) throw docError;
           logger.warning(vaultId, `Failed to read document for ${fullItem.title}: ${docError.message}`);
+          itemData.unreadFiles = [...(itemData.unreadFiles || []), fullItem.document.name];
         }
       }
 
       return itemData;
     } catch (processError) {
+      if (processError instanceof MigrationCancelledError) throw processError;
       logger.error(vaultId, `Failed to process item ${fullItem.id}: ${processError.message}`);
       if (DEBUG_ENABLED) {
         logger.error(vaultId, `[DEBUG] Processing FAILED for item "${fullItem.title}" [${fullItem.id}]: ${formatErrorForLog(processError)}`);
@@ -2643,11 +2748,8 @@ function normalizeSourceField(field) {
       }
     };
   } else if (field.fieldType === sdk.ItemFieldType.Totp) {
-    return {
-      ...field,
-      value: field.details?.content?.totp || field.value || "",
-      details: field.details || {}
-    };
+    // value holds the seed or otpauth:// URI. details only has the current code, or why there isn't one.
+    return { ...field, value: field.value || "", details: field.details || {} };
   }
   return field;
 }

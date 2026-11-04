@@ -144,7 +144,8 @@ def write_error_log(status: str, subject: str, detail: str) -> None:
 
 # Runs an op command, retrying up to MAX_RETRIES times unless the error won't go away
 def run_op(args: list, what: str) -> tuple:
-    cmd = ["op"] + args + (["--account", _account] if _account else [])
+    # op --version doesn't take --account, and fails with "unknown command" if it's given one
+    cmd = ["op"] + args + (["--account", _account] if _account and args != ["--version"] else [])
     err = ""
     for attempt in range(MAX_RETRIES + 1):
         try:
@@ -165,7 +166,7 @@ def run_op(args: list, what: str) -> tuple:
 
 # Turns op's JSON output into a list, treating empty output as an empty list
 def parse_json(text: str) -> list:
-    return json.loads(text) if text and text.strip() else []
+    return (json.loads(text) or []) if text and text.strip() else []   # op prints null for an empty list
 
 
 # Stops early unless the CLI is at least version 2.25

@@ -30,10 +30,10 @@
 
 .PARAMETER File
     A CSV of the vaults to lock down. Leave it out to lock down every vault you can manage.
-    It's the same format create_read_service_account.ps1 uses: a vaultName or vaultUUID column
+    It needs a vaultName or vaultUUID column
     (name, vault, id and uuid work too, in any case), and if there's an include column, only rows
-    set to yes are used. So service_account_vaults.csv, and the vault_access_report.csv from
-    shared_vaults_permissions_mapping.ps1, both work as is. Rows that don't match a vault you can
+    set to yes are used. The vault_access_report.csv from shared_vaults_permissions_mapping.ps1
+    works as is. Rows that don't match a vault you can
     manage are listed and skipped.
 
     If the CSV also lists who was assigned (an email column, plus assignment and groupName, as in
@@ -55,9 +55,9 @@
     Shows who would be changed.
 
 .EXAMPLE
-    ./lockdown_view_only.ps1 -File ./service_account_vaults.csv -DryRun
+    ./lockdown_view_only.ps1 -File ./vaults.csv -DryRun
 
-    Shows who would be changed on just the vaults set to yes in service_account_vaults.csv.
+    Shows who would be changed on just the vaults set to yes in vaults.csv.
 
 .EXAMPLE
     ./lockdown_view_only.ps1 -Account mycompany
@@ -165,7 +165,7 @@ function Invoke-Op {
 function ConvertFrom-OpJson {
     param([string]$Text)
     if ([string]::IsNullOrWhiteSpace($Text)) { return @() }
-    return @($Text | ConvertFrom-Json)
+    return @($Text | ConvertFrom-Json | Where-Object { $null -ne $_ })   # op prints null for an empty list
 }
 
 

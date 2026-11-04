@@ -1,4 +1,6 @@
 // Keeps track of service account rate limits and pauses the migration before it hits them.
+import crypto from 'node:crypto';
+
 // How often to ask 1Password how much of the limit is left.
 const CHECK_INTERVAL_MS = 30 * 1000;
 const CHECK_EVERY_REQUESTS = 25;
@@ -61,22 +63,37 @@ const newCounters = () => ({
   read: { requests: 0, batchRequests: 0, batchUnits: 0, cost: 0 },
   write: { requests: 0, batchRequests: 0, batchUnits: 0, cost: 0 },
 });
+const copyCounters = (c) => ({ read: { ...c.read }, write: { ...c.write } });
 
 export class RateLimitMonitor {
+  // Keyed by a hash of the token, so the map never holds a token itself. What a monitor has learned
+  // about a service account outlives a migration, but its token is dropped as soon as nothing uses it.
   static #byToken = new Map();
 
   static for(token, label, deps) {
-    let monitor = RateLimitMonitor.#byToken.get(token);
+    const key = crypto.createHash('sha256').update(String(token ?? '')).digest('hex');
+    let monitor = RateLimitMonitor.#byToken.get(key);
     if (!monitor) {
-      monitor = new RateLimitMonitor({ token, label, ...deps });
-      RateLimitMonitor.#byToken.set(token, monitor);
+      monitor = new RateLimitMonitor({ label, ...deps });
+      RateLimitMonitor.#byToken.set(key, monitor);
     }
-    monitor.label = label;
+    // One token used for both accounts shares one monitor, since 1Password counts them against the same limit
+    monitor.label = monitor.users > 0 && monitor.label !== label ? 'source and destination' : label;
+    monitor.token = token;
+    monitor.users++;
     return monitor;
   }
 
-  constructor({ token, label, runOp, log }) {
-    this.token = token;
+  // Call once for each for() when that use is finished.
+  static release(monitor) {
+    if (!monitor || monitor.users === 0) return;
+    monitor.users--;
+    if (monitor.users === 0) monitor.token = null;
+  }
+
+  constructor({ label, runOp, log }) {
+    this.token = null;
+    this.users = 0;
     this.label = label;
     this.runOp = runOp;
     this.log = log;
@@ -85,6 +102,10 @@ export class RateLimitMonitor {
     this.supported = true;
     this.lastFailureAt = 0;
     this.since = newCounters();
+    // Requests allowed through that haven't finished yet, now and when the limits were last read.
+    // 1Password may or may not have counted these, so learning allows for either.
+    this.pending = newCounters();
+    this.pendingAtRefresh = newCounters();
     // null means we don't know yet whether a batch counts once or once per item.
     this.countsPerItem = { read: null, write: null };
     this.lockTail = Promise.resolve();
@@ -97,7 +118,7 @@ export class RateLimitMonitor {
   }
 
   async refresh() {
-    if (!this.supported) return false;
+    if (!this.supported || !this.token) return false;
     let output;
     try {
       output = await this.runOp(['service-account', 'ratelimit'], { token: this.token });
@@ -112,26 +133,43 @@ export class RateLimitMonitor {
       }
       return false;
     }
-    const entries = parseRateLimitTable(output);
-    this.#learn(entries);
+    let entries;
+    try {
+      entries = parseRateLimitTable(output);
+    } catch (error) {
+      // Output this code doesn't understand is treated like a failed check, not a failed migration
+      this.lastFailureAt = Date.now();
+      this.log.warning(null, `Could not read ${this.label} rate limits (${error.message}). Will try again; meanwhile the migration pauses if 1Password reports a limit.`);
+      return false;
+    }
+    const pendingNow = copyCounters(this.pending);
+    this.#learn(entries, pendingNow);
     this.entries = entries;
     this.fetchedAt = Date.now();
     this.lastFailureAt = 0;
     this.since = newCounters();
+    this.pendingAtRefresh = pendingNow;
     return true;
   }
 
-  #learn(entries) {
+  #learn(entries, pendingNow) {
     for (const kind of ['read', 'write']) {
       const before = this.entries?.[`token:${kind}`];
       const after = entries[`token:${kind}`];
       const { requests, batchRequests, batchUnits } = this.since[kind];
       if (!before || !after || batchUnits <= batchRequests) continue;
-      const delta = after.used - before.used - requests;
+      const delta = after.used - before.used;
       if (delta < 0) continue;
+      // Each way of counting predicts a range: requests still out now may not be counted yet, and
+      // requests that were out at the last check may only be counted now. Only decide when one fits.
+      const now = pendingNow[kind];
+      const prev = this.pendingAtRefresh[kind];
+      const fits = (sent, outNow, outBefore) => delta >= sent - outNow - 1 && delta <= sent + outBefore + 1;
+      const perRequest = fits(requests + batchRequests, now.requests + now.batchRequests, prev.requests + prev.batchRequests);
+      const perItem = fits(requests + batchUnits, now.requests + now.batchUnits, prev.requests + prev.batchUnits);
       const previous = this.countsPerItem[kind];
-      if (delta <= batchRequests + 1) this.countsPerItem[kind] = false;
-      else if (delta >= batchUnits - 1) this.countsPerItem[kind] = true;
+      if (perRequest && !perItem) this.countsPerItem[kind] = false;
+      else if (perItem && !perRequest) this.countsPerItem[kind] = true;
       if (previous !== this.countsPerItem[kind] && this.countsPerItem[kind] !== null) {
         this.log.info(null, `${this.label} service account: batched ${kind}s count ${this.countsPerItem[kind] ? 'once per item' : 'once per request'}`);
       }
@@ -145,19 +183,22 @@ export class RateLimitMonitor {
   #constraints(kind) {
     if (!this.entries) return [];
     const now = Date.now();
+    const hasReset = (e) => e.resetInMs !== null && this.fetchedAt + e.resetInMs <= now;
     return Object.entries(this.entries)
       // Limits we guessed from a 429 run out at the reset time.
-      .filter(([, e]) => !(e.assumed && this.fetchedAt + e.resetInMs <= now))
+      .filter(([, e]) => !(e.assumed && hasReset(e)))
       .filter(([, e]) => (e.scope === 'token' && e.action === kind)
         || (e.scope === 'account' && (e.action === kind || e.action === 'read_write')))
       .map(([key, e]) => {
         const spent = e.scope === 'token' || e.action === kind
           ? this.since[kind].cost
           : this.since.read.cost + this.since.write.cost;
+        // Read limits whose reset time has passed are full again, even if they can't be read again yet
+        const reset = hasReset(e);
         return {
           key, ...e,
-          available: e.remaining - spent,
-          resetAt: e.resetInMs === null ? null : this.fetchedAt + e.resetInMs,
+          available: (reset ? e.limit : e.remaining) - spent,
+          resetAt: reset || e.resetInMs === null ? null : this.fetchedAt + e.resetInMs,
         };
       });
   }
@@ -176,13 +217,28 @@ export class RateLimitMonitor {
 
   record(kind, requests, units, { batch = false } = {}) {
     const c = this.since[kind];
+    const p = this.pending[kind];
     if (batch) {
       c.batchRequests += requests;
       c.batchUnits += units;
+      p.batchRequests += requests;
+      p.batchUnits += units;
     } else {
       c.requests += requests;
+      p.requests += requests;
     }
     c.cost += batch ? this.cost(kind, requests, units) : requests;
+  }
+
+  // A request that record() let through has finished, whether it worked or not.
+  done(kind, requests, units, { batch = false } = {}) {
+    const p = this.pending[kind];
+    if (batch) {
+      p.batchRequests = Math.max(0, p.batchRequests - requests);
+      p.batchUnits = Math.max(0, p.batchUnits - units);
+    } else {
+      p.requests = Math.max(0, p.requests - requests);
+    }
   }
 
   assumePerItem(kind) {
@@ -208,6 +264,7 @@ export class RateLimitMonitor {
     this.entries[key] = { scope: 'token', action: kind, limit: existing?.limit ?? 0, used: existing?.limit ?? 0, remaining: 0, resetInMs, assumed: true };
     this.fetchedAt = Date.now();
     this.since = newCounters();
+    this.pendingAtRefresh = copyCounters(this.pending);
   }
 
   snapshot() {
@@ -256,6 +313,10 @@ export class MigrationControl {
   // A page is watching again, so pauses wait for its Resume click instead of resuming on their own.
   clientReconnected() {
     this.clientConnected = true;
+    for (const waiter of this.waiters) {
+      clearTimeout(waiter.timer);
+      waiter.timer = null;
+    }
   }
 
   clientDisconnected() {
@@ -354,6 +415,12 @@ export async function acquire({ monitor, control }, kind, { requests = 1, units 
       control.reportUsage(monitor);
     }
   });
+}
+
+// Call after each request acquire() let through, with the units it granted, once the request has finished.
+export function finished({ monitor }, kind, { requests = 1, units = 1 } = {}) {
+  const batch = units > 1;
+  monitor.done(kind, batch ? 1 : requests, units, { batch });
 }
 
 // 1Password said 429 anyway, so pause until it says we can try again.
