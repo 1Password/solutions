@@ -14,7 +14,7 @@ parser.add_argument(
     "--file",
     action="store",
     dest="filepath",
-    help="Specify a path to a file containing a line-deliminted list of vault UUIDs to include in the report.",
+    help="Specify a path to a file containing a line-delimited list of vault UUIDs to include in the report.",
 )
 args = parser.parse_args()
 
@@ -29,7 +29,7 @@ def checkCLIVersion():
     major, minor = r.stdout.decode("utf-8").rstrip().split(".", 2)[:2]
     if not major == 2 and not int(minor) >= 25:
         sys.exit(
-            "❌ You must be using version 2.25 or greater of the 1Password CLI. Please visit https://developer.1password.com/docs/cli/get-started to download the lastest version."
+            "❌ You must be using version 2.25 or greater of the 1Password CLI. Please visit https://developer.1password.com/docs/cli/get-started to download the latest version."
         )
 
 
