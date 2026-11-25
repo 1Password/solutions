@@ -3,7 +3,7 @@
 # Newest stable 1Password CLI by default. Set a version number to pin one.
 ARG OP_VERSION=latest
 
-FROM node:24-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS deps
+FROM node:26-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS deps
 WORKDIR /webapp
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
@@ -29,7 +29,7 @@ RUN version="${OP_VERSION}" \
  && gpg --batch --status-fd 1 --verify op.sig op | grep -q "VALIDSIG ${OP_SIGNER_FINGERPRINT}" \
  && ./op --version
 
-FROM node:24-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53
+FROM node:26-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5
 
 # Remove npm, the package manager and the shell. The app doesn't need them.
 # The CA certificates are kept because op needs them.
